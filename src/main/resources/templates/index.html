@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>[(${title})] — ScoutSight</title>
+  <title>[(${title})] &mdash; ScoutSight</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -126,9 +126,9 @@
     const RANK_ORDER = ['Scout','Tenderfoot','2nd Class','1st Class','Star','Life','Eagle'];
 
     function RankCell({ rankData }) {
-      if (!rankData) return <td className="tc-absent">—</td>;
+      if (!rankData) return <td className="tc-absent">&mdash;</td>;
       if (rankData.completed)
-        return <td className="tc-complete" title={rankData.dateCompleted}>✓</td>;
+        return <td className="tc-complete" title={rankData.dateCompleted}>&#10003;</td>;
       if (rankData.pctComplete >= 50)
         return <td className="tc-progress-hi">{rankData.pctComplete}%</td>;
       if (rankData.pctComplete > 0)
@@ -190,7 +190,7 @@
             <div className={`fp-head${fpOpen ? ' open' : ''}`}
                  onClick={() => setFpOpen(o => !o)} role="button" aria-expanded={fpOpen}>
               <span className={`fp-label${hasActive ? ' fp-label-active' : ''}`}>
-                {hasActive ? '● Filters active' : 'Filters'}
+                {hasActive ? '\u25CF Filters active' : 'Filters'}
               </span>
               <svg className={`fp-chevron${fpOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
@@ -247,7 +247,7 @@
                   </>
                 )}
                 {hasActive && (
-                  <button className="reset-btn" type="button" onClick={resetAll}>✕ Reset all</button>
+                  <button className="reset-btn" type="button" onClick={resetAll}>&#10005; Reset all</button>
                 )}
               </div>
             </div>
@@ -256,7 +256,7 @@
           {/* Summary */}
           <div className="sbar">
             <div className="sstat"><strong>{visible.length}</strong> scout{visible.length !== 1 ? 's' : ''}</div>
-            {hasActive && <span className="sbar-filter-active">▲ Filters active</span>}
+            {hasActive && <span className="sbar-filter-active">&#9650; Filters active</span>}
           </div>
 
           {/* Table */}
@@ -281,7 +281,7 @@
                         <a href={`scout_${scout.memberId}.html`}>{scout.name}</a>
                         {scout.patrol && (
                           <span style={{color:'var(--text-muted)',fontSize:'.75rem',fontWeight:400,marginLeft:'.4rem'}}>
-                            · {scout.patrol}
+                            &middot; {scout.patrol}
                           </span>
                         )}
                       </td>

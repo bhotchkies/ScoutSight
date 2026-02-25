@@ -1,179 +1,505 @@
 package org.troop600.scoutsight.gui;
 
 import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.event.*;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.nio.file.*;
 import org.troop600.scoutsight.html.ResourceIO;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
 import java.util.prefs.Preferences;
 import java.util.regex.*;
 
 /**
- * Swing GUI for Scout Rank Planning report generation.
+ * Swing GUI for ScoutSight report generation.
  *
- * <p>No extra JARs needed — uses only classes built into the JDK.
- * Report generation is delegated to {@code troop600.advancementplan.cli.Main}
- * via a subprocess so the working directory is set correctly.
+ * <p>Styled to match the HTML output — parchment/forest-green palette, Nimbus L&amp;F
+ * with custom color overrides, black header with blue accent stripe, contextual
+ * per-field help buttons, and a dark terminal-style log area.
  */
 public class GuiMain extends JFrame {
 
-    private static final Preferences PREFS = Preferences.userNodeForPackage(GuiMain.class);
-    private static final String PREF_WORK_DIR    = "workDir";
-    private static final String PREF_ADV_CSV     = "advancementCsv";
-    private static final String PREF_SCOUTS_CSV  = "scoutsCsv";
-    private static final String PREF_ROSTER_CSV  = "rosterReportCsv";
-    private static final String PREF_CAMP        = "camp";
+    // ── Design tokens (matching HTML design system) ──────────────────────────
+    private static final Color C_BG        = new Color(0xF0EBE0);
+    private static final Color C_SURFACE   = new Color(0xFAF7F2);
+    private static final Color C_SURFACE2  = new Color(0xF5F0E6);
+    private static final Color C_BORDER    = new Color(0xD6CCB8);
+    private static final Color C_TEXT      = new Color(0x28200F);
+    private static final Color C_MUTED     = new Color(0x7A6E58);
+    private static final Color C_GREEN     = new Color(0x1A4D2E);
+    private static final Color C_GREEN_MID = new Color(0x256937);
+    private static final Color C_GREEN_LT  = new Color(0x3A8A50);
+    private static final Color C_AMBER     = new Color(0xC47A0E);
+    private static final Color C_RED       = new Color(0xB03030);
+    private static final Color C_STRIPE    = new Color(0x3A5BB8);
+    private static final Color C_LOG_BG    = new Color(0x111A11);
+    private static final Color C_LOG_FG    = new Color(0xC8E8C8);
+    private static final Color C_LOG_CARET = new Color(0x52B056);
 
-    private final JTextField workDirField;
-    private final JTextField advancementField;
-    private final JTextField scoutsField;
-    private final JTextField rosterField;
+    // ── Fonts ────────────────────────────────────────────────────────────────
+    private static final Font FONT_BODY    = ui(Font.PLAIN,  12);
+    private static final Font FONT_LABEL   = ui(Font.BOLD,   12);
+    private static final Font FONT_SECTION = ui(Font.BOLD,   10);
+    private static final Font FONT_SMALL   = ui(Font.PLAIN,  11);
+    private static final Font FONT_HINT    = ui(Font.ITALIC, 10);
+    private static final Font FONT_MONO    = monoFont(12);
+    private static final Font FONT_RUN     = ui(Font.BOLD,   13);
+
+    // ── Preferences ──────────────────────────────────────────────────────────
+    private static final Preferences PREFS          = Preferences.userNodeForPackage(GuiMain.class);
+    private static final String      PREF_WORK_DIR  = "workDir";
+    private static final String      PREF_ADV_CSV   = "advancementCsv";
+    private static final String      PREF_SCOUTS    = "scoutsCsv";
+    private static final String      PREF_ROSTER    = "rosterReportCsv";
+    private static final String      PREF_CAMP      = "camp";
+
+    // ── Component references ─────────────────────────────────────────────────
+    private final JTextField          workDirField;
+    private final JTextField          advancementField;
+    private final JTextField          scoutsField;
+    private final JTextField          rosterField;
     private final JComboBox<CampEntry> campCombo;
-    private final JTextArea outputArea;
-    private final JButton runButton;
-    private final JButton viewButton;
+    private final JTextArea           logArea;
+    private final JButton             runButton;
+    private final JButton             viewButton;
+    private final JLabel              statusLabel;
+
+    // ── Entry point ──────────────────────────────────────────────────────────
 
     public static void main(String[] args) {
-        // Apply the platform's native look and feel (Aqua on macOS, Windows on Windows)
-        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-        catch (Exception ignored) { }
+        applyTheme();
         SwingUtilities.invokeLater(() -> new GuiMain().setVisible(true));
     }
 
+    /** Configures Nimbus L&F with design-system color overrides. */
+    private static void applyTheme() {
+        try {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (Exception ignored) { }
+
+        UIManager.put("control",                   C_BG);
+        UIManager.put("nimbusBase",                C_GREEN);
+        UIManager.put("nimbusBlueGrey",            new Color(0xC4BBB0));
+        UIManager.put("nimbusBorder",              C_BORDER);
+        UIManager.put("nimbusSelectionBackground", C_GREEN);
+        UIManager.put("nimbusLightBackground",     C_SURFACE);
+        UIManager.put("text",                      C_TEXT);
+        UIManager.put("nimbusFocus",               C_STRIPE);
+        UIManager.put("nimbusDisabledText",        C_MUTED);
+        UIManager.put("textHighlight",             C_GREEN_LT);
+        UIManager.put("textHighlightText",         Color.WHITE);
+        UIManager.put("info",                      new Color(0xFEF6C0));
+        UIManager.put("ToolTip.font",              ui(Font.PLAIN, 12));
+    }
+
+    // ── Constructor ──────────────────────────────────────────────────────────
+
     public GuiMain() {
-        super("Scout Rank Planning - Report Generator");
+        super("ScoutSight — Report Generator");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setBackground(C_BG);
 
-        // ── Fields ─────────────────────────────────────────────────────────
-        workDirField    = new JTextField(PREFS.get(PREF_WORK_DIR,   System.getProperty("user.dir")));
-        advancementField = new JTextField(PREFS.get(PREF_ADV_CSV,    ""));
-        scoutsField     = new JTextField(PREFS.get(PREF_SCOUTS_CSV, ""));
-        rosterField     = new JTextField(PREFS.get(PREF_ROSTER_CSV, ""));
+        // Text fields
+        workDirField     = styledField(PREFS.get(PREF_WORK_DIR, System.getProperty("user.dir")));
+        advancementField = styledField(PREFS.get(PREF_ADV_CSV,  ""));
+        scoutsField      = styledField(PREFS.get(PREF_SCOUTS,   ""));
+        rosterField      = styledField(PREFS.get(PREF_ROSTER,   ""));
 
+        // Camp combo
         campCombo = new JComboBox<>();
+        campCombo.setFont(FONT_BODY);
         refreshCampDropdown();
         campCombo.addActionListener(e -> {
             CampEntry sel = (CampEntry) campCombo.getSelectedItem();
             PREFS.put(PREF_CAMP, sel != null ? sel.stem() : "");
         });
 
-        // Reload camps when the working directory changes
-        workDirField.addActionListener(e -> {
-            PREFS.put(PREF_WORK_DIR, workDirField.getText().trim());
-            refreshCampDropdown();
-        });
-        workDirField.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override public void focusLost(java.awt.event.FocusEvent e) {
-                PREFS.put(PREF_WORK_DIR, workDirField.getText().trim());
-                refreshCampDropdown();
-            }
+        workDirField.addActionListener(e -> onWorkDirChanged());
+        workDirField.addFocusListener(new FocusAdapter() {
+            @Override public void focusLost(FocusEvent e) { onWorkDirChanged(); }
         });
 
-        // ── Buttons ─────────────────────────────────────────────────────────
-        JButton workDirBtn = new JButton("Pick...");
+        // Browse buttons
+        JButton workDirBtn = browseButton();
         workDirBtn.addActionListener(e -> pickDirectory());
-
-        JButton advBtn = new JButton("Pick...");
+        JButton advBtn = browseButton();
         advBtn.addActionListener(e -> pickFile(advancementField, PREF_ADV_CSV));
+        JButton scoutsBtn = browseButton();
+        scoutsBtn.addActionListener(e -> pickFile(scoutsField, PREF_SCOUTS));
+        JButton rosterBtn = browseButton();
+        rosterBtn.addActionListener(e -> pickFile(rosterField, PREF_ROSTER));
 
-        JButton scoutsBtn = new JButton("Pick...");
-        scoutsBtn.addActionListener(e -> pickFile(scoutsField, PREF_SCOUTS_CSV));
-
-        JButton rosterBtn = new JButton("Pick...");
-        rosterBtn.addActionListener(e -> pickFile(rosterField, PREF_ROSTER_CSV));
-
+        // Action buttons
         runButton = new JButton("Generate Reports");
+        styleRunButton(runButton);
         runButton.addActionListener(e -> runGeneration());
         getRootPane().setDefaultButton(runButton);
 
         viewButton = new JButton("View Reports");
+        styleSecondaryButton(viewButton);
         viewButton.addActionListener(e -> viewReports());
         updateViewButton();
-        // Re-evaluate whenever the advancement CSV path changes
-        advancementField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            public void insertUpdate(javax.swing.event.DocumentEvent e)  { updateViewButton(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e)  { updateViewButton(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { updateViewButton(); }
-        });
+        advancementField.getDocument().addDocumentListener(docListener(this::updateViewButton));
 
-        // ── Output area ──────────────────────────────────────────────────────
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        outputArea.setLineWrap(true);
-        outputArea.setWrapStyleWord(false);
-        // Auto-scroll to bottom as text is appended
-        ((DefaultCaret) outputArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-        JScrollPane scrollPane = new JScrollPane(outputArea);
+        // Status label
+        statusLabel = new JLabel("Ready");
+        statusLabel.setFont(FONT_SMALL);
+        statusLabel.setForeground(C_MUTED);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 8));
 
-        // ── Form panel ───────────────────────────────────────────────────────
-        JPanel form = new JPanel(new GridBagLayout());
-        form.setBorder(BorderFactory.createEmptyBorder(10, 10, 6, 10));
+        // Log area (dark terminal aesthetic)
+        logArea = new JTextArea();
+        logArea.setEditable(false);
+        logArea.setFont(FONT_MONO);
+        logArea.setBackground(C_LOG_BG);
+        logArea.setForeground(C_LOG_FG);
+        logArea.setCaretColor(C_LOG_CARET);
+        logArea.setLineWrap(true);
+        logArea.setWrapStyleWord(false);
+        logArea.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
+        ((DefaultCaret) logArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 
-        addFormRow(form, 0, "Working Directory:", workDirField, workDirBtn);
-        addFormRow(form, 1, "Advancement CSV:",   advancementField, advBtn);
-        addFormRow(form, 2, "Scouts CSV (optional):", scoutsField, scoutsBtn);
-        addFormRow(form, 3, "Roster Report (optional):", rosterField, rosterBtn);
-        addFormRow(form, 4, "Camp:", campCombo, null);
+        JScrollPane logScroll = new JScrollPane(logArea);
+        logScroll.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, C_GREEN));
+        logScroll.getViewport().setBackground(C_LOG_BG);
 
-        JButton helpButton = new JButton("Help");
-        helpButton.addActionListener(e -> showHelpDialog());
+        // ── Assemble layout ──────────────────────────────────────────────────
+        setLayout(new BorderLayout());
+        add(buildHeader(), BorderLayout.NORTH);
 
-        JPanel leftButtons = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 4));
-        leftButtons.add(helpButton);
+        JPanel body = new JPanel(new BorderLayout());
+        body.setBackground(C_BG);
+        body.add(buildFormCard(workDirField, workDirBtn, advBtn, scoutsBtn, rosterBtn), BorderLayout.NORTH);
+        body.add(logScroll, BorderLayout.CENTER);
+        add(body, BorderLayout.CENTER);
 
-        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 4));
-        rightButtons.add(viewButton);
-        rightButtons.add(runButton);
-
-        JPanel runRow = new JPanel(new BorderLayout());
-        runRow.setBorder(BorderFactory.createEmptyBorder(0, 10, 4, 10));
-        runRow.add(leftButtons, BorderLayout.WEST);
-        runRow.add(rightButtons, BorderLayout.EAST);
-
-        // ── Root layout ──────────────────────────────────────────────────────
-        JPanel top = new JPanel(new BorderLayout());
-        top.add(form, BorderLayout.CENTER);
-        top.add(runRow, BorderLayout.SOUTH);
-
-        setLayout(new BorderLayout(0, 0));
-        add(top, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
-
-        setSize(720, 540);
-        setMinimumSize(new Dimension(500, 380));
-        setLocationRelativeTo(null); // center on screen
+        setSize(780, 600);
+        setMinimumSize(new Dimension(580, 440));
+        setLocationRelativeTo(null);
     }
 
-    // ── Layout helper ────────────────────────────────────────────────────────
+    // ── Header ───────────────────────────────────────────────────────────────
 
-    /** Adds a label + component + optional button as one form row. */
-    private void addFormRow(JPanel form, int row, String label,
-                            JComponent field, JButton btn) {
-        GridBagConstraints lc = new GridBagConstraints();
-        lc.gridx = 0; lc.gridy = row;
-        lc.anchor = GridBagConstraints.LINE_END;
-        lc.insets = new Insets(3, 4, 3, 6);
-        form.add(new JLabel(label), lc);
+    /** Black banner with ScoutSight branding and a blue bottom stripe. */
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                g.setColor(Color.BLACK);
+                g.fillRect(0, 0, getWidth(), getHeight());
+                g.setColor(C_STRIPE);
+                g.fillRect(0, getHeight() - 3, getWidth(), 3);
+            }
+        };
+        header.setOpaque(true);
+        header.setBorder(BorderFactory.createEmptyBorder(10, 18, 13, 18));
 
-        GridBagConstraints fc = new GridBagConstraints();
-        fc.gridx = 1; fc.gridy = row;
+        JLabel title = new JLabel("ScoutSight");
+        title.setFont(new Font(resolveFont("Segoe UI", "Trebuchet MS", "SansSerif"),
+                Font.BOLD, 22));
+        title.setForeground(Color.WHITE);
+
+        JLabel tagline = new JLabel("Rank Advancement Report Generator");
+        tagline.setFont(new Font(resolveFont("Segoe UI", "Trebuchet MS", "SansSerif"),
+                Font.PLAIN, 12));
+        tagline.setForeground(new Color(0x52B056));
+
+        JPanel left = new JPanel();
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        left.setOpaque(false);
+        left.add(title);
+        left.add(Box.createVerticalStrut(2));
+        left.add(tagline);
+
+        header.add(left, BorderLayout.WEST);
+        return header;
+    }
+
+    // ── Form card ────────────────────────────────────────────────────────────
+
+    private JPanel buildFormCard(
+            JTextField workDirField, JButton workDirBtn,
+            JButton advBtn, JButton scoutsBtn, JButton rosterBtn) {
+
+        // Card background
+        JPanel card = new JPanel(new GridBagLayout());
+        card.setBackground(C_SURFACE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, C_BORDER),
+                BorderFactory.createEmptyBorder(12, 18, 8, 18)));
+
+        int r = 0;
+
+        // Section label
+        JLabel sectionLbl = new JLabel("INPUT FILES");
+        sectionLbl.setFont(FONT_SECTION);
+        sectionLbl.setForeground(C_MUTED);
+        GridBagConstraints sc = gbc(0, r, 4, 1);
+        sc.anchor = GridBagConstraints.LINE_START;
+        sc.insets = new Insets(0, 0, 8, 0);
+        card.add(sectionLbl, sc);
+        r++;
+
+        r = addFormRow(card, r, "Working Directory", workDirField, workDirBtn, true,
+                "Required · The folder where output reports will be written. An output/ subfolder is created here automatically.",
+                "<html><b>Working Directory</b><br><br>" +
+                "Set this to the folder where you want output reports written.<br>" +
+                "ScoutSight will create an <code>output/</code> subfolder here.<br><br>" +
+                "Tip: point this to a folder that already contains an <code>inputdata/</code> subfolder.</html>");
+
+        r = addFormRow(card, r, "Advancement CSV", advancementField, advBtn, true,
+                "Required · Download from advancements.scouting.org",
+                "<html><b>Advancement CSV</b> &nbsp;<i>(required)</i><br><br>" +
+                "Download from Scoutbook:<br>" +
+                "<ol><li>Go to <b>advancements.scouting.org</b></li>" +
+                "<li>Click <b>Reports</b> in the left navigation</li>" +
+                "<li>Scroll to <b>Quick Exports</b></li>" +
+                "<li>Find <b>Advancements</b> → click <b>Export</b></li></ol>" +
+                "The file will be named like:<br>" +
+                "<code>Troop0600B_Advancement_20260224.csv</code></html>");
+
+        r = addFormRow(card, r, "Scouts CSV", scoutsField, scoutsBtn, false,
+                "Optional · Adds patrol & grade · Download from advancements.scouting.org",
+                "<html><b>Scouts CSV</b> &nbsp;<i>(optional)</i><br><br>" +
+                "Adds patrol and school grade to every Scout's record.<br><br>" +
+                "Download from Scoutbook:<br>" +
+                "<ol><li>Go to <b>advancements.scouting.org</b></li>" +
+                "<li>Click <b>Reports</b> in the left navigation</li>" +
+                "<li>Scroll to <b>Quick Exports</b></li>" +
+                "<li>Find <b>Scout/Members</b> → click <b>Export</b></li></ol></html>");
+
+        r = addFormRow(card, r, "Roster Report", rosterField, rosterBtn, false,
+                "Optional · Adds birth year, join year & positions · Download from advancements.scouting.org",
+                "<html><b>Roster Report</b> &nbsp;<i>(optional)</i><br><br>" +
+                "Adds birth year, join year, school name, and leadership positions.<br>" +
+                "Enables additional filter options in the reports.<br><br>" +
+                "Download from Scoutbook:<br>" +
+                "<ol><li>Go to <b>advancements.scouting.org</b></li>" +
+                "<li>Click <b>Reports</b> in the left navigation</li>" +
+                "<li>Click <b>Roster Report</b></li>" +
+                "<li>Export the full roster CSV</li></ol></html>");
+
+        // Camp row
+        r = addCampRow(card, r);
+
+        // Action bar (inside card, at bottom)
+        GridBagConstraints abc = gbc(0, r, 4, 1);
+        abc.fill = GridBagConstraints.HORIZONTAL;
+        abc.insets = new Insets(10, 0, 2, 0);
+        card.add(buildActionBar(), abc);
+
+        return card;
+    }
+
+    /**
+     * Adds one labeled form row and returns the next available row index.
+     * Each row is: label | [field + hint sub-panel] | browse-btn | info-btn
+     */
+    private int addFormRow(JPanel card, int row, String labelText, JTextField field,
+                           JButton browseBtn, boolean required, String hint, String helpHtml) {
+        // Label (col 0)
+        String labelHtml = "<html><b>" + labelText + "</b>"
+                + (required ? " &nbsp;<font color='#C47A0E'>*</font>" : "") + "</html>";
+        JLabel label = new JLabel(labelHtml);
+        label.setFont(FONT_LABEL);
+        label.setForeground(C_TEXT);
+        GridBagConstraints lc = gbc(0, row, 1, 1);
+        lc.anchor = GridBagConstraints.FIRST_LINE_END;
+        lc.insets = new Insets(6, 0, 2, 10);
+        card.add(label, lc);
+
+        // Field + hint stacked in a panel (col 1)
+        JPanel fieldStack = new JPanel(new BorderLayout(0, 2));
+        fieldStack.setOpaque(false);
+        fieldStack.add(field, BorderLayout.CENTER);
+        if (hint != null) {
+            JLabel hintLbl = new JLabel(hint);
+            hintLbl.setFont(FONT_HINT);
+            hintLbl.setForeground(C_MUTED);
+            fieldStack.add(hintLbl, BorderLayout.SOUTH);
+        }
+        GridBagConstraints fc = gbc(1, row, 1, 1);
         fc.fill = GridBagConstraints.HORIZONTAL;
         fc.weightx = 1.0;
-        fc.insets = new Insets(3, 0, 3, btn != null ? 4 : 0);
-        fc.gridwidth = btn != null ? 1 : 2; // span if no button
-        form.add(field, fc);
+        fc.insets = new Insets(4, 0, 2, 4);
+        card.add(fieldStack, fc);
 
-        if (btn != null) {
-            GridBagConstraints bc = new GridBagConstraints();
-            bc.gridx = 2; bc.gridy = row;
-            bc.insets = new Insets(3, 0, 3, 4);
-            form.add(btn, bc);
+        // Browse button (col 2)
+        GridBagConstraints bc = gbc(2, row, 1, 1);
+        bc.anchor = GridBagConstraints.PAGE_START;
+        bc.insets = new Insets(4, 0, 2, 4);
+        card.add(browseBtn, bc);
+
+        // Info button (col 3)
+        JButton infoBtn = infoButton(helpHtml);
+        GridBagConstraints ic = gbc(3, row, 1, 1);
+        ic.anchor = GridBagConstraints.PAGE_START;
+        ic.insets = new Insets(5, 0, 2, 0);
+        card.add(infoBtn, ic);
+
+        return row + 1;
+    }
+
+    /** Adds the Camp row (combo box, no browse btn) and returns next row index. */
+    private int addCampRow(JPanel card, int row) {
+        JLabel label = new JLabel("<html><b>Camp</b></html>");
+        label.setFont(FONT_LABEL);
+        label.setForeground(C_TEXT);
+        GridBagConstraints lc = gbc(0, row, 1, 1);
+        lc.anchor = GridBagConstraints.LINE_END;
+        lc.insets = new Insets(6, 0, 2, 10);
+        card.add(label, lc);
+
+        GridBagConstraints cc = gbc(1, row, 2, 1);
+        cc.fill = GridBagConstraints.HORIZONTAL;
+        cc.weightx = 1.0;
+        cc.insets = new Insets(4, 0, 2, 4);
+        card.add(campCombo, cc);
+
+        JButton infoBtn = infoButton(
+                "<html><b>Camp</b><br><br>" +
+                "Select a camp to enable camp-specific planning in the reports:<br>" +
+                "<ul><li>Shows which requirements can be earned at camp</li>" +
+                "<li>Highlights requirements that must be done at troop meetings</li>" +
+                "<li>Adds a camp tab to each Scout's individual report</li></ul>" +
+                "Leave as <i>None</i> if no camp is selected or camp data is unavailable.</html>");
+        GridBagConstraints ic = gbc(3, row, 1, 1);
+        ic.anchor = GridBagConstraints.LINE_START;
+        ic.insets = new Insets(5, 0, 2, 0);
+        card.add(infoBtn, ic);
+
+        return row + 1;
+    }
+
+    // ── Action bar ───────────────────────────────────────────────────────────
+
+    private JPanel buildActionBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        left.setOpaque(false);
+        left.add(statusLabel);
+
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        right.setOpaque(false);
+        right.add(viewButton);
+        right.add(runButton);
+
+        bar.add(left,  BorderLayout.WEST);
+        bar.add(right, BorderLayout.EAST);
+        return bar;
+    }
+
+    // ── Component factories ──────────────────────────────────────────────────
+
+    private static JTextField styledField(String text) {
+        JTextField tf = new JTextField(text);
+        tf.setFont(FONT_BODY);
+        tf.setBackground(C_SURFACE);
+        tf.setForeground(C_TEXT);
+        return tf;
+    }
+
+    private static JButton browseButton() {
+        JButton btn = new JButton("Browse…");
+        btn.setFont(FONT_SMALL);
+        btn.setFocusPainted(false);
+        btn.setToolTipText("Choose file");
+        return btn;
+    }
+
+    private JButton infoButton(String htmlContent) {
+        JButton btn = new JButton("?");
+        btn.setFont(ui(Font.BOLD, 12));
+        btn.setForeground(C_GREEN_MID);
+        btn.setFocusPainted(false);
+        btn.setBorderPainted(false);
+        btn.setContentAreaFilled(false);
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText("Click for help");
+        btn.addActionListener(e -> showInfoPopup(htmlContent, btn));
+        return btn;
+    }
+
+    private static void styleRunButton(JButton btn) {
+        btn.setFont(FONT_RUN);
+        btn.setFocusPainted(false);
+        // Nimbus will pick up nimbusBase (green) for the default button
+    }
+
+    private static void styleSecondaryButton(JButton btn) {
+        btn.setFont(FONT_BODY);
+        btn.setFocusPainted(false);
+    }
+
+    /** Shows a styled popup next to the info button. */
+    private void showInfoPopup(String htmlContent, Component invoker) {
+        JEditorPane pane = new JEditorPane("text/html", htmlContent);
+        pane.setEditable(false);
+        pane.setOpaque(false);
+        pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        pane.setFont(FONT_BODY);
+        pane.setPreferredSize(new Dimension(340, 1));
+        pane.addHyperlinkListener(e -> {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED && e.getURL() != null) {
+                try { Desktop.getDesktop().browse(e.getURL().toURI()); }
+                catch (Exception ignored) { }
+            }
+        });
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+        panel.add(pane, BorderLayout.CENTER);
+
+        JOptionPane.showMessageDialog(this, panel, "Help", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    // ── Utility / layout ─────────────────────────────────────────────────────
+
+    private static GridBagConstraints gbc(int x, int y, int width, int height) {
+        GridBagConstraints c = new GridBagConstraints();
+        c.gridx = x; c.gridy = y;
+        c.gridwidth = width; c.gridheight = height;
+        return c;
+    }
+
+    private static DocumentListener docListener(Runnable r) {
+        return new DocumentListener() {
+            public void insertUpdate(DocumentEvent e)  { r.run(); }
+            public void removeUpdate(DocumentEvent e)  { r.run(); }
+            public void changedUpdate(DocumentEvent e) { r.run(); }
+        };
+    }
+
+    private static Font ui(int style, int size) {
+        String family = resolveFont("Segoe UI", "Trebuchet MS", "SansSerif");
+        return new Font(family, style, size);
+    }
+
+    private static Font monoFont(int size) {
+        for (String name : new String[]{"Consolas", "Cascadia Code", "Courier New", Font.MONOSPACED}) {
+            Font f = new Font(name, Font.PLAIN, size);
+            if (!f.getFamily().equals(Font.MONOSPACED) || name.equals(Font.MONOSPACED)) return f;
         }
+        return new Font(Font.MONOSPACED, Font.PLAIN, size);
+    }
+
+    private static String resolveFont(String... candidates) {
+        Set<String> available = new HashSet<>(Arrays.asList(
+                GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
+        for (String name : candidates) {
+            if (available.contains(name)) return name;
+        }
+        return Font.SANS_SERIF;
     }
 
     // ── File / directory pickers ─────────────────────────────────────────────
@@ -181,13 +507,9 @@ public class GuiMain extends JFrame {
     private void pickFile(JTextField field, String prefKey) {
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Select CSV file");
-        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-                "CSV files", "csv"));
-
-        // Start in the directory of the current value, or inputdata/ under workDir
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV files", "csv"));
         File initialDir = resolveInitialDir(field.getText().trim(), "inputdata");
         if (initialDir != null) chooser.setCurrentDirectory(initialDir);
-
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             String path = chooser.getSelectedFile().getAbsolutePath();
             field.setText(path);
@@ -197,15 +519,10 @@ public class GuiMain extends JFrame {
 
     private void pickDirectory() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setDialogTitle("Select Project Root (Working Directory)");
+        chooser.setDialogTitle("Select Working Directory");
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-
-        String current = workDirField.getText().trim();
-        if (!current.isBlank()) {
-            File d = new File(current);
-            if (d.isDirectory()) chooser.setCurrentDirectory(d);
-        }
-
+        String cur = workDirField.getText().trim();
+        if (!cur.isBlank()) { File d = new File(cur); if (d.isDirectory()) chooser.setCurrentDirectory(d); }
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             String path = chooser.getSelectedFile().getAbsolutePath();
             workDirField.setText(path);
@@ -214,37 +531,39 @@ public class GuiMain extends JFrame {
         }
     }
 
-    private File resolveInitialDir(String currentValue, String fallbackSubdir) {
-        if (!currentValue.isBlank()) {
-            File parent = new File(currentValue).getParentFile();
+    private File resolveInitialDir(String current, String fallbackSub) {
+        if (!current.isBlank()) {
+            File parent = new File(current).getParentFile();
             if (parent != null && parent.isDirectory()) return parent;
         }
-        String workDir = workDirField.getText().trim();
-        if (!workDir.isBlank()) {
-            File sub = new File(workDir, fallbackSubdir);
+        String wd = workDirField.getText().trim();
+        if (!wd.isBlank()) {
+            File sub = new File(wd, fallbackSub);
             if (sub.isDirectory()) return sub;
-            File wd = new File(workDir);
-            if (wd.isDirectory()) return wd;
+            File d = new File(wd);
+            if (d.isDirectory()) return d;
         }
         return null;
+    }
+
+    private void onWorkDirChanged() {
+        PREFS.put(PREF_WORK_DIR, workDirField.getText().trim());
+        refreshCampDropdown();
     }
 
     // ── Camp dropdown ────────────────────────────────────────────────────────
 
     private void refreshCampDropdown() {
         String savedStem = PREFS.get(PREF_CAMP, "");
-        String workDir = workDirField.getText().trim();
+        String workDir   = workDirField.getText().trim();
 
         List<CampEntry> entries = new ArrayList<>();
         entries.add(new CampEntry("None", ""));
 
         Path campsDir = Path.of(workDir.isEmpty() ? "." : workDir, "config", "camps");
         try {
-            // Use absolute filesystem paths when the directory exists in workDir;
-            // otherwise fall back to relative paths resolved from the JAR classpath.
             List<Path> campFiles = Files.isDirectory(campsDir)
-                    ? Files.list(campsDir).filter(p -> p.getFileName().toString().endsWith(".json"))
-                           .sorted().toList()
+                    ? Files.list(campsDir).filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList()
                     : ResourceIO.listDirectory(Path.of("config", "camps"), ".json");
             for (Path p : campFiles) {
                 String stem = p.getFileName().toString().replace(".json", "");
@@ -253,14 +572,13 @@ public class GuiMain extends JFrame {
         } catch (IOException ignored) { }
 
         SwingUtilities.invokeLater(() -> {
-            CampEntry prev = (CampEntry) campCombo.getSelectedItem();
-            String prevStem = prev != null ? prev.stem() : savedStem;
-
+            CampEntry prev    = (CampEntry) campCombo.getSelectedItem();
+            String    prevStr = prev != null ? prev.stem() : savedStem;
             campCombo.removeAllItems();
             CampEntry toSelect = entries.get(0);
             for (CampEntry e : entries) {
                 campCombo.addItem(e);
-                if (e.stem().equals(prevStem)) toSelect = e;
+                if (e.stem().equals(prevStr)) toSelect = e;
             }
             campCombo.setSelectedItem(toSelect);
         });
@@ -274,11 +592,10 @@ public class GuiMain extends JFrame {
             Matcher m = Pattern.compile("\"campName\"\\s*:\\s*\"([^\"]+)\"").matcher(content);
             if (m.find()) return m.group(1);
         } catch (IOException ignored) { }
-        // Fallback: "camp_parsons" → "Camp Parsons"
         return Arrays.stream(stemFallback.split("[_\\-]"))
-                     .filter(s -> !s.isBlank())
-                     .map(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1))
-                     .reduce("", (a, b) -> a.isEmpty() ? b : a + " " + b);
+                .filter(s -> !s.isBlank())
+                .map(s -> Character.toUpperCase(s.charAt(0)) + s.substring(1))
+                .reduce("", (a, b) -> a.isEmpty() ? b : a + " " + b);
     }
 
     // ── Report generation ────────────────────────────────────────────────────
@@ -287,19 +604,23 @@ public class GuiMain extends JFrame {
         String workDir = workDirField.getText().trim();
         String advCsv  = advancementField.getText().trim();
 
-        if (workDir.isBlank()) { appendOutput("ERROR: Working directory is required.\n"); return; }
-        if (advCsv.isBlank())  { appendOutput("ERROR: Advancement CSV is required.\n");  return; }
+        if (workDir.isBlank()) { appendLog("ERROR: Working directory is required.\n"); return; }
+        if (advCsv.isBlank())  { appendLog("ERROR: Advancement CSV is required.\n");  return; }
 
-        CampEntry camp = (CampEntry) campCombo.getSelectedItem();
-        String campStem = camp != null ? camp.stem() : "";
+        CampEntry camp     = (CampEntry) campCombo.getSelectedItem();
+        String    campStem = camp != null ? camp.stem() : "";
 
         runButton.setEnabled(false);
-        outputArea.setText("");
+        logArea.setText("");
+        setStatus("Generating…", C_AMBER);
 
         Thread worker = new Thread(() -> {
             try {
                 runCli(workDir, advCsv, scoutsField.getText().trim(), campStem,
                        rosterField.getText().trim());
+                setStatus("Done", C_GREEN_MID);
+            } catch (Exception e) {
+                setStatus("Error — see log", C_RED);
             } finally {
                 SwingUtilities.invokeLater(() -> runButton.setEnabled(true));
                 updateViewButton();
@@ -309,139 +630,64 @@ public class GuiMain extends JFrame {
         worker.start();
     }
 
-    /**
-     * Launches {@code troop600.advancementplan.cli.Main} in a subprocess with
-     * {@code workDir} as its working directory and streams output to the log area.
-     */
-    private void runCli(String workDir, String advCsv, String scoutsCsv, String campStem,
-                        String rosterCsv) {
+    private void runCli(String workDir, String advCsv, String scoutsCsv,
+                        String campStem, String rosterCsv) {
         String javaExe = Path.of(System.getProperty("java.home"), "bin",
                 isWindows() ? "java.exe" : "java").toString();
         String classpath = System.getProperty("java.class.path");
 
-        // Always pass exactly 4 args; empty string → treated as null by Main
         List<String> cmd = List.of(
-                javaExe,
-                "-cp", classpath,
+                javaExe, "-cp", classpath,
                 "org.troop600.scoutsight.cli.Main",
-                advCsv,
-                scoutsCsv,
-                campStem,
-                rosterCsv
-        );
+                advCsv, scoutsCsv, campStem, rosterCsv);
 
-        // Pre-create the output directory so a bad path or permissions error surfaces
-        // immediately with a clear message rather than buried in subprocess output.
         String filename = Path.of(advCsv).getFileName().toString();
-        String stem = filename.endsWith(".csv") ? filename.substring(0, filename.length() - 4) : filename;
+        String stem     = filename.endsWith(".csv") ? filename.substring(0, filename.length() - 4) : filename;
         try {
             Files.createDirectories(Path.of(workDir, "output", stem));
         } catch (IOException e) {
-            appendOutput("ERROR: Could not create output directory: " + e.getMessage() + "\n");
+            appendLog("ERROR: Could not create output directory: " + e.getMessage() + "\n");
             return;
         }
 
-        appendOutput("Running in: " + workDir + "\n\n");
+        appendLog("Running in: " + workDir + "\n\n");
 
         ProcessBuilder pb = new ProcessBuilder(cmd);
         pb.directory(new File(workDir));
         pb.redirectErrorStream(true);
 
         try {
-            Process process = pb.start();
+            Process proc = pb.start();
             try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
+                    new InputStreamReader(proc.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String text = line + "\n";
-                    SwingUtilities.invokeLater(() -> outputArea.append(text));
+                    SwingUtilities.invokeLater(() -> logArea.append(text));
                 }
             }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) appendOutput("\nProcess exited with code " + exitCode + "\n");
+            int exit = proc.waitFor();
+            if (exit != 0) appendLog("\nProcess exited with code " + exit + "\n");
+            else           appendLog("\nDone.\n");
         } catch (IOException | InterruptedException e) {
-            appendOutput("\nERROR: " + e.getMessage() + "\n");
+            appendLog("\nERROR: " + e.getMessage() + "\n");
         }
     }
 
-    // ── Help dialog ──────────────────────────────────────────────────────────
+    // ── View reports ─────────────────────────────────────────────────────────
 
-    private void showHelpDialog() {
-        JEditorPane editorPane = new JEditorPane();
-        editorPane.setContentType("text/html");
-        editorPane.setEditable(false);
-        editorPane.setText(loadHelpHtml());
-        editorPane.setCaretPosition(0); // scroll to top
-
-        // Open hyperlinks in the default browser
-        editorPane.addHyperlinkListener(e -> {
-            if (e.getEventType() == javax.swing.event.HyperlinkEvent.EventType.ACTIVATED
-                    && e.getURL() != null) {
-                try { Desktop.getDesktop().browse(e.getURL().toURI()); }
-                catch (Exception ignored) { }
-            }
-        });
-
-        JScrollPane scroll = new JScrollPane(editorPane);
-
-        JButton closeBtn = new JButton("Close");
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        btnPanel.add(closeBtn);
-
-        JDialog dialog = new JDialog(this, "Help \u2014 ScoutSight", true);
-        dialog.setLayout(new BorderLayout());
-        dialog.add(scroll, BorderLayout.CENTER);
-        dialog.add(btnPanel, BorderLayout.SOUTH);
-        dialog.setSize(580, 420);
-        dialog.setLocationRelativeTo(this);
-
-        closeBtn.addActionListener(e -> dialog.dispose());
-        dialog.getRootPane().setDefaultButton(closeBtn);
-
-        dialog.setVisible(true);
-    }
-
-    /**
-     * Loads help.html from the templates directory (filesystem first, JAR resource fallback).
-     * Strips the Thymeleaf inline expression so the raw HTML renders cleanly.
-     */
-    private String loadHelpHtml() {
-        // 1. Try filesystem (works in IntelliJ and after first-run extraction from JAR)
-        String workDir = workDirField.getText().trim();
-        if (!workDir.isBlank()) {
-            Path helpFile = Path.of(workDir, "templates", "help.html");
-            if (Files.isRegularFile(helpFile)) {
-                try { return stripThymeleaf(Files.readString(helpFile)); }
-                catch (IOException ignored) { }
-            }
-        }
-        // 2. Try JAR resource (before any extraction has happened)
-        try (InputStream in = GuiMain.class.getResourceAsStream("/templates/help.html")) {
-            if (in != null) return stripThymeleaf(new String(in.readAllBytes()));
-        } catch (IOException ignored) { }
-        // 3. Fallback
-        return "<html><body><p>Help content not available.</p></body></html>";
-    }
-
-    /** Removes Thymeleaf unescaped inline expressions such as [(${siteHeader})]. */
-    private static String stripThymeleaf(String html) {
-        return html.replaceAll("\\[\\(\\$\\{[^}]+\\}\\)\\]", "");
-    }
-
-    /** Enables the View Reports button only when the output index.html already exists. */
     private void updateViewButton() {
         boolean exists = resolveIndexHtml() != null;
         SwingUtilities.invokeLater(() -> viewButton.setEnabled(exists));
     }
 
-    /** Returns the output index.html Path if it exists, otherwise null. */
     private Path resolveIndexHtml() {
         String workDir = workDirField.getText().trim();
         String advCsv  = advancementField.getText().trim();
         if (workDir.isBlank() || advCsv.isBlank()) return null;
         String filename = Path.of(advCsv).getFileName().toString();
-        String stem = filename.endsWith(".csv") ? filename.substring(0, filename.length() - 4) : filename;
-        Path index = Path.of(workDir, "output", stem, "index.html");
+        String stem     = filename.endsWith(".csv") ? filename.substring(0, filename.length() - 4) : filename;
+        Path   index    = Path.of(workDir, "output", stem, "index.html");
         return Files.exists(index) ? index : null;
     }
 
@@ -449,21 +695,29 @@ public class GuiMain extends JFrame {
         Path index = resolveIndexHtml();
         if (index == null) {
             JOptionPane.showMessageDialog(this,
-                    "No report found. Generate reports first.",
+                    "No report found. Run Generate Reports first.",
                     "Not Found", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        try {
-            Desktop.getDesktop().browse(index.toUri());
-        } catch (IOException e) {
+        try { Desktop.getDesktop().browse(index.toUri()); }
+        catch (IOException e) {
             JOptionPane.showMessageDialog(this,
                     "Could not open browser:\n" + e.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void appendOutput(String text) {
-        SwingUtilities.invokeLater(() -> outputArea.append(text));
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private void appendLog(String text) {
+        SwingUtilities.invokeLater(() -> logArea.append(text));
+    }
+
+    private void setStatus(String text, Color color) {
+        SwingUtilities.invokeLater(() -> {
+            statusLabel.setText(text);
+            statusLabel.setForeground(color);
+        });
     }
 
     private static boolean isWindows() {

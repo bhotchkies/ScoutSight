@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Scout Advancement — ScoutSight</title>
+  <title>Scout Advancement &mdash; ScoutSight</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -170,11 +170,11 @@
       return (
         <tr>
           <td>{req.id}</td>
-          {reqText ? <td>{reqText}</td> : <td style={{color:'var(--text-muted)',fontSize:'.8rem',fontStyle:'italic'}}>—</td>}
+          {reqText ? <td>{reqText}</td> : <td style={{color:'var(--text-muted)',fontSize:'.8rem',fontStyle:'italic'}}>&mdash;</td>}
           <td>
             {req.completed
-              ? <span className="req-done">✓<span className="req-done-date">{req.dateCompleted}</span></span>
-              : <span className="req-open">—</span>
+              ? <span className="req-done">&#10003;<span className="req-done-date">{req.dateCompleted}</span></span>
+              : <span className="req-open">&mdash;</span>
             }
           </td>
         </tr>
@@ -194,11 +194,11 @@
         <div className="item-card">
           <div className="item-head" onClick={() => setOpen(o => !o)}>
             <div className="item-head-left">
-              <span className={`item-chevron${open ? ' open' : ''}`}>▶</span>
+              <span className={`item-chevron${open ? ' open' : ''}`}>&#9654;</span>
               <span className="item-name">{name}</span>
             </div>
             {item.completed
-              ? <span className="status-complete">✓ {item.dateCompleted}</span>
+              ? <span className="status-complete">&#10003; {item.dateCompleted}</span>
               : total > 0
                 ? <span className="status-partial">{done}/{total} complete</span>
                 : <span className="status-none">No requirements recorded</span>
@@ -240,10 +240,10 @@
       let statusEl;
       if (slot.complete) {
         const done = slot.badges.find(b => b.completed) || slot.badges[0];
-        statusEl = <span className="status-complete">✓ {stripMB(done.name)} {done.dateCompleted}</span>;
+        statusEl = <span className="status-complete">&#10003; {stripMB(done.name)} {done.dateCompleted}</span>;
       } else if (canExpand) {
         const best = slot.badges.reduce((a, b) => pct(a) >= pct(b) ? a : b);
-        statusEl = <span className="status-partial">{stripMB(best.name)} — {pct(best)}%</span>;
+        statusEl = <span className="status-partial">{stripMB(best.name)} &mdash; {pct(best)}%</span>;
       } else {
         statusEl = <span className="status-none">Not started</span>;
       }
@@ -255,8 +255,8 @@
                style={{cursor: canExpand ? 'pointer' : 'default'}}>
             <div className="item-head-left">
               {canExpand
-                ? <span className={`item-chevron${open ? ' open' : ''}`}>▶</span>
-                : <span className="item-chevron" style={{visibility:'hidden'}}>▶</span>}
+                ? <span className={`item-chevron${open ? ' open' : ''}`}>&#9654;</span>
+                : <span className="item-chevron" style={{visibility:'hidden'}}>&#9654;</span>}
               <span className="slot-num-badge">{slot.slotNum}.</span>
               <span className="item-name">{slot.slotLabel}</span>
             </div>
@@ -425,7 +425,7 @@
       return (
         <div className="pw">
           <div className="breadcrumb">
-            <a href="index.html">← All Scouts</a>
+            <a href="index.html">&larr; All Scouts</a>
           </div>
           <div className="ph">
             <div className="ph-title">{d.title}</div>

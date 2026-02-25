@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip:*)",
+      "Bash(\"/c/Program Files/Java/openjdk-25/bin/java\":*)",
+      "Bash(\"C:/Program Files/Java/openjdk-25/bin/java\":*)",
+      "Bash(\"/c/Program Files/Java/openjdk-25/bin/java.exe\":*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

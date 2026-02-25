@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meeting Requirements — ScoutSight</title>
+  <title>Meeting Requirements &mdash; ScoutSight</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -176,12 +176,12 @@
             {reqText && <div className="rtext">{reqText}</div>}
             {open && (
               <div className="slist">
-                <div className="slist-hdr">Scouts needing this · {n}</div>
+                <div className="slist-hdr">Scouts needing this &middot; {n}</div>
                 {req.scouts.map(s => (
                   <div key={s.name} className="srow">
                     <span>{s.name}</span>
                     {s.rank   && <span className="stag">{s.rank}</span>}
-                    {s.patrol && <span style={{fontSize:'.75rem',color:'var(--text-muted)'}}>· {s.patrol}</span>}
+                    {s.patrol && <span style={{fontSize:'.75rem',color:'var(--text-muted)'}}>&#183; {s.patrol}</span>}
                   </div>
                 ))}
               </div>
@@ -191,7 +191,7 @@
             <button type="button"
               className={`rcnt rcnt-${urg}${open ? ' rcnt-open' : ''}`}
               onClick={() => setOpen(o => !o)}
-              title={open ? 'Collapse' : `${n} scout${n !== 1 ? 's' : ''} — click to expand`}>
+              title={open ? 'Collapse' : `${n} scout${n !== 1 ? 's' : ''} \u2014 click to expand`}>
               {n}
             </button>
           </div>
@@ -217,7 +217,7 @@
       if (!hasAny) {
         return (
           <div className="empty">
-            <div style={{fontSize:'1.5rem',marginBottom:'.5rem'}}>✓</div>
+            <div style={{fontSize:'1.5rem',marginBottom:'.5rem'}}>&#10003;</div>
             <strong>All Clear!</strong>
             <span>No outstanding requirements match the current filters.</span>
           </div>
@@ -280,7 +280,7 @@
             <div className={`fp-head${fpOpen ? ' open' : ''}`}
                  onClick={() => setFpOpen(o => !o)} role="button" aria-expanded={fpOpen}>
               <span className={`fp-label${hasActive ? ' fp-label-active' : ''}`}>
-                {hasActive ? '● Filters active' : 'Filters'}
+                {hasActive ? '\u25CF Filters active' : 'Filters'}
               </span>
               <svg className={`fp-chevron${fpOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
@@ -334,7 +334,7 @@
                   </>
                 )}
                 {hasActive && (
-                  <button className="reset-btn" type="button" onClick={resetAll}>✕ Reset all</button>
+                  <button className="reset-btn" type="button" onClick={resetAll}>&#10005; Reset all</button>
                 )}
               </div>
             </div>

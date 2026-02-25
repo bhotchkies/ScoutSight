@@ -3,6 +3,7 @@ package org.troop600.scoutsight.html;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.jar.*;
@@ -28,7 +29,7 @@ public class ResourceIO {
     public static String readString(Path path) throws IOException {
         if (Files.isRegularFile(path)) return Files.readString(path);
         try (InputStream in = stream(path)) {
-            if (in != null) return new String(in.readAllBytes());
+            if (in != null) return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
         throw new IOException("Resource not found on filesystem or classpath: " + path);
     }
@@ -82,26 +83,60 @@ public class ResourceIO {
         // JAR fallback
         String prefix = src.toString().replace('\\', '/') + "/";
         URL loc = jarLocation();
-        if (loc == null) return;
-        try (JarFile jar = new JarFile(Path.of(loc.toURI()).toFile())) {
-            var entries = jar.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry entry = entries.nextElement();
-                if (!entry.getName().startsWith(prefix)) continue;
-                String relative = entry.getName().substring(prefix.length());
-                if (relative.isEmpty()) continue;
-                Path target = dst.resolve(relative);
-                if (entry.isDirectory()) {
-                    Files.createDirectories(target);
-                } else {
-                    Files.createDirectories(target.getParent());
-                    try (InputStream in = jar.getInputStream(entry)) {
-                        Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        if (loc != null) {
+            // Running from a fat JAR — iterate entries directly
+            try (JarFile jar = new JarFile(Path.of(loc.toURI()).toFile())) {
+                var entries = jar.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry entry = entries.nextElement();
+                    if (!entry.getName().startsWith(prefix)) continue;
+                    String relative = entry.getName().substring(prefix.length());
+                    if (relative.isEmpty()) continue;
+                    Path target = dst.resolve(relative);
+                    if (entry.isDirectory()) {
+                        Files.createDirectories(target);
+                    } else {
+                        Files.createDirectories(target.getParent());
+                        try (InputStream in = jar.getInputStream(entry)) {
+                            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    }
+                }
+            } catch (URISyntaxException e) {
+                throw new IOException("Cannot locate JAR: " + e.getMessage(), e);
+            }
+        } else {
+            // Running from expanded class files (Maven exec / IntelliJ run config)
+            copyClasspathDirectory("/" + prefix, dst);
+        }
+    }
+
+    /**
+     * Copies a classpath directory tree to {@code dst} when running from
+     * expanded class files (not a JAR).  The {@code resourcePath} must begin
+     * with "/" and end with "/" — e.g. {@code "/templates/images/"}.
+     * Silently returns if the resource URL cannot be resolved to a real directory.
+     */
+    private static void copyClasspathDirectory(String resourcePath, Path dst) throws IOException {
+        String rp = resourcePath.endsWith("/") ? resourcePath.substring(0, resourcePath.length() - 1) : resourcePath;
+        URL url = ResourceIO.class.getResource(rp);
+        if (url == null || !"file".equals(url.getProtocol())) return;
+        try {
+            Path srcDir = Path.of(url.toURI());
+            if (!Files.isDirectory(srcDir)) return;
+            try (var walk = Files.walk(srcDir)) {
+                for (Path source : walk.toList()) {
+                    Path target = dst.resolve(srcDir.relativize(source));
+                    if (Files.isDirectory(source)) {
+                        Files.createDirectories(target);
+                    } else {
+                        Files.createDirectories(target.getParent());
+                        Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
             }
         } catch (URISyntaxException e) {
-            throw new IOException("Cannot locate JAR: " + e.getMessage(), e);
+            throw new IOException("Cannot resolve classpath directory '" + resourcePath + "': " + e.getMessage(), e);
         }
     }
 

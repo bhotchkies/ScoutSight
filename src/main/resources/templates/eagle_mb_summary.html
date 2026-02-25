@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eagle Required MB Summary — ScoutSight</title>
+  <title>Eagle Required MB Summary &mdash; ScoutSight</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -179,14 +179,14 @@
                 {slot.links && slot.links.length > 0
                   ? slot.links.map((lnk, i) => (
                       <React.Fragment key={lnk.badge}>
-                        {i > 0 && <span style={{color:'var(--border)'}}>·</span>}
+                        {i > 0 && <span style={{color:'var(--border)'}}>&#183;</span>}
                         <a href={lnk.file}>{badgeDisplayName(lnk.badge)}</a>
                       </React.Fragment>
                     ))
                   : <span>{slot.slotLabel}</span>
                 }
                 <span className={`camp-badge ${slot.atCamp ? 'camp-badge-yes' : 'camp-badge-no'}`}>
-                  {slot.atCamp ? '✓ At Camp' : '✗ Not At Camp'}
+                  {slot.atCamp ? '\u2713 At Camp' : '\u2717 Not At Camp'}
                 </span>
               </div>
               {partial.length > 0 && (
@@ -202,14 +202,14 @@
                   {n}
                 </button>
               ) : (
-                <div className="rcnt rcnt-ok" title="All scouts have completed this slot">✓</div>
+                <div className="rcnt rcnt-ok" title="All scouts have completed this slot">&#10003;</div>
               )}
             </div>
           </div>
 
           {open && (
             <div className="rank-expand">
-              <div className="expand-hdr">By rank — scouts needing this slot</div>
+              <div className="expand-hdr">By rank &mdash; scouts needing this slot</div>
               <div className="rank-grid">
                 {slot.byRank.map(r => {
                   const rnc = filterList(r.notCompleteScouts, filters);
@@ -226,12 +226,12 @@
               </div>
               {nc.length > 0 && (
                 <div className="slist-names">
-                  <div className="expand-hdr" style={{marginTop:'.6rem'}}>Scouts needing · {nc.length}</div>
+                  <div className="expand-hdr" style={{marginTop:'.6rem'}}>Scouts needing &middot; {nc.length}</div>
                   {nc.map(s => (
                     <div key={s.name} className="srow">
                       <span>{s.name}</span>
                       {s.rank   && <span className="stag">{s.rank}</span>}
-                      {s.patrol && <span style={{fontSize:'.75rem',color:'var(--text-muted)'}}>· {s.patrol}</span>}
+                      {s.patrol && <span style={{fontSize:'.75rem',color:'var(--text-muted)'}}>&#183; {s.patrol}</span>}
                     </div>
                   ))}
                 </div>
@@ -264,14 +264,14 @@
         <div className="pw">
           <div className="ph">
             <div className="ph-title">Eagle MB Summary</div>
-            <div className="ph-sub">Eagle-required merit badge slots · {d.slots.length} total</div>
+            <div className="ph-sub">Eagle-required merit badge slots &middot; {d.slots.length} total</div>
           </div>
 
           <div className="fp">
             <div className={`fp-head${fpOpen ? ' open' : ''}`}
                  onClick={() => setFpOpen(o => !o)} role="button" aria-expanded={fpOpen}>
               <span className={`fp-label${hasActive ? ' fp-label-active' : ''}`}>
-                {hasActive ? '● Filters active' : 'Filters'}
+                {hasActive ? '\u25CF Filters active' : 'Filters'}
               </span>
               <svg className={`fp-chevron${fpOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
@@ -325,7 +325,7 @@
                   </>
                 )}
                 {hasActive && (
-                  <button className="reset-btn" type="button" onClick={resetAll}>✕ Reset all</button>
+                  <button className="reset-btn" type="button" onClick={resetAll}>&#10005; Reset all</button>
                 )}
               </div>
             </div>
@@ -334,7 +334,7 @@
           <div className="sbar">
             <div className="sstat"><strong>{slotsNeedingCount}</strong> slot{slotsNeedingCount !== 1 ? 's' : ''} with outstanding scouts</div>
             <div className="sstat"><strong>{d.totalScouts}</strong> total scouts</div>
-            {hasActive && <span className="sbar-filter-active">▲ Filters active</span>}
+            {hasActive && <span className="sbar-filter-active">&#9650; Filters active</span>}
           </div>
 
           <div className="slot-list">
