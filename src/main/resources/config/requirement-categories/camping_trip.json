@@ -1,0 +1,8 @@
+{
+  "categoryName": "Done on Camping Trips",
+  "rankRequirements": {
+    "Tenderfoot Rank": ["1a","1b","1c","2a","2b"],
+    "Second Class Rank": ["1c","2b","2c","2e"],
+    "First Class Rank": ["2a","2b","2c","2d","2e","4b","9c"]
+  }
+}

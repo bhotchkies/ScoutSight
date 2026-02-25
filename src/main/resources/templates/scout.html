@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scout Advancement — ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ebe0; --surface: #faf7f2; --surface-2: #f5f0e6;
+      --border: #d6ccb8; --border-lt: #e8e1d4;
+      --text: #28200f; --text-muted: #7a6e58;
+      --green: #1a4d2e; --green-mid: #256937; --green-lt: #3a8a50;
+      --amber: #c47a0e; --amber-lt: #fde8b8;
+      --red: #b03030; --red-lt: #fddcdc;
+      --yellow-lt: #fef6c0; --yellow: #b89010;
+      --teal: #1a6060; --teal-lt: #d0efef;
+      --nav-green: #52b056; --nav-green-hv: #80d480; --stripe: #3a5bb8;
+      --font-h: 'Oswald', sans-serif; --font-b: 'Nunito', sans-serif;
+      --r: 6px; --r-lg: 10px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,.10); --sh-md: 0 3px 12px rgba(0,0,0,.14);
+      --t: .15s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; }
+    button { font-family: inherit; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    .site-header { background: #000; border-bottom: 3px solid var(--stripe); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.5rem; position: sticky; top: 0; z-index: 300; }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    #root { display: contents; }
+    .pw { max-width: 860px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+    /* Breadcrumb */
+    .breadcrumb { padding: 1rem 0 .5rem; font-size: .85rem; }
+    .breadcrumb a { color: var(--green-mid); font-weight: 600; display: inline-flex; align-items: center; gap: .3rem; }
+    .breadcrumb a:hover { color: var(--green); }
+
+    /* Page header */
+    .ph { padding: .5rem 0 1.1rem; margin-bottom: .9rem; border-bottom: 2px solid var(--border); }
+    .ph-title { font-family: var(--font-h); font-size: 2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+
+    /* Roster info pills */
+    .roster-panel { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.2rem; }
+    .roster-pill { display: flex; align-items: center; gap: .3rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: .28rem .65rem; font-size: .82rem; }
+    .roster-pill-label { font-family: var(--font-h); font-size: .65rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
+    .roster-pill-value { font-weight: 600; color: var(--text); }
+    .roster-positions { flex-basis: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: .35rem .75rem; font-size: .82rem; }
+    .roster-positions .roster-pill-label { display: inline; margin-right: .3rem; }
+
+    /* Tabs */
+    .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 1.2rem; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { padding: .6rem 1.1rem; border: none; background: transparent; font-family: var(--font-h); font-size: .95rem; font-weight: 500; color: var(--text-muted); cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all var(--t); }
+    .tab:hover:not(.tab-on) { color: var(--green-mid); }
+    .tab-on { color: var(--green); border-bottom-color: var(--green); font-weight: 700; }
+
+    /* Item cards (accordion) */
+    .item-list { display: flex; flex-direction: column; gap: .5rem; }
+    .item-card { background: var(--surface); border: 1px solid var(--border-lt); border-radius: var(--r); overflow: hidden; box-shadow: var(--sh-sm); }
+    .item-head { display: flex; align-items: center; justify-content: space-between; padding: .65rem 1rem; cursor: pointer; user-select: none; transition: background var(--t); gap: .5rem; }
+    .item-head:hover { background: var(--surface-2); }
+    .item-head-left { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+    .item-chevron { font-size: .8rem; color: var(--text-muted); flex-shrink: 0; transition: transform .2s; }
+    .item-chevron.open { transform: rotate(90deg); }
+    .item-name { font-weight: 700; font-size: .92rem; color: var(--text); }
+    .item-pct { font-size: .82rem; color: var(--text-muted); }
+    .status-complete { color: var(--green-mid); font-weight: 700; font-size: .88rem; white-space: nowrap; }
+    .status-partial { color: var(--amber); font-weight: 600; font-size: .85rem; white-space: nowrap; }
+    .status-none { color: var(--text-muted); font-size: .83rem; font-style: italic; white-space: nowrap; }
+
+    /* Progress bar */
+    .item-progress { height: 3px; background: var(--border-lt); }
+    .item-progress-fill { height: 100%; background: var(--green-lt); border-radius: 0; transition: width .3s; }
+    .item-progress-fill-done { background: var(--green-mid); }
+
+    /* Requirement rows */
+    .req-table { width: 100%; border-collapse: collapse; }
+    .req-table th { font-family: var(--font-h); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: .35rem .75rem; text-align: left; border-bottom: 1px solid var(--border-lt); background: var(--surface-2); font-weight: 500; }
+    .req-table th:last-child { text-align: right; }
+    .req-table td { padding: .35rem .75rem; font-size: .84rem; border-bottom: 1px solid var(--border-lt); vertical-align: top; }
+    .req-table tr:last-child td { border-bottom: none; }
+    .req-table td:first-child { font-family: var(--font-h); font-weight: 600; color: var(--green); white-space: nowrap; width: 3rem; }
+    .req-table td:nth-child(2) { color: var(--text); line-height: 1.45; }
+    .req-table td:last-child { text-align: right; white-space: nowrap; }
+    .req-done { color: var(--green-mid); font-weight: 700; font-size: .88rem; }
+    .req-done-date { font-size: .72rem; color: var(--text-muted); font-weight: 400; display: block; }
+    .req-open { color: #ccc; font-size: 1rem; }
+
+    /* Eagle slots */
+    .eagle-slots-hdr { font-family: var(--font-h); font-size: .88rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); padding: .5rem 0 .4rem; margin-bottom: .4rem; border-bottom: 1px solid var(--border-lt); display: flex; align-items: center; justify-content: space-between; }
+    .eagle-slots-hdr span { font-family: var(--font-b); font-size: .82rem; font-weight: 600; color: var(--text-muted); }
+    .slot-num-badge { font-family: var(--font-h); font-size: .8rem; font-weight: 600; color: var(--text-muted); min-width: 2rem; }
+
+    /* Camp tab */
+    .camp-section { margin-bottom: 1.4rem; }
+    .camp-section-hdr { font-family: var(--font-h); font-size: 1rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--green); margin-bottom: .65rem; padding-bottom: .4rem; border-bottom: 2px solid var(--border-lt); }
+    .camp-rank-row { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; padding: .3rem 0; border-bottom: 1px solid var(--border-lt); font-size: .88rem; }
+    .camp-rank-row:last-child { border-bottom: none; }
+    .camp-rank-label { font-family: var(--font-h); font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); min-width: 5.5rem; flex-shrink: 0; }
+    .camp-req-chips { display: flex; flex-wrap: wrap; gap: .25rem; }
+    .camp-req-chip { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-h); font-size: .8rem; font-weight: 600; color: var(--green); padding: .1rem .45rem; cursor: help; }
+    .camp-mb-tbl { width: 100%; border-collapse: collapse; }
+    .camp-mb-tbl th { font-family: var(--font-h); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: .35rem .75rem; text-align: left; border-bottom: 1px solid var(--border-lt); background: var(--surface-2); font-weight: 500; }
+    .camp-mb-tbl td { padding: .35rem .75rem; font-size: .85rem; border-bottom: 1px solid var(--border-lt); }
+    .camp-mb-tbl tr:last-child td { border-bottom: none; }
+    .camp-mb-eagle-tag { font-size: .67rem; font-weight: 700; font-family: var(--font-h); background: var(--amber-lt); color: #6b3800; padding: .06rem .4rem; border-radius: 3px; margin-left: .35rem; }
+    .camp-mb-pct { color: var(--amber); font-weight: 700; font-size: .85rem; }
+
+    .none-started { color: var(--text-muted); font-style: italic; font-size: .88rem; padding: .5rem 0; }
+
+    @media (max-width: 580px) {
+      .ph-title { font-size: 1.55rem; }
+      .pw { padding: 0 .75rem 2rem; }
+      .tab { padding: .5rem .8rem; font-size: .88rem; }
+      .item-head { padding: .55rem .75rem; }
+      .req-table td, .req-table th { padding: .3rem .6rem; }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    const SCOUT_DATA = [(${scoutJson})];
+    const RANK_DEFS  = [(${rankDefs})];
+  </script>
+  <script type="text/babel">
+    const stripMB   = name => name.replace(/ MB$/, '');
+    const stripRank = name => name.replace(/ Rank$/, '');
+
+    function gradeStr(g) { return g > 0 ? `${g}th Grade` : null; }
+
+    /* ── Roster info panel ── */
+    function RosterPanel({ info }) {
+      if (!info) return null;
+      const gs = gradeStr(info.grade);
+      return (
+        <div className="roster-panel">
+          {info.patrol    && <div className="roster-pill"><span className="roster-pill-label">Patrol</span><span className="roster-pill-value">{info.patrol}</span></div>}
+          {gs             && <div className="roster-pill"><span className="roster-pill-label">Grade</span><span className="roster-pill-value">{gs}</span></div>}
+          {info.birthYear && <div className="roster-pill"><span className="roster-pill-label">Born</span><span className="roster-pill-value">{info.birthYear}</span></div>}
+          {info.joinYear  && <div className="roster-pill"><span className="roster-pill-label">Joined</span><span className="roster-pill-value">{info.joinYear}</span></div>}
+          {info.gender    && <div className="roster-pill"><span className="roster-pill-label">Gender</span><span className="roster-pill-value">{info.gender}</span></div>}
+          {info.schoolInfo && <div className="roster-pill"><span className="roster-pill-label">School</span><span className="roster-pill-value">{info.schoolInfo}</span></div>}
+          {info.positions && (
+            <div className="roster-positions">
+              <span className="roster-pill-label">Positions</span>
+              <span style={{fontWeight:500}}>{info.positions}</span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ── Requirement row ── */
+    function ReqRow({ req, defs }) {
+      const reqText = defs ? (defs[req.id] || '') : '';
+      return (
+        <tr>
+          <td>{req.id}</td>
+          {reqText ? <td>{reqText}</td> : <td style={{color:'var(--text-muted)',fontSize:'.8rem',fontStyle:'italic'}}>—</td>}
+          <td>
+            {req.completed
+              ? <span className="req-done">✓<span className="req-done-date">{req.dateCompleted}</span></span>
+              : <span className="req-open">—</span>
+            }
+          </td>
+        </tr>
+      );
+    }
+
+    /* ── Generic item card (rank or badge) ── */
+    function ItemCard({ item, displayName, showDefs }) {
+      const name  = displayName !== undefined ? displayName : item.name;
+      const defs  = showDefs ? (RANK_DEFS[item.name] || null) : null;
+      const done  = item.requirements.filter(r => r.completed).length;
+      const total = item.requirements.length;
+      const pct   = total > 0 ? Math.round(done / total * 100) : 0;
+      const [open, setOpen] = React.useState(false);
+
+      return (
+        <div className="item-card">
+          <div className="item-head" onClick={() => setOpen(o => !o)}>
+            <div className="item-head-left">
+              <span className={`item-chevron${open ? ' open' : ''}`}>▶</span>
+              <span className="item-name">{name}</span>
+            </div>
+            {item.completed
+              ? <span className="status-complete">✓ {item.dateCompleted}</span>
+              : total > 0
+                ? <span className="status-partial">{done}/{total} complete</span>
+                : <span className="status-none">No requirements recorded</span>
+            }
+          </div>
+          {!item.completed && total > 0 && (
+            <div className="item-progress">
+              <div className={`item-progress-fill${pct === 100 ? ' item-progress-fill-done' : ''}`}
+                   style={{width: pct + '%'}} />
+            </div>
+          )}
+          {open && item.requirements.length > 0 && (
+            <table className="req-table">
+              <thead>
+                <tr><th>Req</th><th>Description</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {item.requirements.map(req => <ReqRow key={req.id} req={req} defs={defs} />)}
+              </tbody>
+            </table>
+          )}
+        </div>
+      );
+    }
+
+    /* ── Eagle slot card ── */
+    function EagleSlotCard({ slot }) {
+      const [open, setOpen] = React.useState(false);
+      const canExpand = slot.badges.length > 0;
+      const singleDefs = slot.singleBadge && slot.badges.length > 0
+        ? (RANK_DEFS[slot.badges[0].name] || null)
+        : null;
+
+      function pct(badge) {
+        const t = badge.requirements.length;
+        return t === 0 ? 0 : Math.round(badge.requirements.filter(r => r.completed).length / t * 100);
+      }
+
+      let statusEl;
+      if (slot.complete) {
+        const done = slot.badges.find(b => b.completed) || slot.badges[0];
+        statusEl = <span className="status-complete">✓ {stripMB(done.name)} {done.dateCompleted}</span>;
+      } else if (canExpand) {
+        const best = slot.badges.reduce((a, b) => pct(a) >= pct(b) ? a : b);
+        statusEl = <span className="status-partial">{stripMB(best.name)} — {pct(best)}%</span>;
+      } else {
+        statusEl = <span className="status-none">Not started</span>;
+      }
+
+      return (
+        <div className="item-card">
+          <div className="item-head"
+               onClick={() => canExpand && setOpen(o => !o)}
+               style={{cursor: canExpand ? 'pointer' : 'default'}}>
+            <div className="item-head-left">
+              {canExpand
+                ? <span className={`item-chevron${open ? ' open' : ''}`}>▶</span>
+                : <span className="item-chevron" style={{visibility:'hidden'}}>▶</span>}
+              <span className="slot-num-badge">{slot.slotNum}.</span>
+              <span className="item-name">{slot.slotLabel}</span>
+            </div>
+            {statusEl}
+          </div>
+
+          {open && slot.singleBadge && slot.badges.length > 0 && slot.badges[0].requirements.length > 0 && (
+            <table className="req-table">
+              <thead><tr><th>Req</th><th>Description</th><th>Status</th></tr></thead>
+              <tbody>
+                {slot.badges[0].requirements.map(req => <ReqRow key={req.id} req={req} defs={singleDefs} />)}
+              </tbody>
+            </table>
+          )}
+
+          {open && !slot.singleBadge && (
+            <div style={{padding: '0 .75rem .75rem'}}>
+              <div className="item-list">
+                {slot.badges.map(badge => (
+                  <ItemCard key={badge.name} item={badge} displayName={stripMB(badge.name)} showDefs={false} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ── Tab content ── */
+    function RanksTab({ ranks }) {
+      if (ranks.length === 0) return <p className="none-started">No rank data recorded.</p>;
+      return (
+        <div className="item-list">
+          {ranks.map(item => (
+            <ItemCard key={item.name} item={item} showDefs={true} />
+          ))}
+        </div>
+      );
+    }
+
+    function MeritBadgesTab({ eagleSlots, electiveMBs }) {
+      const completedSlots = eagleSlots.filter(s => s.complete).length;
+      return (
+        <div>
+          <div className="eagle-slots-hdr">
+            Eagle-Required <span>{completedSlots}/14 slots complete</span>
+          </div>
+          <div className="item-list" style={{marginBottom:'1.5rem'}}>
+            {eagleSlots.map(slot => <EagleSlotCard key={slot.slotNum} slot={slot} />)}
+          </div>
+          <div className="eagle-slots-hdr">
+            Elective Merit Badges <span>{electiveMBs.length} recorded</span>
+          </div>
+          {electiveMBs.length === 0
+            ? <p className="none-started">None started.</p>
+            : (
+              <div className="item-list">
+                {electiveMBs.map(item => (
+                  <ItemCard key={item.name} item={item} displayName={stripMB(item.name)} showDefs={false} />
+                ))}
+              </div>
+            )
+          }
+        </div>
+      );
+    }
+
+    function AwardsTab({ awards }) {
+      if (awards.length === 0) return <p className="none-started">No awards recorded.</p>;
+      return (
+        <div className="item-list">
+          {awards.map(item => <ItemCard key={item.name} item={item} showDefs={false} />)}
+        </div>
+      );
+    }
+
+    function CampTab({ campData }) {
+      const campRanks    = campData.ranks.filter(r => r.atCamp.length > 0);
+      const meetingRanks = campData.ranks.filter(r => r.atMeetings.length > 0);
+      const campMBs      = campData.meritBadges || [];
+
+      return (
+        <div>
+          <div className="camp-section">
+            <div className="camp-section-hdr">Earnable At {campData.campName}</div>
+            {campRanks.length === 0
+              ? <p className="none-started">No outstanding rank requirements coverable at this camp.</p>
+              : campRanks.map(r => (
+                  <div key={r.rankName} className="camp-rank-row">
+                    <span className="camp-rank-label">{stripRank(r.rankName)}</span>
+                    <div className="camp-req-chips">
+                      {r.atCamp.map(req => (
+                        <span key={req.id} className="camp-req-chip"
+                              title={(RANK_DEFS[r.rankName] || {})[req.id] || ''}>
+                          {req.id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+            }
+          </div>
+
+          <div className="camp-section">
+            <div className="camp-section-hdr">Needs Troop Meetings</div>
+            {meetingRanks.length === 0
+              ? <p className="none-started">No outstanding requirements requiring meetings.</p>
+              : meetingRanks.map(r => (
+                  <div key={r.rankName} className="camp-rank-row">
+                    <span className="camp-rank-label">{stripRank(r.rankName)}</span>
+                    <div className="camp-req-chips">
+                      {r.atMeetings.map(req => (
+                        <span key={req.id} className="camp-req-chip"
+                              title={(RANK_DEFS[r.rankName] || {})[req.id] || ''}>
+                          {req.id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))
+            }
+          </div>
+
+          <div className="camp-section">
+            <div className="camp-section-hdr">Merit Badges at Camp</div>
+            {campMBs.length === 0
+              ? <p className="none-started">No merit badge data for this camp.</p>
+              : (
+                <div style={{background:'var(--surface)',borderRadius:'var(--r)',overflow:'hidden',border:'1px solid var(--border-lt)',boxShadow:'var(--sh-sm)'}}>
+                  <table className="camp-mb-tbl">
+                    <thead>
+                      <tr><th>Merit Badge</th><th>Progress</th></tr>
+                    </thead>
+                    <tbody>
+                      {campMBs.map(mb => (
+                        <tr key={mb.name}>
+                          <td>
+                            {stripMB(mb.name)}
+                            {mb.eagleRequired && <span className="camp-mb-eagle-tag">Eagle</span>}
+                          </td>
+                          <td>
+                            {mb.pct > 0
+                              ? <span className="camp-mb-pct">{mb.pct}%</span>
+                              : <span style={{color:'var(--text-muted)',fontSize:'.8rem'}}>Not started</span>
+                            }
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )
+            }
+          </div>
+        </div>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      const d = SCOUT_DATA;
+      const campTabs = (d.camps || []).map(c => c.campName);
+      const tabs     = ['Ranks', 'Merit Badges', 'Awards', ...campTabs];
+      const [activeTab, setActiveTab] = React.useState('Ranks');
+
+      return (
+        <div className="pw">
+          <div className="breadcrumb">
+            <a href="index.html">← All Scouts</a>
+          </div>
+          <div className="ph">
+            <div className="ph-title">{d.title}</div>
+          </div>
+
+          <RosterPanel info={d.rosterInfo} />
+
+          <div className="tabs" role="tablist">
+            {tabs.map(tab => (
+              <button key={tab} role="tab"
+                className={'tab' + (activeTab === tab ? ' tab-on' : '')}
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}>
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'Ranks'        && <RanksTab ranks={d.ranks} />}
+          {activeTab === 'Merit Badges' && <MeritBadgesTab eagleSlots={d.eagleSlots} electiveMBs={d.electiveMBs} />}
+          {activeTab === 'Awards'       && <AwardsTab awards={d.awards} />}
+          {(d.camps || []).map(camp =>
+            activeTab === camp.campName
+              ? <CampTab key={camp.campName} campData={camp} />
+              : null
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

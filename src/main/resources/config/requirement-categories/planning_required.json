@@ -1,0 +1,8 @@
+{
+  "categoryName": "Planning Required",
+  "rankRequirements": {
+    "Tenderfoot Rank": ["6a","6b","6c","7b"],
+    "Second Class Rank": ["1a","5b","7a","8c","8d","8e"],
+    "First Class Rank": ["1a","6a","8a","8b","9d","10"]
+  }
+}

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[(${title})] — ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ebe0; --surface: #faf7f2; --surface-2: #f5f0e6;
+      --border: #d6ccb8; --border-lt: #e8e1d4;
+      --text: #28200f; --text-muted: #7a6e58;
+      --green: #1a4d2e; --green-mid: #256937; --green-lt: #3a8a50;
+      --amber: #c47a0e; --amber-lt: #fde8b8;
+      --red: #b03030; --red-lt: #fddcdc;
+      --yellow-lt: #fef6c0; --yellow: #b89010;
+      --nav-green: #52b056; --nav-green-hv: #80d480; --stripe: #3a5bb8;
+      --font-h: 'Oswald', sans-serif; --font-b: 'Nunito', sans-serif;
+      --r: 6px; --r-lg: 10px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,.10); --sh-md: 0 3px 12px rgba(0,0,0,.14);
+      --t: .15s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; }
+    button { font-family: inherit; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    /* Site header */
+    .site-header { background: #000; border-bottom: 3px solid var(--stripe); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.5rem; position: sticky; top: 0; z-index: 300; }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    #root { display: contents; }
+    .pw { max-width: 1100px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+    /* Page header */
+    .ph { padding: 1.6rem 0 1.1rem; margin-bottom: 1.3rem; border-bottom: 2px solid var(--border); display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .ph-title { font-family: var(--font-h); font-size: 2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+    .ph-sub { color: var(--text-muted); font-size: .9rem; font-weight: 500; }
+
+    /* Filter panel */
+    .fp { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-sm); margin-bottom: 1.4rem; overflow: hidden; }
+    .fp-head { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1.1rem; cursor: pointer; user-select: none; border-bottom: 1px solid transparent; transition: border-color var(--t); }
+    .fp-head.open { border-bottom-color: var(--border-lt); }
+    .fp-label { font-family: var(--font-h); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); font-weight: 500; }
+    .fp-label-active { color: var(--green-mid); font-weight: 700; }
+    .fp-chevron { width: 20px; height: 20px; color: var(--text-muted); transition: transform .2s; flex-shrink: 0; }
+    .fp-chevron.open { transform: rotate(180deg); }
+    .fp-body { padding: .85rem 1.1rem 1rem; display: flex; flex-direction: column; gap: .65rem; }
+    .fp-body.hidden { display: none; }
+    .frow { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+    .flabel { font-family: var(--font-h); font-size: .72rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); min-width: 5.8rem; flex-shrink: 0; }
+    .chips { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .chip { padding: .2rem .75rem; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; font-family: var(--font-b); font-size: .82rem; font-weight: 600; line-height: 1.4; transition: all var(--t); white-space: nowrap; }
+    .chip:hover:not(.chip-on) { background: #e6e0d4; border-color: #c4baa8; }
+    .chip-on { background: var(--green); border-color: var(--green); color: #fff; }
+    .fsel { padding: .28rem .6rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); font-family: var(--font-b); font-size: .85rem; color: var(--text); cursor: pointer; }
+    .reset-btn { margin-left: auto; padding: .2rem .8rem; background: none; border: 1.5px solid var(--border); border-radius: var(--r); font-family: var(--font-b); font-size: .8rem; color: var(--text-muted); cursor: pointer; transition: all var(--t); white-space: nowrap; }
+    .reset-btn:hover { background: var(--surface-2); color: var(--text); border-color: #b0a890; }
+
+    /* Summary bar */
+    .sbar { display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; padding: .55rem 0; margin-bottom: 1rem; border-bottom: 1px dashed var(--border); font-size: .85rem; color: var(--text-muted); }
+    .sstat strong { font-family: var(--font-h); font-size: 1.1rem; color: var(--text); margin-right: .2rem; }
+    .sbar-filter-active { font-size: .78rem; font-weight: 700; color: var(--amber); letter-spacing: .03em; }
+
+    /* Scout table */
+    .tbl-wrap { overflow-x: auto; border-radius: var(--r-lg); box-shadow: var(--sh-sm); }
+    .stbl { border-collapse: collapse; width: 100%; min-width: 680px; background: var(--surface); }
+    .stbl thead tr { background: var(--green); }
+    .stbl th { font-family: var(--font-h); font-size: .78rem; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.85); padding: .55rem .7rem; text-align: center; border-right: 1px solid rgba(255,255,255,.1); white-space: nowrap; }
+    .stbl th:first-child { text-align: left; padding-left: 1rem; }
+    .stbl th:last-child { border-right: none; }
+    .stbl tbody tr { border-bottom: 1px solid var(--border-lt); transition: background var(--t); }
+    .stbl tbody tr:last-child { border-bottom: none; }
+    .stbl tbody tr:hover { background: var(--surface-2); }
+    .stbl td { padding: .45rem .7rem; text-align: center; font-size: .875rem; }
+    .stbl td:first-child { text-align: left; padding-left: 1rem; font-weight: 600; }
+    .tc-complete { color: var(--green-mid); font-weight: 700; font-size: .9rem; }
+    .tc-progress-hi { color: var(--amber); font-weight: 700; font-size: .82rem; }
+    .tc-progress-lo { color: var(--text-muted); font-size: .82rem; }
+    .tc-absent { color: var(--border); font-size: 1.1rem; }
+    .tc-zero { color: #bbb5a8; font-size: .78rem; }
+
+    /* Empty */
+    .empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; background: var(--surface); border: 1px dashed var(--border); border-radius: var(--r-lg); }
+    .empty strong { display: block; font-family: var(--font-h); font-size: 1.1rem; color: var(--green); margin-bottom: .3rem; text-transform: uppercase; }
+
+    @media (max-width: 580px) {
+      .ph-title { font-size: 1.55rem; }
+      .pw { padding: 0 .75rem 2rem; }
+      .flabel { min-width: 4.5rem; font-size: .68rem; }
+      .chip { font-size: .78rem; padding: .17rem .6rem; }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    const SCOUT_DATA = [(${scoutData})];
+  </script>
+  <script type="text/babel">
+    const RANK_KEYS = [
+      "Scout Rank", "Tenderfoot Rank", "Second Class Rank", "First Class Rank",
+      "Star Scout Rank", "Life Scout Rank", "Eagle Scout Rank"
+    ];
+    const RANK_SHORT = {
+      "Scout Rank": "Scout", "Tenderfoot Rank": "TF", "Second Class Rank": "2C",
+      "First Class Rank": "1C", "Star Scout Rank": "Star",
+      "Life Scout Rank": "Life", "Eagle Scout Rank": "Eagle"
+    };
+    const RANK_FULL = {
+      "Scout Rank": "Scout", "Tenderfoot Rank": "Tenderfoot",
+      "Second Class Rank": "2nd Class", "First Class Rank": "1st Class",
+      "Star Scout Rank": "Star", "Life Scout Rank": "Life", "Eagle Scout Rank": "Eagle"
+    };
+    const RANK_ORDER = ['Scout','Tenderfoot','2nd Class','1st Class','Star','Life','Eagle'];
+
+    function RankCell({ rankData }) {
+      if (!rankData) return <td className="tc-absent">—</td>;
+      if (rankData.completed)
+        return <td className="tc-complete" title={rankData.dateCompleted}>✓</td>;
+      if (rankData.pctComplete >= 50)
+        return <td className="tc-progress-hi">{rankData.pctComplete}%</td>;
+      if (rankData.pctComplete > 0)
+        return <td className="tc-progress-lo">{rankData.pctComplete}%</td>;
+      return <td className="tc-zero">0%</td>;
+    }
+
+    function Chip({ label, active, onClick }) {
+      return (
+        <button type="button" className={'chip' + (active ? ' chip-on' : '')} onClick={onClick}>
+          {label}
+        </button>
+      );
+    }
+
+    function App() {
+      const d = SCOUT_DATA;
+      const sorted = [...d.scouts].sort((a, b) => a.name.localeCompare(b.name));
+
+      const [grade,     setGrade]     = React.useState('All');
+      const [patrol,    setPatrol]    = React.useState('All');
+      const [birthYear, setBirthYear] = React.useState('All');
+      const [joinYear,  setJoinYear]  = React.useState('All');
+      const [rank,      setRank]      = React.useState('All');
+      const [fpOpen,    setFpOpen]    = React.useState(true);
+
+      const hasActive = grade !== 'All' || patrol !== 'All' || birthYear !== 'All'
+        || joinYear !== 'All' || rank !== 'All';
+
+      function resetAll() {
+        setGrade('All'); setPatrol('All'); setBirthYear('All');
+        setJoinYear('All'); setRank('All');
+      }
+
+      const upperGrades = [...new Set(sorted.map(s => s.grade).filter(g => g >= 7))].sort((a, b) => a - b);
+      const presentRanks = RANK_ORDER.filter(r => sorted.some(s => s.currentRank === r));
+
+      const visible = sorted.filter(s => {
+        if (grade !== 'All') {
+          if (grade === 'Unknown' && s.grade >= 7) return false;
+          if (grade !== 'Unknown' && s.grade !== Number(grade)) return false;
+        }
+        if (patrol    !== 'All' && s.patrol    !== patrol)    return false;
+        if (birthYear !== 'All' && s.birthYear !== birthYear) return false;
+        if (joinYear  !== 'All' && s.joinYear  !== joinYear)  return false;
+        if (rank      !== 'All' && s.currentRank !== rank)    return false;
+        return true;
+      });
+
+      return (
+        <div className="pw">
+          <div className="ph">
+            <div className="ph-title">All Scouts</div>
+            {d.title && <div className="ph-sub">{d.title}</div>}
+          </div>
+
+          {/* Filter panel */}
+          <div className="fp">
+            <div className={`fp-head${fpOpen ? ' open' : ''}`}
+                 onClick={() => setFpOpen(o => !o)} role="button" aria-expanded={fpOpen}>
+              <span className={`fp-label${hasActive ? ' fp-label-active' : ''}`}>
+                {hasActive ? '● Filters active' : 'Filters'}
+              </span>
+              <svg className={`fp-chevron${fpOpen ? ' open' : ''}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd"/>
+              </svg>
+            </div>
+            <div className={`fp-body${fpOpen ? '' : ' hidden'}`}>
+              <div className="frow">
+                <span className="flabel">Grade</span>
+                <div className="chips">
+                  <Chip label="All" active={grade === 'All'} onClick={() => setGrade('All')} />
+                  {upperGrades.map(g => (
+                    <Chip key={g} label={`${g}th`} active={grade === String(g)} onClick={() => setGrade(String(g))} />
+                  ))}
+                  <Chip label="Unknown" active={grade === 'Unknown'} onClick={() => setGrade('Unknown')} />
+                </div>
+              </div>
+              {d.hasRosterData && d.patrols?.length > 0 && (
+                <div className="frow">
+                  <span className="flabel">Patrol</span>
+                  <div className="chips">
+                    <Chip label="All" active={patrol === 'All'} onClick={() => setPatrol('All')} />
+                    {d.patrols.map(p => (
+                      <Chip key={p} label={p} active={patrol === p} onClick={() => setPatrol(p)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="frow">
+                <span className="flabel">Rank</span>
+                <div className="chips">
+                  <Chip label="All" active={rank === 'All'} onClick={() => setRank('All')} />
+                  {presentRanks.map(r => (
+                    <Chip key={r} label={r} active={rank === r} onClick={() => setRank(r)} />
+                  ))}
+                </div>
+              </div>
+              <div className="frow">
+                {d.hasRosterData && d.birthYears?.length > 0 && (
+                  <>
+                    <span className="flabel">Born</span>
+                    <select className="fsel" value={birthYear} onChange={e => setBirthYear(e.target.value)}>
+                      <option value="All">All years</option>
+                      {d.birthYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </>
+                )}
+                {d.hasRosterData && d.joinYears?.length > 0 && (
+                  <>
+                    <span className="flabel" style={{marginLeft:'.6rem'}}>Joined</span>
+                    <select className="fsel" value={joinYear} onChange={e => setJoinYear(e.target.value)}>
+                      <option value="All">All years</option>
+                      {d.joinYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </>
+                )}
+                {hasActive && (
+                  <button className="reset-btn" type="button" onClick={resetAll}>✕ Reset all</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="sbar">
+            <div className="sstat"><strong>{visible.length}</strong> scout{visible.length !== 1 ? 's' : ''}</div>
+            {hasActive && <span className="sbar-filter-active">▲ Filters active</span>}
+          </div>
+
+          {/* Table */}
+          {visible.length === 0 ? (
+            <div className="empty">
+              <strong>No scouts match</strong>
+              Try adjusting the filters above.
+            </div>
+          ) : (
+            <div className="tbl-wrap">
+              <table className="stbl">
+                <thead>
+                  <tr>
+                    <th>Scout</th>
+                    {RANK_KEYS.map(k => <th key={k}>{RANK_SHORT[k]}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map(scout => (
+                    <tr key={scout.memberId}>
+                      <td>
+                        <a href={`scout_${scout.memberId}.html`}>{scout.name}</a>
+                        {scout.patrol && (
+                          <span style={{color:'var(--text-muted)',fontSize:'.75rem',fontWeight:400,marginLeft:'.4rem'}}>
+                            · {scout.patrol}
+                          </span>
+                        )}
+                      </td>
+                      {RANK_KEYS.map(k => (
+                        <RankCell key={k} rankData={scout.ranks?.[k]} />
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

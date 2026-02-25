@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eagle MB Detail — ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ebe0; --surface: #faf7f2; --surface-2: #f5f0e6;
+      --border: #d6ccb8; --border-lt: #e8e1d4;
+      --text: #28200f; --text-muted: #7a6e58;
+      --green: #1a4d2e; --green-mid: #256937; --green-lt: #3a8a50;
+      --amber: #c47a0e; --amber-lt: #fde8b8;
+      --red: #b03030; --red-lt: #fddcdc;
+      --yellow-lt: #fef6c0; --yellow: #b89010;
+      --nav-green: #52b056; --nav-green-hv: #80d480; --stripe: #3a5bb8;
+      --font-h: 'Oswald', sans-serif; --font-b: 'Nunito', sans-serif;
+      --r: 6px; --r-lg: 10px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,.10); --sh-md: 0 3px 12px rgba(0,0,0,.14);
+      --t: .15s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; }
+    button { font-family: inherit; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    .site-header { background: #000; border-bottom: 3px solid var(--stripe); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.5rem; position: sticky; top: 0; z-index: 300; }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    #root { display: contents; }
+    .pw { max-width: 900px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+    /* Breadcrumb */
+    .breadcrumb { padding: 1rem 0 .5rem; font-size: .85rem; }
+    .breadcrumb a { color: var(--green-mid); display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; }
+    .breadcrumb a:hover { color: var(--green); }
+
+    /* Page header */
+    .ph { padding: .5rem 0 1.1rem; margin-bottom: 1.3rem; border-bottom: 2px solid var(--border); }
+    .ph-slot { font-family: var(--font-h); font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .3rem; }
+    .ph-title { font-family: var(--font-h); font-size: 2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+    .ph-sub { color: var(--text-muted); font-size: .9rem; font-weight: 500; margin-top: .3rem; }
+
+    /* Summary strip */
+    .sbar { display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; padding: .55rem 0; margin-bottom: 1rem; border-bottom: 1px dashed var(--border); font-size: .85rem; color: var(--text-muted); }
+    .sstat strong { font-family: var(--font-h); font-size: 1.1rem; color: var(--text); margin-right: .2rem; }
+
+    /* Requirement cards */
+    .rlist { display: flex; flex-direction: column; gap: .5rem; }
+    .rcard { background: var(--surface); border: 1px solid var(--border-lt); border-left: 4px solid var(--border); border-radius: var(--r); display: grid; grid-template-columns: 3rem 1fr auto; align-items: start; gap: .7rem; padding: .75rem 1rem; box-shadow: var(--sh-sm); transition: box-shadow var(--t); }
+    .rcard:hover { box-shadow: var(--sh-md); }
+    .rcard-low  { border-left-color: var(--yellow); }
+    .rcard-mid  { border-left-color: var(--amber); }
+    .rcard-high { border-left-color: var(--red); }
+    .rcard-ok   { border-left-color: var(--green-lt); }
+    .rid { font-family: var(--font-h); font-size: 1.05rem; font-weight: 600; color: var(--green); text-align: center; padding-top: .1rem; }
+    .rtext { font-size: .88rem; line-height: 1.55; color: var(--text); }
+    .rright { text-align: right; }
+    .rcnt { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; border-radius: 50%; font-family: var(--font-h); font-size: 1rem; font-weight: 700; cursor: pointer; border: 2px solid transparent; transition: transform var(--t), box-shadow var(--t); }
+    .rcnt:hover { transform: scale(1.12); box-shadow: var(--sh-md); }
+    .rcnt-low  { background: var(--yellow-lt); color: #5a4000; border-color: var(--yellow); }
+    .rcnt-mid  { background: var(--amber-lt);  color: #6b3800; border-color: var(--amber); }
+    .rcnt-high { background: var(--red-lt);    color: #6b0000; border-color: var(--red); }
+    .rcnt-ok   { background: #d4f0d4; color: var(--green); border-color: var(--green-lt); cursor: default; font-size: .85rem; }
+    .rcnt-open { box-shadow: 0 0 0 3px rgba(26,77,46,.25); }
+
+    /* Expand */
+    .expand-body { margin-top: .5rem; background: var(--surface-2); border: 1px solid var(--border-lt); border-radius: var(--r); padding: .5rem .75rem; animation: fadeIn .14s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+    .expand-hdr { font-family: var(--font-h); font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .35rem; }
+    .rank-rows { display: flex; flex-direction: column; gap: .2rem; }
+    .rank-row { display: flex; align-items: baseline; gap: .5rem; font-size: .84rem; padding: .2rem 0; border-bottom: 1px solid var(--border-lt); }
+    .rank-row:last-child { border-bottom: none; }
+    .rank-row-label { font-family: var(--font-h); font-size: .72rem; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); min-width: 5rem; }
+    .rank-row-n { font-family: var(--font-h); font-weight: 700; color: var(--red); font-size: .9rem; }
+    .rank-row-names { color: var(--text-muted); font-size: .8rem; }
+
+    .empty { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; background: var(--surface); border: 1px dashed var(--border); border-radius: var(--r-lg); }
+    .empty strong { display: block; font-family: var(--font-h); font-size: 1.1rem; color: var(--green); margin-bottom: .3rem; text-transform: uppercase; }
+
+    @media (max-width: 580px) {
+      .ph-title { font-size: 1.55rem; }
+      .pw { padding: 0 .75rem 2rem; }
+      .rcard { grid-template-columns: 2.5rem 1fr auto; gap: .5rem; padding: .6rem .75rem; }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    const DETAIL_DATA = [(${detailJson})];
+  </script>
+  <script type="text/babel">
+    function urgency(n) {
+      if (n >= 8) return 'high';
+      if (n >= 4) return 'mid';
+      return 'low';
+    }
+
+    function ReqCard({ req }) {
+      const [open, setOpen] = React.useState(false);
+      const n   = req.totalNeed;
+      const urg = n > 0 ? urgency(n) : 'ok';
+
+      return (
+        <div className={`rcard rcard-${urg}`}>
+          <div className="rid">{req.reqId}</div>
+          <div>
+            <div className="rtext">{req.reqText}</div>
+            {open && n > 0 && (
+              <div className="expand-body">
+                <div className="expand-hdr">By rank</div>
+                <div className="rank-rows">
+                  {req.byRank.filter(r => r.need > 0).map(r => (
+                    <div key={r.rank} className="rank-row">
+                      <span className="rank-row-label">{r.rank}</span>
+                      <span className="rank-row-n">{r.need}</span>
+                      {r.scouts.length > 0 && (
+                        <span className="rank-row-names">{r.scouts.join(', ')}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="rright">
+            {n > 0 ? (
+              <button type="button"
+                className={`rcnt rcnt-${urg}${open ? ' rcnt-open' : ''}`}
+                onClick={() => setOpen(o => !o)}
+                title={open ? 'Collapse' : `${n} scout${n !== 1 ? 's' : ''} need this`}>
+                {n}
+              </button>
+            ) : (
+              <div className="rcnt rcnt-ok" title="All scouts have completed this requirement">✓</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const d = DETAIL_DATA;
+      const badgeName = d.badgeName.endsWith(' MB') ? d.badgeName.slice(0, -3) : d.badgeName;
+
+      return (
+        <div className="pw">
+          <div className="breadcrumb">
+            <a href="eagle_mb_summary.html">
+              ← Eagle MB Summary
+            </a>
+          </div>
+
+          <div className="ph">
+            <div className="ph-slot">Slot {d.slotNum} · {d.slotLabel}</div>
+            <div className="ph-title">{badgeName}</div>
+            <div className="ph-sub">Merit badge requirements breakdown</div>
+          </div>
+
+          <div className="sbar">
+            <div className="sstat">
+              <strong>{d.totalNeedScouts}</strong>
+              scout{d.totalNeedScouts !== 1 ? 's' : ''} still need{d.totalNeedScouts === 1 ? 's' : ''} this badge
+            </div>
+            <div className="sstat">
+              <strong>{d.requirements.length}</strong>
+              requirement{d.requirements.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          {d.requirements.length === 0 ? (
+            <div className="empty">
+              <strong>No requirements found</strong>
+              No requirement data available for this badge.
+            </div>
+          ) : (
+            <div className="rlist">
+              {d.requirements.map(req => (
+                <ReqCard key={req.reqId} req={req} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

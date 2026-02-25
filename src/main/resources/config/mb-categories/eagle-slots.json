@@ -1,0 +1,18 @@
+{
+  "slots": [
+    { "num":  1, "label": "First Aid",                              "badges": ["First Aid MB"] },
+    { "num":  2, "label": "Citizenship in the Community",           "badges": ["Citizenship in the Community MB"] },
+    { "num":  3, "label": "Citizenship in the Nation",              "badges": ["Citizenship in the Nation MB"] },
+    { "num":  4, "label": "Citizenship in the World",               "badges": ["Citizenship in the World MB"] },
+    { "num":  5, "label": "Communication",                          "badges": ["Communication MB"] },
+    { "num":  6, "label": "Cooking",                                "badges": ["Cooking MB"] },
+    { "num":  7, "label": "Personal Fitness",                       "badges": ["Personal Fitness MB"] },
+    { "num":  8, "label": "Emergency Preparedness or Lifesaving",   "badges": ["Emergency Preparedness MB", "Lifesaving MB"] },
+    { "num":  9, "label": "Environmental Science or Sustainability", "badges": ["Environmental Science MB", "Sustainability MB"] },
+    { "num": 10, "label": "Personal Management",                    "badges": ["Personal Management MB"] },
+    { "num": 11, "label": "Swimming, Hiking, or Cycling",           "badges": ["Swimming MB", "Hiking MB", "Cycling MB"] },
+    { "num": 12, "label": "Camping",                                "badges": ["Camping MB"] },
+    { "num": 13, "label": "Family Life",                            "badges": ["Family Life MB"] },
+    { "num": 14, "label": "Citizenship in Society",                 "badges": ["Citizenship in Society MB"] }
+  ]
+}

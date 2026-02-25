@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trail to First Class — ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design Tokens ──────────────────────────── */
+    :root {
+      --bg:           #f0ebe0;
+      --surface:      #faf7f2;
+      --surface-2:    #f5f0e6;
+      --border:       #d6ccb8;
+      --border-lt:    #e8e1d4;
+      --text:         #28200f;
+      --text-muted:   #7a6e58;
+      --green:        #1a4d2e;
+      --green-mid:    #256937;
+      --green-lt:     #3a8a50;
+      --amber:        #c47a0e;
+      --amber-lt:     #fde8b8;
+      --red:          #b03030;
+      --red-lt:       #fddcdc;
+      --yellow-lt:    #fef6c0;
+      --yellow:       #b89010;
+      --blue:         #2058a0;
+      --blue-lt:      #d8eaf8;
+      --purple:       #6b3080;
+      --purple-lt:    #f0daf8;
+      --teal:         #1a6060;
+      --teal-lt:      #d0efef;
+      --nav-green:    #52b056;
+      --nav-green-hv: #80d480;
+      --stripe:       #3a5bb8;
+      --font-h:       'Oswald', sans-serif;
+      --font-b:       'Nunito', sans-serif;
+      --r:            6px;
+      --r-lg:         10px;
+      --sh-sm:        0 1px 3px rgba(0,0,0,.10);
+      --sh-md:        0 3px 12px rgba(0,0,0,.14);
+      --t:            .15s ease;
+    }
+
+    /* ── Base ───────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-b);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    button { font-family: inherit; }
+
+    /* ── Site Header (injected fragment) ─────────── */
+    .site-header {
+      background: #000;
+      border-bottom: 3px solid var(--stripe);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 300;
+    }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a {
+      color: var(--nav-green);
+      text-decoration: none;
+      font-family: var(--font-b);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    /* ── Page Wrapper ───────────────────────────── */
+    #root { display: contents; }
+    .pw {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 0 1rem 3rem;
+    }
+
+    /* ── Page Heading ───────────────────────────── */
+    .ph {
+      padding: 1.6rem 0 1.1rem;
+      margin-bottom: 1.3rem;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .ph-title {
+      font-family: var(--font-h);
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--green);
+      line-height: 1;
+    }
+    .ph-sub {
+      color: var(--text-muted);
+      font-size: .9rem;
+      font-weight: 500;
+    }
+
+    /* ── Filter Panel ───────────────────────────── */
+    .fp {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--sh-sm);
+      margin-bottom: 1.4rem;
+      overflow: hidden;
+    }
+    .fp-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .75rem 1.1rem;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color var(--t);
+    }
+    .fp-head.open { border-bottom-color: var(--border-lt); }
+    .fp-label {
+      font-family: var(--font-h);
+      font-size: .72rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .fp-label-active { color: var(--green-mid); font-weight: 700; }
+    .fp-chevron {
+      width: 20px;
+      height: 20px;
+      color: var(--text-muted);
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+    .fp-chevron.open { transform: rotate(180deg); }
+    .fp-body {
+      padding: .85rem 1.1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: .65rem;
+    }
+    .fp-body.hidden { display: none; }
+
+    /* filter rows */
+    .frow {
+      display: flex;
+      align-items: center;
+      gap: .45rem;
+      flex-wrap: wrap;
+    }
+    .flabel {
+      font-family: var(--font-h);
+      font-size: .72rem;
+      font-weight: 500;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      min-width: 5.8rem;
+      flex-shrink: 0;
+    }
+    /* chips */
+    .chips { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .chip {
+      padding: .2rem .75rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--font-b);
+      font-size: .82rem;
+      font-weight: 600;
+      line-height: 1.4;
+      transition: all var(--t);
+      white-space: nowrap;
+    }
+    .chip:hover:not(.chip-on) { background: #e6e0d4; border-color: #c4baa8; }
+    .chip-on {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+    /* selects */
+    .fsel {
+      padding: .28rem .6rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface);
+      font-family: var(--font-b);
+      font-size: .85rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .reset-btn {
+      margin-left: auto;
+      padding: .2rem .8rem;
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      font-family: var(--font-b);
+      font-size: .8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--t);
+      white-space: nowrap;
+    }
+    .reset-btn:hover { background: var(--surface-2); color: var(--text); border-color: #b0a890; }
+
+    /* ── Rank Tabs ──────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 1.1rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: .6rem 1.15rem;
+      border: none;
+      background: transparent;
+      font-family: var(--font-h);
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all var(--t);
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+    .tab:hover:not(.tab-on) { color: var(--green-mid); }
+    .tab-on {
+      color: var(--green);
+      border-bottom-color: var(--green);
+      font-weight: 700;
+    }
+    .tab-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      font-family: var(--font-b);
+      font-size: .68rem;
+      font-weight: 700;
+      border-radius: 999px;
+      min-width: 1.4rem;
+      height: 1.4rem;
+      padding: 0 .35rem;
+    }
+    .tab-on .tab-badge {
+      background: var(--green);
+      color: #fff;
+    }
+    .tab-badge-warn { background: var(--red-lt) !important; color: var(--red) !important; }
+    .tab-on .tab-badge-warn { background: var(--red) !important; color: #fff !important; }
+
+    /* ── Summary Bar ────────────────────────────── */
+    .sbar {
+      display: flex;
+      gap: 1.4rem;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: .55rem 0;
+      margin-bottom: 1rem;
+      border-bottom: 1px dashed var(--border);
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+    .sstat strong {
+      font-family: var(--font-h);
+      font-size: 1.1rem;
+      color: var(--text);
+      margin-right: .2rem;
+    }
+    .sbar-filter-active {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: .03em;
+    }
+
+    /* ── Requirement Cards ──────────────────────── */
+    .rlist { display: flex; flex-direction: column; gap: .5rem; }
+    .rcard {
+      background: var(--surface);
+      border: 1px solid var(--border-lt);
+      border-left: 4px solid var(--border);
+      border-radius: var(--r);
+      display: grid;
+      grid-template-columns: 3rem 1fr auto;
+      align-items: start;
+      gap: .7rem;
+      padding: .75rem 1rem;
+      box-shadow: var(--sh-sm);
+      transition: box-shadow var(--t), border-left-color var(--t);
+    }
+    .rcard:hover { box-shadow: var(--sh-md); }
+    .rcard-low  { border-left-color: var(--yellow); }
+    .rcard-mid  { border-left-color: var(--amber); }
+    .rcard-high { border-left-color: var(--red); }
+
+    .rid {
+      font-family: var(--font-h);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--green);
+      text-align: center;
+      padding-top: .1rem;
+      letter-spacing: .02em;
+    }
+    .rbody {}
+    .rtext {
+      font-size: .88rem;
+      line-height: 1.55;
+      color: var(--text);
+    }
+    .rcats {
+      display: flex;
+      gap: .28rem;
+      flex-wrap: wrap;
+      margin-top: .38rem;
+    }
+    .rcat {
+      font-size: .67rem;
+      font-weight: 700;
+      font-family: var(--font-h);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: .08rem .45rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .rcat-nocamp   { background: var(--amber-lt);  color: #6b3800; }
+    .rcat-camp     { background: var(--teal-lt);   color: var(--teal); }
+    .rcat-meeting  { background: var(--blue-lt);   color: var(--blue); }
+    .rcat-planning { background: var(--purple-lt); color: var(--purple); }
+
+    /* count bubble */
+    .rright { text-align: right; }
+    .rcnt {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.3rem;
+      height: 2.3rem;
+      border-radius: 50%;
+      font-family: var(--font-h);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform var(--t), box-shadow var(--t);
+    }
+    .rcnt:hover { transform: scale(1.12); box-shadow: var(--sh-md); }
+    .rcnt-low  { background: var(--yellow-lt); color: #5a4000; border-color: var(--yellow); }
+    .rcnt-mid  { background: var(--amber-lt);  color: #6b3800; border-color: var(--amber); }
+    .rcnt-high { background: var(--red-lt);    color: #6b0000; border-color: var(--red); }
+    .rcnt-open { box-shadow: 0 0 0 3px rgba(26,77,46,.25); }
+
+    /* inline scout list */
+    .slist {
+      margin-top: .5rem;
+      background: var(--surface-2);
+      border: 1px solid var(--border-lt);
+      border-radius: var(--r);
+      padding: .5rem .75rem;
+      animation: slistIn .14s ease;
+    }
+    @keyframes slistIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slist-hdr {
+      font-family: var(--font-h);
+      font-size: .68rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: .3rem;
+    }
+    .srow {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      padding: .18rem 0;
+      border-bottom: 1px solid var(--border-lt);
+      font-size: .84rem;
+    }
+    .srow:last-child { border-bottom: none; }
+    .stag {
+      font-size: .64rem;
+      font-weight: 700;
+      font-family: var(--font-h);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: .04rem .38rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .spatrol {
+      font-size: .76rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Empty State ────────────────────────────── */
+    .empty {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2.5rem 1rem;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--r-lg);
+    }
+    .empty-icon { font-size: 2rem; margin-bottom: .5rem; }
+    .empty strong {
+      display: block;
+      font-family: var(--font-h);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: .3rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .empty span { font-size: .88rem; font-style: italic; }
+
+    /* ── Responsive ─────────────────────────────── */
+    @media (max-width: 580px) {
+      .site-header { padding: .4rem 1rem; }
+      .ph-title { font-size: 1.55rem; }
+      .pw { padding: 0 .75rem 2rem; }
+      .tab { padding: .5rem .85rem; font-size: .9rem; }
+      .rcard { grid-template-columns: 2.6rem 1fr auto; gap: .5rem; padding: .6rem .75rem; }
+      .rid { font-size: .95rem; }
+      .rtext { font-size: .83rem; }
+      .flabel { min-width: 4.5rem; font-size: .68rem; }
+      .chip { font-size: .78rem; padding: .17rem .6rem; }
+      .sbar { gap: .9rem; font-size: .8rem; }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    const TTFC_DATA = [(${ttfcJson})];
+  </script>
+  <script type="text/babel">
+
+    /* ── Constants ──────────────────────────────── */
+    const CAT_META = {
+      cant_earn_at_camp: { label: "Can't Earn At Camp", cls: 'nocamp'   },
+      camping_trip:      { label: 'Camping Trip',        cls: 'camp'     },
+      planning_required: { label: 'Planning Required',   cls: 'planning' },
+      troop_meeting:     { label: 'Troop Meeting',       cls: 'meeting'  },
+    };
+
+    const CAT_FILTER_ORDER = [
+      'cant_earn_at_camp', 'camping_trip', 'planning_required', 'troop_meeting',
+    ];
+
+    /* ── Helpers ────────────────────────────────── */
+    function urgency(n) {
+      if (n >= 8) return 'high';
+      if (n >= 4) return 'mid';
+      return 'low';
+    }
+
+    function matchesScout(s, f) {
+      if (f.patrol    !== 'All' && s.patrol    !== f.patrol)        return false;
+      if (f.grade     !== 'All' && s.grade     !== Number(f.grade)) return false;
+      if (f.birthYear !== 'All' && s.birthYear !== f.birthYear)     return false;
+      if (f.joinYear  !== 'All' && s.joinYear  !== f.joinYear)      return false;
+      if (f.rank      !== 'All' && s.rank      !== f.rank)          return false;
+      return true;
+    }
+
+    function visibleReqs(rankData, catFilter, scoutFilters) {
+      return rankData.requirements
+        .filter(r => catFilter === 'All' || r.categories.includes(catFilter))
+        .map(r => ({ ...r, filtered: r.scouts.filter(s => matchesScout(s, scoutFilters)) }))
+        .filter(r => r.filtered.length > 0);
+    }
+
+    /* ── Sub-components ─────────────────────────── */
+    function Chip({ label, active, onClick }) {
+      return (
+        <button type="button"
+          className={'chip' + (active ? ' chip-on' : '')}
+          onClick={onClick}>
+          {label}
+        </button>
+      );
+    }
+
+    function ReqCard({ req }) {
+      const [open, setOpen] = React.useState(false);
+      const n   = req.filtered.length;
+      const urg = urgency(n);
+
+      return (
+        <div className={`rcard rcard-${urg}`}>
+          {/* Req ID */}
+          <div className="rid">{req.id}</div>
+
+          {/* Body */}
+          <div className="rbody">
+            <div className="rtext">{req.text}</div>
+            {req.categories.length > 0 && (
+              <div className="rcats">
+                {req.categories.map(cat => (
+                  <span key={cat} className={`rcat rcat-${CAT_META[cat]?.cls ?? ''}`}>
+                    {CAT_META[cat]?.label ?? cat}
+                  </span>
+                ))}
+              </div>
+            )}
+            {open && (
+              <div className="slist">
+                <div className="slist-hdr">Scouts needing this · {n}</div>
+                {req.filtered.map(s => (
+                  <div key={s.name} className="srow">
+                    <span>{s.name}</span>
+                    {s.rank   && <span className="stag">{s.rank}</span>}
+                    {s.patrol && <span className="spatrol">· {s.patrol}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Count bubble */}
+          <div className="rright">
+            <button type="button"
+              className={`rcnt rcnt-${urg}${open ? ' rcnt-open' : ''}`}
+              onClick={() => setOpen(o => !o)}
+              title={open ? 'Collapse' : `${n} scout${n !== 1 ? 's' : ''} — click to expand`}>
+              {n}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function RankSection({ rankData, catFilter, scoutFilters }) {
+      const reqs = visibleReqs(rankData, catFilter, scoutFilters);
+      if (reqs.length === 0) {
+        return (
+          <div className="empty">
+            <div className="empty-icon">✓</div>
+            <strong>All clear!</strong>
+            <span>No outstanding requirements match the current filters.</span>
+          </div>
+        );
+      }
+      return (
+        <div className="rlist">
+          {reqs.map(r => <ReqCard key={r.id} req={r} />)}
+        </div>
+      );
+    }
+
+    /* ── Main App ───────────────────────────────── */
+    function App() {
+      const d = TTFC_DATA;
+
+      const [catFilter,  setCatFilter]  = React.useState('All');
+      const [patrol,     setPatrol]     = React.useState('All');
+      const [grade,      setGrade]      = React.useState('All');
+      const [birthYear,  setBirthYear]  = React.useState('All');
+      const [joinYear,   setJoinYear]   = React.useState('All');
+      const [rank,       setRank]       = React.useState('All');
+      const [activeTab,  setActiveTab]  = React.useState(d.ranks[0]?.rankName ?? '');
+      const [fpOpen,     setFpOpen]     = React.useState(true);
+
+      const sf = { patrol, grade, birthYear, joinYear, rank };
+
+      const hasActiveFilters = catFilter !== 'All' || patrol !== 'All'
+        || grade !== 'All' || birthYear !== 'All' || joinYear !== 'All' || rank !== 'All';
+
+      function resetAll() {
+        setCatFilter('All'); setPatrol('All'); setGrade('All');
+        setBirthYear('All'); setJoinYear('All'); setRank('All');
+      }
+
+      /* available category chip options */
+      const catKeys = d.hasCampConfig
+        ? CAT_FILTER_ORDER
+        : CAT_FILTER_ORDER.filter(k => k !== 'cant_earn_at_camp');
+
+      /* per-rank counts for tab badges */
+      function tabCount(rankData) {
+        return visibleReqs(rankData, catFilter, sf).length;
+      }
+
+      const activeRankData = d.ranks.find(r => r.rankName === activeTab) ?? d.ranks[0];
+
+      /* summary stats */
+      const totalReqs = activeRankData ? tabCount(activeRankData) : 0;
+      const totalScouts = activeRankData
+        ? new Set(
+            visibleReqs(activeRankData, catFilter, sf).flatMap(r => r.filtered.map(s => s.name))
+          ).size
+        : 0;
+
+      return (
+        <div className="pw">
+
+          {/* ── Page heading ── */}
+          <div className="ph">
+            <div className="ph-title">Trail to First Class</div>
+            <div className="ph-sub">Outstanding requirements by rank</div>
+          </div>
+
+          {/* ── Filter panel ── */}
+          <div className="fp">
+            <div className={`fp-head${fpOpen ? ' open' : ''}`}
+                 onClick={() => setFpOpen(o => !o)}
+                 role="button" aria-expanded={fpOpen}>
+              <span className={`fp-label${hasActiveFilters ? ' fp-label-active' : ''}`}>
+                {hasActiveFilters ? '● Filters active' : 'Filters'}
+              </span>
+              <svg className={`fp-chevron${fpOpen ? ' open' : ''}`}
+                   viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 011.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                  clipRule="evenodd"/>
+              </svg>
+            </div>
+
+            <div className={`fp-body${fpOpen ? '' : ' hidden'}`}>
+
+              {/* Category */}
+              <div className="frow">
+                <span className="flabel">Category</span>
+                <div className="chips">
+                  <Chip label="All" active={catFilter === 'All'} onClick={() => setCatFilter('All')} />
+                  {catKeys.map(k => (
+                    <Chip key={k} label={CAT_META[k].label}
+                          active={catFilter === k} onClick={() => setCatFilter(k)} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Patrol */}
+              {d.hasRosterData && d.patrols?.length > 0 && (
+                <div className="frow">
+                  <span className="flabel">Patrol</span>
+                  <div className="chips">
+                    <Chip label="All" active={patrol === 'All'} onClick={() => setPatrol('All')} />
+                    {d.patrols.map(p => (
+                      <Chip key={p} label={p} active={patrol === p} onClick={() => setPatrol(p)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Scout rank */}
+              {d.rankOptions?.length > 0 && (
+                <div className="frow">
+                  <span className="flabel">Scout Rank</span>
+                  <div className="chips">
+                    <Chip label="All" active={rank === 'All'} onClick={() => setRank('All')} />
+                    {d.rankOptions.map(r => (
+                      <Chip key={r} label={r} active={rank === r} onClick={() => setRank(r)} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Dropdowns row */}
+              <div className="frow">
+                {d.gradeOptions?.length > 0 && (
+                  <>
+                    <span className="flabel">Grade</span>
+                    <select className="fsel" value={grade} onChange={e => setGrade(e.target.value)}>
+                      <option value="All">All grades</option>
+                      {d.gradeOptions.map(g => (
+                        <option key={g} value={g}>Grade {g}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
+                {d.hasRosterData && d.birthYears?.length > 0 && (
+                  <>
+                    <span className="flabel" style={{marginLeft:'.6rem'}}>Born</span>
+                    <select className="fsel" value={birthYear} onChange={e => setBirthYear(e.target.value)}>
+                      <option value="All">All years</option>
+                      {d.birthYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </>
+                )}
+                {d.hasRosterData && d.joinYears?.length > 0 && (
+                  <>
+                    <span className="flabel" style={{marginLeft:'.6rem'}}>Joined</span>
+                    <select className="fsel" value={joinYear} onChange={e => setJoinYear(e.target.value)}>
+                      <option value="All">All years</option>
+                      {d.joinYears.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </>
+                )}
+                {hasActiveFilters && (
+                  <button className="reset-btn" type="button" onClick={resetAll}>
+                    ✕ Reset all
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+
+          {/* ── Rank tabs ── */}
+          <div className="tabs" role="tablist">
+            {d.ranks.map(r => {
+              const cnt  = tabCount(r);
+              const high = cnt >= 8;
+              return (
+                <button key={r.rankName}
+                  role="tab"
+                  className={'tab' + (activeTab === r.rankName ? ' tab-on' : '')}
+                  aria-selected={activeTab === r.rankName}
+                  onClick={() => setActiveTab(r.rankName)}>
+                  {r.rankName}
+                  <span className={`tab-badge${high ? ' tab-badge-warn' : ''}`}>{cnt}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ── Summary bar ── */}
+          {activeRankData && (
+            <div className="sbar">
+              <div className="sstat">
+                <strong>{totalReqs}</strong>
+                {' '}requirement{totalReqs !== 1 ? 's' : ''} outstanding
+              </div>
+              <div className="sstat">
+                <strong>{totalScouts}</strong>
+                {' '}scout{totalScouts !== 1 ? 's' : ''} affected
+              </div>
+              {hasActiveFilters && (
+                <span className="sbar-filter-active">▲ Filters active</span>
+              )}
+            </div>
+          )}
+
+          {/* ── Requirements list ── */}
+          {activeRankData && (
+            <RankSection
+              rankData={activeRankData}
+              catFilter={catFilter}
+              scoutFilters={sf}
+            />
+          )}
+
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

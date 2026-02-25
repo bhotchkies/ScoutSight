@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How To — ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ebe0; --surface: #faf7f2; --surface-2: #f5f0e6;
+      --border: #d6ccb8; --border-lt: #e8e1d4;
+      --text: #28200f; --text-muted: #7a6e58;
+      --green: #1a4d2e; --green-mid: #256937; --green-lt: #3a8a50;
+      --nav-green: #52b056; --nav-green-hv: #80d480; --stripe: #3a5bb8;
+      --font-h: 'Oswald', sans-serif; --font-b: 'Nunito', sans-serif;
+      --r: 6px; --r-lg: 10px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,.10);
+      --t: .15s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    .site-header { background: #000; border-bottom: 3px solid var(--stripe); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.5rem; position: sticky; top: 0; z-index: 300; }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    .pw { max-width: 760px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+    .ph { padding: 1.6rem 0 1.1rem; margin-bottom: 1.6rem; border-bottom: 2px solid var(--border); }
+    .ph-title { font-family: var(--font-h); font-size: 2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+
+    /* Help sections */
+    .help-section { background: var(--surface); border: 1px solid var(--border-lt); border-radius: var(--r-lg); box-shadow: var(--sh-sm); padding: 1.2rem 1.4rem; margin-bottom: 1.1rem; }
+    .help-section-title { font-family: var(--font-h); font-size: 1.1rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--green); margin-bottom: .9rem; padding-bottom: .45rem; border-bottom: 2px solid var(--border-lt); }
+    .help-section p { font-size: .9rem; line-height: 1.6; color: var(--text-muted); margin-bottom: .75rem; }
+    .help-section p:last-child { margin-bottom: 0; }
+
+    /* Numbered steps */
+    .steps { display: flex; flex-direction: column; gap: .6rem; }
+    .step { display: flex; align-items: flex-start; gap: .8rem; font-size: .9rem; line-height: 1.55; }
+    .step-num { font-family: var(--font-h); font-size: .85rem; font-weight: 700; color: #fff; background: var(--green); border-radius: 50%; width: 1.6rem; height: 1.6rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: .1rem; }
+    .step-text { color: var(--text); }
+    .step-text strong { font-weight: 700; color: var(--text); }
+
+    code {
+      background: var(--surface-2);
+      border: 1px solid var(--border-lt);
+      border-radius: 4px;
+      padding: .1rem .45rem;
+      font-size: .85em;
+      font-family: 'Courier New', Courier, monospace;
+      color: var(--green);
+    }
+
+    @media (max-width: 580px) {
+      .ph-title { font-size: 1.55rem; }
+      .pw { padding: 0 .75rem 2rem; }
+      .help-section { padding: 1rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div class="pw">
+    <div class="ph">
+      <div class="ph-title">How To</div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Working Directory</div>
+      <p>Place your input CSV files in a directory and run ScoutSight from that location. Output HTML reports will be written to an <code>output/</code> subfolder in the same directory.</p>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Advancement CSV</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">Go to <a href="https://advancements.scouting.org/">advancements.scouting.org</a></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">Click <strong>Reports</strong> in the left navigation</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">Scroll down to <strong>Quick Exports</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">Find the <strong>Advancements</strong> row and click <strong>Export</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-text">Save the downloaded <code>.csv</code> file and pass it as the first argument to ScoutSight</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-title">Scouts CSV <span style="font-size:.78rem;font-family:var(--font-b);text-transform:none;letter-spacing:0;color:var(--text-muted);font-weight:500"> — Optional</span></div>
+      <p>Adds patrol and grade information from Scoutbook to the reports.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">Go to <a href="https://advancements.scouting.org/">advancements.scouting.org</a></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">Click <strong>Reports</strong> in the left navigation</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">Scroll down to <strong>Quick Exports</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">Find the <strong>Scout/Members</strong> row and click <strong>Export</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-text">Save the downloaded <code>.csv</code> file and pass it as the second argument to ScoutSight</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "categoryName": "Good for Troop Meeting",
+  "rankRequirements": {
+    "Tenderfoot Rank": ["7a"],
+    "Second Class Rank": ["3b","5c","7c","8a"],
+    "First Class Rank": ["4a","6e","7b","9a"]
+  }
+}
