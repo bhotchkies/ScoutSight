@@ -9,7 +9,7 @@
         <connection>scm:git:https://github.com/bhotchkies/ScoutSight/</connection>
         <developerConnection>scm:git:https://github.com/bhotchkies/ScoutSight/</developerConnection>
         <tag>HEAD</tag>
-        <url>https://github.com/bhotchkies/ScoutSight/</url>
+        <url>git@github.com:bhotchkies/ScoutSight.git</url>
     </scm>
 
     <properties>
