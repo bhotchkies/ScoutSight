@@ -6,6 +6,8 @@ import javax.swing.event.*;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import java.io.*;
 import java.nio.file.*;
 import org.troop600.scoutsight.html.ResourceIO;
@@ -189,7 +191,7 @@ public class GuiMain extends JFrame {
 
     // ── Header ───────────────────────────────────────────────────────────────
 
-    /** Black banner with ScoutSight branding and a blue bottom stripe. */
+    /** Black banner with ScoutSight logo and a blue bottom stripe. */
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout()) {
             @Override protected void paintComponent(Graphics g) {
@@ -202,25 +204,55 @@ public class GuiMain extends JFrame {
         header.setOpaque(true);
         header.setBorder(BorderFactory.createEmptyBorder(10, 18, 13, 18));
 
-        JLabel title = new JLabel("ScoutSight");
-        title.setFont(new Font(resolveFont("Segoe UI", "Trebuchet MS", "SansSerif"),
-                Font.BOLD, 22));
-        title.setForeground(Color.WHITE);
-
-        JLabel tagline = new JLabel("Rank Advancement Report Generator");
-        tagline.setFont(new Font(resolveFont("Segoe UI", "Trebuchet MS", "SansSerif"),
-                Font.PLAIN, 12));
-        tagline.setForeground(new Color(0x52B056));
-
         JPanel left = new JPanel();
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         left.setOpaque(false);
-        left.add(title);
-        left.add(Box.createVerticalStrut(2));
+
+        ImageIcon logoIcon = loadLogoIcon(32);
+        if (logoIcon != null) {
+            JLabel logoLbl = new JLabel(logoIcon);
+            logoLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
+            left.add(logoLbl);
+        } else {
+            // Fallback: plain text title
+            JLabel title = new JLabel("ScoutSight");
+            title.setFont(new Font(resolveFont("Segoe UI", "Trebuchet MS", "SansSerif"),
+                    Font.BOLD, 22));
+            title.setForeground(Color.WHITE);
+            title.setAlignmentX(Component.LEFT_ALIGNMENT);
+            left.add(title);
+        }
+
+        left.add(Box.createVerticalStrut(3));
+
+        JLabel tagline = new JLabel("Rank Advancement Report Generator");
+        tagline.setFont(new Font(resolveFont("Segoe UI", "Trebuchet MS", "SansSerif"),
+                Font.PLAIN, 11));
+        tagline.setForeground(new Color(0x52B056));
+        tagline.setAlignmentX(Component.LEFT_ALIGNMENT);
         left.add(tagline);
 
         header.add(left, BorderLayout.WEST);
         return header;
+    }
+
+    /**
+     * Loads {@code ScoutSightLogo_Large.png} from the classpath and scales it
+     * proportionally to {@code targetHeight} pixels. Returns {@code null} if
+     * the image cannot be found or read.
+     */
+    private static ImageIcon loadLogoIcon(int targetHeight) {
+        try (InputStream is = GuiMain.class.getResourceAsStream(
+                "/templates/images/logos/ScoutSightLogo_Large.png")) {
+            if (is == null) return null;
+            BufferedImage img = ImageIO.read(is);
+            if (img == null) return null;
+            int scaledWidth = img.getWidth() * targetHeight / img.getHeight();
+            Image scaled = img.getScaledInstance(scaledWidth, targetHeight, Image.SCALE_SMOOTH);
+            return new ImageIcon(scaled);
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     // ── Form card ────────────────────────────────────────────────────────────
@@ -242,7 +274,7 @@ public class GuiMain extends JFrame {
         JLabel sectionLbl = new JLabel("INPUT FILES");
         sectionLbl.setFont(FONT_SECTION);
         sectionLbl.setForeground(C_MUTED);
-        GridBagConstraints sc = gbc(0, r, 4, 1);
+        GridBagConstraints sc = gbc(0, r, 3, 1);
         sc.anchor = GridBagConstraints.LINE_START;
         sc.insets = new Insets(0, 0, 8, 0);
         card.add(sectionLbl, sc);
@@ -250,48 +282,25 @@ public class GuiMain extends JFrame {
 
         r = addFormRow(card, r, "Working Directory", workDirField, workDirBtn, true,
                 "Required · The folder where output reports will be written. An output/ subfolder is created here automatically.",
-                "<html><b>Working Directory</b><br><br>" +
-                "Set this to the folder where you want output reports written.<br>" +
-                "ScoutSight will create an <code>output/</code> subfolder here.<br><br>" +
-                "Tip: point this to a folder that already contains an <code>inputdata/</code> subfolder.</html>");
+                loadHelpHtml("_working_directory_help.html"), 100);
 
         r = addFormRow(card, r, "Advancement CSV", advancementField, advBtn, true,
                 "Required · Download from advancements.scouting.org",
-                "<html><b>Advancement CSV</b> &nbsp;<i>(required)</i><br><br>" +
-                "Download from Scoutbook:<br>" +
-                "<ol><li>Go to <b>advancements.scouting.org</b></li>" +
-                "<li>Click <b>Reports</b> in the left navigation</li>" +
-                "<li>Scroll to <b>Quick Exports</b></li>" +
-                "<li>Find <b>Advancements</b> → click <b>Export</b></li></ol>" +
-                "The file will be named like:<br>" +
-                "<code>Troop0600B_Advancement_20260224.csv</code></html>");
+                loadHelpHtml("_advancement_csv_help.html"),250);
 
         r = addFormRow(card, r, "Scouts CSV", scoutsField, scoutsBtn, false,
                 "Optional · Adds patrol & grade · Download from advancements.scouting.org",
-                "<html><b>Scouts CSV</b> &nbsp;<i>(optional)</i><br><br>" +
-                "Adds patrol and school grade to every Scout's record.<br><br>" +
-                "Download from Scoutbook:<br>" +
-                "<ol><li>Go to <b>advancements.scouting.org</b></li>" +
-                "<li>Click <b>Reports</b> in the left navigation</li>" +
-                "<li>Scroll to <b>Quick Exports</b></li>" +
-                "<li>Find <b>Scout/Members</b> → click <b>Export</b></li></ol></html>");
+                loadHelpHtml("_scouts_csv_help.html"),260);
 
         r = addFormRow(card, r, "Roster Report", rosterField, rosterBtn, false,
                 "Optional · Adds birth year, join year & positions · Download from advancements.scouting.org",
-                "<html><b>Roster Report</b> &nbsp;<i>(optional)</i><br><br>" +
-                "Adds birth year, join year, school name, and leadership positions.<br>" +
-                "Enables additional filter options in the reports.<br><br>" +
-                "Download from Scoutbook:<br>" +
-                "<ol><li>Go to <b>advancements.scouting.org</b></li>" +
-                "<li>Click <b>Reports</b> in the left navigation</li>" +
-                "<li>Click <b>Roster Report</b></li>" +
-                "<li>Export the full roster CSV</li></ol></html>");
+                loadHelpHtml("_roster_report_help.html"),280);
 
         // Camp row
         r = addCampRow(card, r);
 
         // Action bar (inside card, at bottom)
-        GridBagConstraints abc = gbc(0, r, 4, 1);
+        GridBagConstraints abc = gbc(0, r, 3, 1);
         abc.fill = GridBagConstraints.HORIZONTAL;
         abc.insets = new Insets(10, 0, 2, 0);
         card.add(buildActionBar(), abc);
@@ -301,22 +310,30 @@ public class GuiMain extends JFrame {
 
     /**
      * Adds one labeled form row and returns the next available row index.
-     * Each row is: label | [field + hint sub-panel] | browse-btn | info-btn
+     * Each row is: [label + info-btn] | [field + hint sub-panel] | browse-btn
      */
     private int addFormRow(JPanel card, int row, String labelText, JTextField field,
-                           JButton browseBtn, boolean required, String hint, String helpHtml) {
-        // Label (col 0)
+                           JButton browseBtn, boolean required, String hint, String helpHtml, int htmlHeight) {
+        // Col 0: label and ? button side-by-side
         String labelHtml = "<html><b>" + labelText + "</b>"
                 + (required ? " &nbsp;<font color='#C47A0E'>*</font>" : "") + "</html>";
         JLabel label = new JLabel(labelHtml);
         label.setFont(FONT_LABEL);
         label.setForeground(C_TEXT);
+
+        JPanel labelPanel = new JPanel();
+        labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.LINE_AXIS));
+        labelPanel.setOpaque(false);
+        labelPanel.add(label);
+        labelPanel.add(Box.createHorizontalStrut(4));
+        labelPanel.add(infoButton(helpHtml, htmlHeight));
+
         GridBagConstraints lc = gbc(0, row, 1, 1);
         lc.anchor = GridBagConstraints.FIRST_LINE_END;
-        lc.insets = new Insets(6, 0, 2, 10);
-        card.add(label, lc);
+        lc.insets = new Insets(6, 0, 2, 6);
+        card.add(labelPanel, lc);
 
-        // Field + hint stacked in a panel (col 1)
+        // Col 1: field + hint stacked
         JPanel fieldStack = new JPanel(new BorderLayout(0, 2));
         fieldStack.setOpaque(false);
         fieldStack.add(field, BorderLayout.CENTER);
@@ -332,18 +349,11 @@ public class GuiMain extends JFrame {
         fc.insets = new Insets(4, 0, 2, 4);
         card.add(fieldStack, fc);
 
-        // Browse button (col 2)
+        // Col 2: browse button
         GridBagConstraints bc = gbc(2, row, 1, 1);
         bc.anchor = GridBagConstraints.PAGE_START;
-        bc.insets = new Insets(4, 0, 2, 4);
+        bc.insets = new Insets(4, 0, 2, 0);
         card.add(browseBtn, bc);
-
-        // Info button (col 3)
-        JButton infoBtn = infoButton(helpHtml);
-        GridBagConstraints ic = gbc(3, row, 1, 1);
-        ic.anchor = GridBagConstraints.PAGE_START;
-        ic.insets = new Insets(5, 0, 2, 0);
-        card.add(infoBtn, ic);
 
         return row + 1;
     }
@@ -353,28 +363,24 @@ public class GuiMain extends JFrame {
         JLabel label = new JLabel("<html><b>Camp</b></html>");
         label.setFont(FONT_LABEL);
         label.setForeground(C_TEXT);
+
+        JPanel labelPanel = new JPanel();
+        labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.LINE_AXIS));
+        labelPanel.setOpaque(false);
+        labelPanel.add(label);
+        labelPanel.add(Box.createHorizontalStrut(4));
+        labelPanel.add(infoButton(loadHelpHtml("_camp_help.html"), 60));
+
         GridBagConstraints lc = gbc(0, row, 1, 1);
         lc.anchor = GridBagConstraints.LINE_END;
-        lc.insets = new Insets(6, 0, 2, 10);
-        card.add(label, lc);
+        lc.insets = new Insets(6, 0, 2, 6);
+        card.add(labelPanel, lc);
 
         GridBagConstraints cc = gbc(1, row, 2, 1);
         cc.fill = GridBagConstraints.HORIZONTAL;
         cc.weightx = 1.0;
-        cc.insets = new Insets(4, 0, 2, 4);
+        cc.insets = new Insets(4, 0, 2, 0);
         card.add(campCombo, cc);
-
-        JButton infoBtn = infoButton(
-                "<html><b>Camp</b><br><br>" +
-                "Select a camp to enable camp-specific planning in the reports:<br>" +
-                "<ul><li>Shows which requirements can be earned at camp</li>" +
-                "<li>Highlights requirements that must be done at troop meetings</li>" +
-                "<li>Adds a camp tab to each Scout's individual report</li></ul>" +
-                "Leave as <i>None</i> if no camp is selected or camp data is unavailable.</html>");
-        GridBagConstraints ic = gbc(3, row, 1, 1);
-        ic.anchor = GridBagConstraints.LINE_START;
-        ic.insets = new Insets(5, 0, 2, 0);
-        card.add(infoBtn, ic);
 
         return row + 1;
     }
@@ -417,7 +423,7 @@ public class GuiMain extends JFrame {
         return btn;
     }
 
-    private JButton infoButton(String htmlContent) {
+    private JButton infoButton(String htmlContent, int htmlHeight) {
         JButton btn = new JButton("?");
         btn.setFont(ui(Font.BOLD, 12));
         btn.setForeground(C_GREEN_MID);
@@ -426,8 +432,39 @@ public class GuiMain extends JFrame {
         btn.setContentAreaFilled(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         btn.setToolTipText("Click for help");
-        btn.addActionListener(e -> showInfoPopup(htmlContent, btn));
+        btn.addActionListener(e -> showInfoPopup(htmlContent, htmlHeight, btn));
         return btn;
+    }
+
+    /**
+     * Loads a help HTML snippet from {@code templates/<templateName>} via {@link ResourceIO}
+     * and wraps it in a minimal HTML shell with CSS that Swing's HTMLEditorKit can render.
+     * Falls back to a plain error message if the file cannot be read.
+     */
+    private static String loadHelpHtml(String templateName) {
+        String snippet;
+        try {
+            snippet = ResourceIO.readString(Path.of("templates", templateName));
+        } catch (IOException e) {
+            snippet = "<p>Help text not available (" + templateName + ").</p>";
+        }
+        // Minimal CSS that Swing's HTML renderer understands.
+        // .step uses a simple table trick so the number sits inline with the text.
+        return "<html><head><style>" +
+               "body{font-family:SansSerif;font-size:11pt;margin:2px 4px}" +
+               ".help-section{margin:0}" +
+               ".help-section-title{font-weight:bold;font-size:12pt;color:#1a4d2e}" +
+               ".steps{margin:6px 0 0 0}" +
+               ".step{margin:3px 0}" +
+               ".step-num{font-weight:bold;color:#ffffff;background:#1a4d2e;padding:0 4px}" +
+               ".step-text{margin-left:6px}" +
+               "p{margin:4px 0}" +
+               "code{font-family:monospace;font-size:10pt}" +
+               "a{color:#256937}" +
+               "strong{font-weight:bold}" +
+               "</style></head><body>" +
+               snippet +
+               "</body></html>";
     }
 
     private static void styleRunButton(JButton btn) {
@@ -441,14 +478,16 @@ public class GuiMain extends JFrame {
         btn.setFocusPainted(false);
     }
 
-    /** Shows a styled popup next to the info button. */
-    private void showInfoPopup(String htmlContent, Component invoker) {
+    /**
+     * Shows a floating help popup anchored below the invoker button.
+     * Automatically dismisses when the user clicks anywhere outside it.
+     */
+    private void showInfoPopup(String htmlContent, int htmlHeight, Component invoker) {
         JEditorPane pane = new JEditorPane("text/html", htmlContent);
         pane.setEditable(false);
-        pane.setOpaque(false);
+        pane.setBackground(C_SURFACE);
         pane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
         pane.setFont(FONT_BODY);
-        pane.setPreferredSize(new Dimension(340, 1));
         pane.addHyperlinkListener(e -> {
             if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED && e.getURL() != null) {
                 try { Desktop.getDesktop().browse(e.getURL().toURI()); }
@@ -456,11 +495,25 @@ public class GuiMain extends JFrame {
             }
         });
 
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
-        panel.add(pane, BorderLayout.CENTER);
+        // Scroll pane: fixed viewport size; pane reflows HTML to viewport width
+        JScrollPane scroll = new JScrollPane(pane,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setPreferredSize(new Dimension(380, htmlHeight));
+        scroll.setBorder(null);
+        scroll.getViewport().setBackground(C_SURFACE);
 
-        JOptionPane.showMessageDialog(this, panel, "Help", JOptionPane.INFORMATION_MESSAGE);
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panel.setBackground(C_SURFACE);
+        panel.add(scroll, BorderLayout.CENTER);
+
+        // JPopupMenu provides built-in "dismiss on click outside" behaviour
+        JPopupMenu popup = new JPopupMenu();
+        popup.setLayout(new BorderLayout());
+        popup.setBorder(BorderFactory.createLineBorder(C_BORDER));
+        popup.add(panel, BorderLayout.CENTER);
+        popup.show(invoker, 0, invoker.getHeight());
     }
 
     // ── Utility / layout ─────────────────────────────────────────────────────
