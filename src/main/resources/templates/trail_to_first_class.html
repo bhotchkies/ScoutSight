@@ -498,7 +498,7 @@
       if (f.grade     !== 'All' && s.grade     !== Number(f.grade)) return false;
       if (f.birthYear !== 'All' && s.birthYear !== f.birthYear)     return false;
       if (f.joinYear  !== 'All' && s.joinYear  !== f.joinYear)      return false;
-      if (f.rank      !== 'All' && s.rank      !== f.rank)          return false;
+      if (f.ranks.size > 0      && !f.ranks.has(s.rank))             return false;
       return true;
     }
 
@@ -596,24 +596,38 @@
       const [grade,      setGrade]      = React.useState('All');
       const [birthYear,  setBirthYear]  = React.useState('All');
       const [joinYear,   setJoinYear]   = React.useState('All');
-      const [rank,       setRank]       = React.useState('All');
+      const [ranks,      setRanks]      = React.useState(new Set());
+      function toggleRank(r) {
+        setRanks(prev => { const n = new Set(prev); n.has(r) ? n.delete(r) : n.add(r); return n; });
+      }
       const [activeTab,  setActiveTab]  = React.useState(d.ranks[0]?.rankName ?? '');
       const [fpOpen,     setFpOpen]     = React.useState(true);
 
-      const sf = { patrol, grade, birthYear, joinYear, rank };
+      // When a category chip is selected, auto-advance to the first rank that has
+      // requirements in that category (avoids showing an empty table on Scout tab).
+      React.useEffect(() => {
+        if (catFilter === 'All') return;
+        const cur = d.ranks.find(r => r.rankName === activeTab);
+        if (cur && cur.requirements.some(req => req.categories.includes(catFilter))) return;
+        const first = d.ranks.find(r => r.requirements.some(req => req.categories.includes(catFilter)));
+        if (first) setActiveTab(first.rankName);
+      }, [catFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+      const sf = { patrol, grade, birthYear, joinYear, ranks };
 
       const hasActiveFilters = catFilter !== 'All' || patrol !== 'All'
-        || grade !== 'All' || birthYear !== 'All' || joinYear !== 'All' || rank !== 'All';
+        || grade !== 'All' || birthYear !== 'All' || joinYear !== 'All' || ranks.size > 0;
 
       function resetAll() {
         setCatFilter('All'); setPatrol('All'); setGrade('All');
-        setBirthYear('All'); setJoinYear('All'); setRank('All');
+        setBirthYear('All'); setJoinYear('All'); setRanks(new Set());
       }
 
-      /* available category chip options */
-      const catKeys = d.hasCampConfig
-        ? CAT_FILTER_ORDER
-        : CAT_FILTER_ORDER.filter(k => k !== 'cant_earn_at_camp');
+      /* available category chip options — only show chips that have at least one requirement */
+      const usedCats = new Set(
+        d.ranks.flatMap(r => r.requirements.flatMap(req => req.categories))
+      );
+      const catKeys = CAT_FILTER_ORDER.filter(k => usedCats.has(k));
 
       /* per-rank counts for tab badges */
       function tabCount(rankData) {
@@ -687,9 +701,9 @@
                 <div className="frow">
                   <span className="flabel">Scout Rank</span>
                   <div className="chips">
-                    <Chip label="All" active={rank === 'All'} onClick={() => setRank('All')} />
+                    <Chip label="All" active={ranks.size === 0} onClick={() => setRanks(new Set())} />
                     {d.rankOptions.map(r => (
-                      <Chip key={r} label={r} active={rank === r} onClick={() => setRank(r)} />
+                      <Chip key={r} label={r} active={ranks.has(r)} onClick={() => toggleRank(r)} />
                     ))}
                   </div>
                 </div>

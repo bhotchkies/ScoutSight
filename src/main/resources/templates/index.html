@@ -152,15 +152,18 @@
       const [patrol,    setPatrol]    = React.useState('All');
       const [birthYear, setBirthYear] = React.useState('All');
       const [joinYear,  setJoinYear]  = React.useState('All');
-      const [rank,      setRank]      = React.useState('All');
+      const [ranks,     setRanks]     = React.useState(new Set());
+      function toggleRank(r) {
+        setRanks(prev => { const n = new Set(prev); n.has(r) ? n.delete(r) : n.add(r); return n; });
+      }
       const [fpOpen,    setFpOpen]    = React.useState(true);
 
       const hasActive = grade !== 'All' || patrol !== 'All' || birthYear !== 'All'
-        || joinYear !== 'All' || rank !== 'All';
+        || joinYear !== 'All' || ranks.size > 0;
 
       function resetAll() {
         setGrade('All'); setPatrol('All'); setBirthYear('All');
-        setJoinYear('All'); setRank('All');
+        setJoinYear('All'); setRanks(new Set());
       }
 
       const upperGrades = [...new Set(sorted.map(s => s.grade).filter(g => g >= 7))].sort((a, b) => a - b);
@@ -174,7 +177,7 @@
         if (patrol    !== 'All' && s.patrol    !== patrol)    return false;
         if (birthYear !== 'All' && s.birthYear !== birthYear) return false;
         if (joinYear  !== 'All' && s.joinYear  !== joinYear)  return false;
-        if (rank      !== 'All' && s.currentRank !== rank)    return false;
+        if (ranks.size > 0 && !ranks.has(s.currentRank))       return false;
         return true;
       });
 
@@ -221,9 +224,9 @@
               <div className="frow">
                 <span className="flabel">Rank</span>
                 <div className="chips">
-                  <Chip label="All" active={rank === 'All'} onClick={() => setRank('All')} />
+                  <Chip label="All" active={ranks.size === 0} onClick={() => setRanks(new Set())} />
                   {presentRanks.map(r => (
-                    <Chip key={r} label={r} active={rank === r} onClick={() => setRank(r)} />
+                    <Chip key={r} label={r} active={ranks.has(r)} onClick={() => toggleRank(r)} />
                   ))}
                 </div>
               </div>

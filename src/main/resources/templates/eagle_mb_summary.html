@@ -144,12 +144,13 @@
       if (filters.grade     !== 'All' && scout.grade     !== Number(filters.grade)) return false;
       if (filters.birthYear !== 'All' && scout.birthYear !== filters.birthYear)     return false;
       if (filters.joinYear  !== 'All' && scout.joinYear  !== filters.joinYear)      return false;
-      if (filters.rank      !== 'All' && scout.rank      !== filters.rank)          return false;
+      if (filters.ranks.size > 0      && !filters.ranks.has(scout.rank))             return false;
       return true;
     }
 
     function filterList(scouts, filters) {
-      const noOp = Object.values(filters).every(v => v === 'All');
+      const noOp = filters.patrol === 'All' && filters.grade === 'All'
+        && filters.birthYear === 'All' && filters.joinYear === 'All' && filters.ranks.size === 0;
       return noOp ? scouts : scouts.filter(s => matchesFilters(s, filters));
     }
 
@@ -248,14 +249,18 @@
       const [grade,     setGrade]     = React.useState('All');
       const [birthYear, setBirthYear] = React.useState('All');
       const [joinYear,  setJoinYear]  = React.useState('All');
-      const [rank,      setRank]      = React.useState('All');
+      const [ranks,     setRanks]     = React.useState(new Set());
+      function toggleRank(r) {
+        setRanks(prev => { const n = new Set(prev); n.has(r) ? n.delete(r) : n.add(r); return n; });
+      }
       const [fpOpen,    setFpOpen]    = React.useState(true);
 
-      const filters    = { patrol, grade, birthYear, joinYear, rank };
-      const hasActive  = Object.values(filters).some(v => v !== 'All');
+      const filters    = { patrol, grade, birthYear, joinYear, ranks };
+      const hasActive  = patrol !== 'All' || grade !== 'All' || birthYear !== 'All'
+        || joinYear !== 'All' || ranks.size > 0;
 
       function resetAll() {
-        setPatrol('All'); setGrade('All'); setBirthYear('All'); setJoinYear('All'); setRank('All');
+        setPatrol('All'); setGrade('All'); setBirthYear('All'); setJoinYear('All'); setRanks(new Set());
       }
 
       const slotsNeedingCount = d.slots.filter(s => filterList(s.notCompleteScouts, filters).length > 0).length;
@@ -291,8 +296,8 @@
                 <div className="frow">
                   <span className="flabel">Scout Rank</span>
                   <div className="chips">
-                    <Chip label="All" active={rank === 'All'} onClick={() => setRank('All')} />
-                    {d.rankOptions.map(r => <Chip key={r} label={r} active={rank === r} onClick={() => setRank(r)} />)}
+                    <Chip label="All" active={ranks.size === 0} onClick={() => setRanks(new Set())} />
+                    {d.rankOptions.map(r => <Chip key={r} label={r} active={ranks.has(r)} onClick={() => toggleRank(r)} />)}
                   </div>
                 </div>
               )}
