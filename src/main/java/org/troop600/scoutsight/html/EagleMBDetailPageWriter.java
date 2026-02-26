@@ -21,11 +21,6 @@ import java.util.*;
  */
 class EagleMBDetailPageWriter {
 
-    private static final List<String> RANK_ORDER = List.of(
-            "Scout Rank", "Tenderfoot Rank", "Second Class Rank", "First Class Rank",
-            "Star Scout Rank", "Life Scout Rank", "Eagle Scout Rank"
-    );
-
     private static final List<String> SUMMARY_RANKS = List.of(
             "Scout Rank", "Tenderfoot Rank", "Second Class Rank", "First Class Rank",
             "Star Scout Rank", "Life Scout Rank"
@@ -117,7 +112,7 @@ class EagleMBDetailPageWriter {
             List<String> totalNeedNames = new ArrayList<>();
 
             Map<String, Integer> byRankCounts = new LinkedHashMap<>();
-            Map<String, List<String>> byRankNames = new LinkedHashMap<>();
+            Map<String, List<ScoutRef>> byRankNames = new LinkedHashMap<>();
             for (String r : SUMMARY_RANKS) {
                 byRankCounts.put(r, 0);
                 byRankNames.put(r, new ArrayList<>());
@@ -135,10 +130,10 @@ class EagleMBDetailPageWriter {
                 if (!reqDone) {
                     totalNeed++;
                     totalNeedNames.add(scout.displayName());
-                    String rankName = currentRank(scout);
+                    String rankName = ScoutRef.currentRankLong(scout);
                     if (byRankCounts.containsKey(rankName)) {
                         byRankCounts.put(rankName, byRankCounts.get(rankName) + 1);
-                        byRankNames.get(rankName).add(scout.displayName());
+                        byRankNames.get(rankName).add(ScoutRef.from(scout));
                     }
                 }
             }
@@ -153,9 +148,15 @@ class EagleMBDetailPageWriter {
             for (String rankName : SUMMARY_RANKS) {
                 jb.obj()
                   .field("rank", RANK_SHORT.get(rankName))
-                  .field("need", byRankCounts.get(rankName))
-                  .strArr("scouts", byRankNames.get(rankName))
-                  .endObj();
+                  .field("need", byRankCounts.get(rankName));
+                jb.arr("scouts");
+                for (ScoutRef sr : byRankNames.get(rankName)) {
+                    jb.obj()
+                      .field("name", sr.name())
+                      .field("memberId", sr.memberId())
+                      .endObj();
+                }
+                jb.endArr().endObj();
             }
             jb.endArr();
 
@@ -166,14 +167,4 @@ class EagleMBDetailPageWriter {
         return jb.toString();
     }
 
-    /** Returns the highest completed rank name for this scout, defaulting to "Scout Rank". */
-    private static String currentRank(Scout scout) {
-        String current = "Scout Rank";
-        for (String rankName : RANK_ORDER) {
-            boolean completed = scout.ranks.stream()
-                    .anyMatch(r -> r.name.equals(rankName) && r.isComplete());
-            if (completed) current = rankName;
-        }
-        return current;
-    }
 }

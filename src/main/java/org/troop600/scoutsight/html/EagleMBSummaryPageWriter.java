@@ -20,12 +20,6 @@ import java.util.TreeSet;
  */
 class EagleMBSummaryPageWriter {
 
-    /** Rank names in advancement order, used to determine a scout's current rank. */
-    private static final List<String> RANK_ORDER = List.of(
-            "Scout Rank", "Tenderfoot Rank", "Second Class Rank", "First Class Rank",
-            "Star Scout Rank", "Life Scout Rank", "Eagle Scout Rank"
-    );
-
     /** Ranks included in the per-rank breakdown columns. */
     private static final List<String> SUMMARY_RANKS = List.of(
             "Scout Rank", "Tenderfoot Rank", "Second Class Rank", "First Class Rank",
@@ -48,32 +42,6 @@ class EagleMBSummaryPageWriter {
         String json = buildJson(scouts, eagleSlots, camps, badgeLinks, stem);
         String html = ThymeleafRenderer.render("eagle_mb_summary", Map.of("summaryJson", json));
         Files.writeString(outputDir.resolve("eagle_mb_summary.html"), html);
-    }
-
-    /** Lightweight per-scout data used for client-side filtering on the eagle MB summary page. */
-    private record ScoutInfo(String name, String patrol, int grade,
-                              String birthYear, String joinYear, String rank) {}
-
-    private static ScoutInfo scoutInfo(Scout s) {
-        return new ScoutInfo(
-                s.displayName(),
-                s.patrol    != null ? s.patrol    : "",
-                s.schoolGrade,
-                s.birthYear != null ? s.birthYear : "",
-                s.joinYear  != null ? s.joinYear  : "",
-                IndexPageWriter.currentRankShort(s)
-        );
-    }
-
-    private static void appendScoutInfo(JsonBuilder jb, ScoutInfo si) {
-        jb.obj()
-          .field("name",      si.name())
-          .field("patrol",    si.patrol())
-          .field("grade",     si.grade())
-          .field("birthYear", si.birthYear())
-          .field("joinYear",  si.joinYear())
-          .field("rank",      si.rank())
-          .endObj();
     }
 
     private static String buildJson(List<Scout> scouts, List<EagleSlot> eagleSlots,
@@ -120,11 +88,11 @@ class EagleMBSummaryPageWriter {
           .arr("slots");
 
         for (EagleSlot slot : eagleSlots) {
-            List<ScoutInfo> notCompleteList = new ArrayList<>();
-            List<ScoutInfo> partialList     = new ArrayList<>();
+            List<ScoutRef> notCompleteList = new ArrayList<>();
+            List<ScoutRef> partialList     = new ArrayList<>();
             Map<String, int[]>          byRankCounts       = new LinkedHashMap<>();
-            Map<String, List<ScoutInfo>> byRankNcList       = new LinkedHashMap<>();
-            Map<String, List<ScoutInfo>> byRankPartialList  = new LinkedHashMap<>();
+            Map<String, List<ScoutRef>> byRankNcList       = new LinkedHashMap<>();
+            Map<String, List<ScoutRef>> byRankPartialList  = new LinkedHashMap<>();
             for (String r : SUMMARY_RANKS) {
                 byRankCounts.put(r, new int[]{0, 0});
                 byRankNcList.put(r, new ArrayList<>());
@@ -137,14 +105,14 @@ class EagleMBSummaryPageWriter {
                         .toList();
                 boolean complete = slotBadges.stream().anyMatch(AdvancementItem::isComplete);
                 if (!complete) {
-                    ScoutInfo si = scoutInfo(scout);
+                    ScoutRef si = ScoutRef.from(scout);
                     notCompleteList.add(si);
                     boolean hasPartial = slotBadges.stream()
                             .anyMatch(item -> item.requirements.stream()
                                     .anyMatch(r -> r.dateCompleted != null));
                     if (hasPartial) partialList.add(si);
 
-                    String scoutRank = currentRank(scout);
+                    String scoutRank = ScoutRef.currentRankLong(scout);
                     int[] counts = byRankCounts.get(scoutRank);
                     if (counts != null) {
                         counts[0]++;
@@ -164,11 +132,11 @@ class EagleMBSummaryPageWriter {
               .field("atCamp",     atParsons);
 
             jb.arr("notCompleteScouts");
-            for (ScoutInfo si : notCompleteList) appendScoutInfo(jb, si);
+            for (ScoutRef si : notCompleteList) ScoutRef.appendTo(jb, si);
             jb.endArr();
 
             jb.arr("partialScouts");
-            for (ScoutInfo si : partialList) appendScoutInfo(jb, si);
+            for (ScoutRef si : partialList) ScoutRef.appendTo(jb, si);
             jb.endArr();
 
             // Badge links: one entry per badge name that has a detail page
@@ -190,10 +158,10 @@ class EagleMBSummaryPageWriter {
                 jb.obj()
                   .field("rank", RANK_SHORT.get(rankName));
                 jb.arr("notCompleteScouts");
-                for (ScoutInfo si : byRankNcList.get(rankName)) appendScoutInfo(jb, si);
+                for (ScoutRef si : byRankNcList.get(rankName)) ScoutRef.appendTo(jb, si);
                 jb.endArr();
                 jb.arr("partialScouts");
-                for (ScoutInfo si : byRankPartialList.get(rankName)) appendScoutInfo(jb, si);
+                for (ScoutRef si : byRankPartialList.get(rankName)) ScoutRef.appendTo(jb, si);
                 jb.endArr();
                 jb.endObj();
             }
@@ -206,14 +174,4 @@ class EagleMBSummaryPageWriter {
         return jb.toString();
     }
 
-    /** Returns the highest completed rank name for this scout, defaulting to "Scout Rank". */
-    private static String currentRank(Scout scout) {
-        String current = "Scout Rank";
-        for (String rankName : RANK_ORDER) {
-            boolean completed = scout.ranks.stream()
-                    .anyMatch(r -> r.name.equals(rankName) && r.isComplete());
-            if (completed) current = rankName;
-        }
-        return current;
-    }
 }

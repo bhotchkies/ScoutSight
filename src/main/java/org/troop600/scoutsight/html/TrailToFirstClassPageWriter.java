@@ -47,31 +47,6 @@ class TrailToFirstClassPageWriter {
 
     // -------------------------------------------------------------------------
 
-    private record ScoutRef(String name, String patrol, int grade,
-                             String birthYear, String joinYear, String rank) {}
-
-    private static ScoutRef scoutRef(Scout scout) {
-        return new ScoutRef(
-                scout.displayName(),
-                scout.patrol    != null ? scout.patrol    : "",
-                scout.schoolGrade,
-                scout.birthYear != null ? scout.birthYear : "",
-                scout.joinYear  != null ? scout.joinYear  : "",
-                IndexPageWriter.currentRankShort(scout)
-        );
-    }
-
-    private static void appendScoutRef(JsonBuilder jb, ScoutRef ref) {
-        jb.obj()
-          .field("name",      ref.name())
-          .field("patrol",    ref.patrol())
-          .field("grade",     ref.grade())
-          .field("birthYear", ref.birthYear())
-          .field("joinYear",  ref.joinYear())
-          .field("rank",      ref.rank())
-          .endObj();
-    }
-
     private static String buildJson(List<Scout> scouts, List<CampConfig> camps,
                                     List<RequirementCategory> categories,
                                     LinkedHashMap<String, List<String[]>> rankDefs,
@@ -159,7 +134,7 @@ class TrailToFirstClassPageWriter {
                     Requirement r = rankItem.requirements.stream()
                             .filter(rq -> reqId.equalsIgnoreCase(rq.requirementId))
                             .findFirst().orElse(null);
-                    if (r == null || r.dateCompleted == null) needing.add(scoutRef(scout));
+                    if (r == null || r.dateCompleted == null) needing.add(ScoutRef.from(scout));
                 }
 
                 if (needing.isEmpty()) continue; // all scouts done — no row needed
@@ -169,7 +144,7 @@ class TrailToFirstClassPageWriter {
                   .field("text", reqText)
                   .strArr("categories", cats);
                 jb.arr("scouts");
-                for (ScoutRef ref : needing) appendScoutRef(jb, ref);
+                for (ScoutRef ref : needing) ScoutRef.appendTo(jb, ref);
                 jb.endArr().endObj();
             }
 

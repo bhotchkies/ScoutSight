@@ -424,6 +424,8 @@
       font-size: .76rem;
       color: var(--text-muted);
     }
+    .srow a { color: var(--green-mid); text-decoration: none; font-weight: 600; }
+    .srow a:hover { color: var(--green); text-decoration: underline; }
 
     /* ── Empty State ────────────────────────────── */
     .empty {
@@ -546,8 +548,8 @@
               <div className="slist">
                 <div className="slist-hdr">Scouts needing this &middot; {n}</div>
                 {req.filtered.map(s => (
-                  <div key={s.name} className="srow">
-                    <span>{s.name}</span>
+                  <div key={s.memberId} className="srow">
+                    <a href={`scout_${s.memberId}.html`}>{s.name}</a>
                     {s.rank   && <span className="stag">{s.rank}</span>}
                     {s.patrol && <span className="spatrol">&middot; {s.patrol}</span>}
                   </div>
@@ -629,9 +631,11 @@
       );
       const catKeys = CAT_FILTER_ORDER.filter(k => usedCats.has(k));
 
-      /* per-rank counts for tab badges */
+      /* per-rank counts for tab badges — unique scouts with outstanding requirements */
       function tabCount(rankData) {
-        return visibleReqs(rankData, catFilter, sf).length;
+        return new Set(
+          visibleReqs(rankData, catFilter, sf).flatMap(r => r.filtered.map(s => s.name))
+        ).size;
       }
 
       const activeRankData = d.ranks.find(r => r.rankName === activeTab) ?? d.ranks[0];
@@ -749,7 +753,6 @@
 
             </div>
           </div>
-
           {/* ── Rank tabs ── */}
           <div className="tabs" role="tablist">
             {d.ranks.map(r => {

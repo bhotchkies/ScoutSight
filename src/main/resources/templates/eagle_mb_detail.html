@@ -128,7 +128,14 @@
                       <span className="rank-row-label">{r.rank}</span>
                       <span className="rank-row-n">{r.need}</span>
                       {r.scouts.length > 0 && (
-                        <span className="rank-row-names">{r.scouts.join(', ')}</span>
+                        <span className="rank-row-names">
+                          {r.scouts.map((s, i) => (
+                            <React.Fragment key={s.memberId}>
+                              {i > 0 && ', '}
+                              <a href={`scout_${s.memberId}.html`}>{s.name}</a>
+                            </React.Fragment>
+                          ))}
+                        </span>
                       )}
                     </div>
                   ))}

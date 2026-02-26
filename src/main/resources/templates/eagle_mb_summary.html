@@ -229,8 +229,8 @@
                 <div className="slist-names">
                   <div className="expand-hdr" style={{marginTop:'.6rem'}}>Scouts needing &middot; {nc.length}</div>
                   {nc.map(s => (
-                    <div key={s.name} className="srow">
-                      <span>{s.name}</span>
+                    <div key={s.memberId} className="srow">
+                      <a href={`scout_${s.memberId}.html`}>{s.name}</a>
                       {s.rank   && <span className="stag">{s.rank}</span>}
                       {s.patrol && <span style={{fontSize:'.75rem',color:'var(--text-muted)'}}>&#183; {s.patrol}</span>}
                     </div>
