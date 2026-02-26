@@ -40,12 +40,23 @@ If no CSV argument is given, the CLI picks the most recently modified `*_Advance
 
 **Run GUI**: launch `org.troop600.scoutsight.gui.GuiMain` via IntelliJ run configuration.
 
+### Java Runtime Note
+
+The IntelliJ artifact builder may compile with a newer JDK than the system `java` on PATH (Java 17). If `java -jar ScoutSight.jar` fails with **"Unsupported class file major version 69"**, use the Java 25 JDK directly:
+
+```bash
+"/c/Users/blair/.jdks/openjdk-25/bin/java" -jar out/artifacts/ScoutSight_jar/ScoutSight.jar ...
+```
+
+`mvn exec:java` avoids this issue — it always uses JAVA_HOME.
+
 ## Directory Structure
 
 | Path | Purpose |
 |------|---------|
 | `src/main/java/` | Java source root — package `org.troop600.scoutsight` |
-| `src/main/resources/templates/` | Thymeleaf HTML templates (index, scout, meetings_aggregate, eagle_mb_summary, eagle_mb_detail, trail_to_first_class, help, _header) |
+| `src/main/resources/templates/` | Thymeleaf HTML templates (index, scout, patrol_balancing, eagle_mb_summary, eagle_mb_detail, trail_to_first_class, help, _header) |
+| `src/main/resources/templates/_*_help.html` | Partial templates (six files) included by help.html; `meetings_aggregate.html` exists but is an unused stub replaced by trail_to_first_class |
 | `src/main/resources/config/` | Config files: camps, definitions (rank/MB), mb-categories, requirement-categories |
 | `src/main/resources/META-INF/MANIFEST.MF` | JAR manifest (Main-Class: cli.Main) |
 | `target/classes/` | Maven compile output (classes + resources) |
@@ -93,6 +104,16 @@ A requirement is complete when `Date Completed` is non-empty (`MM/DD/YYYY` forma
 - **Eagle Palms**: earned in sets of 5 extra merit badges (Bronze/Gold/Silver cycling)
 - Scout identity key: `BSA Member ID`
 - Optional roster CSVs enrich Scout records with patrol, school grade, join date, birth year, gender, positions
+
+## Thymeleaf Template Authoring
+
+`ThymeleafRenderer` runs in **TEXT mode** (not HTML mode). This affects all templates:
+
+- **Variable output**: `[(${varName})]` (unescaped) or `[[${varName}]]` (escaped)
+- **Conditionals**: `[# th:if="${flag}"]...content...[/]`
+- Standard `th:` attribute syntax (e.g. `th:text`, `th:if`) does **not** work
+- `siteHeader` is injected automatically by `ThymeleafRenderer.render()` — do not pass it in the variables map
+- `hasPatrolPage` boolean flag in `ThymeleafRenderer` controls whether the Patrol Balancing nav link appears; set via `setHasPatrolPage()` before any renders
 
 ## Maven Dependencies
 
