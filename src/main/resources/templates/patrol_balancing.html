@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patrol Balancing &mdash; [(${title})] &mdash; ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ebe0; --surface: #faf7f2; --surface-2: #f5f0e6;
+      --border: #d6ccb8; --border-lt: #e8e1d4;
+      --text: #28200f; --text-muted: #7a6e58;
+      --green: #1a4d2e; --green-mid: #256937; --green-lt: #3a8a50;
+      --amber: #c47a0e; --amber-lt: #fde8b8;
+      --red: #b03030; --red-lt: #fddcdc;
+      --yellow-lt: #fef6c0; --yellow: #b89010;
+      --nav-green: #52b056; --nav-green-hv: #80d480; --stripe: #3a5bb8;
+      --font-h: 'Oswald', sans-serif; --font-b: 'Nunito', sans-serif;
+      --r: 6px; --r-lg: 10px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,.10); --sh-md: 0 3px 12px rgba(0,0,0,.14);
+      --t: .15s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    .site-header { background: #000; border-bottom: 3px solid var(--stripe); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.5rem; position: sticky; top: 0; z-index: 300; }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    #root { display: contents; }
+    .pw { max-width: 1100px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+    .ph { padding: 1.6rem 0 1.1rem; margin-bottom: 1.3rem; border-bottom: 2px solid var(--border); display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+    .ph-title { font-family: var(--font-h); font-size: 2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+    .ph-sub { color: var(--text-muted); font-size: .9rem; font-weight: 500; }
+
+    .tbl-wrap { overflow-x: auto; border-radius: var(--r-lg); box-shadow: var(--sh-sm); border: 1px solid var(--border); background: var(--surface); }
+    .bal-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .bal-table th, .bal-table td { border: 1px solid var(--border-lt); padding: .45rem .7rem; }
+
+    .bal-table thead th { background: var(--green); color: #fff; font-family: var(--font-h); font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; text-align: center; white-space: nowrap; }
+    .bal-table thead th.th-label { background: #111; text-align: left; min-width: 7rem; }
+    .bal-table thead th.th-none { background: #444; }
+    .bal-table thead th.th-total { background: #1a3a55; }
+
+    .section-hdr-cell { background: var(--surface-2); font-family: var(--font-h); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); padding: .35rem .7rem; border-top: 2px solid var(--border); }
+
+    .row-label { font-family: var(--font-h); font-size: .85rem; font-weight: 500; color: var(--text); white-space: nowrap; background: var(--surface-2); }
+    .row-label-total { font-weight: 700; color: var(--green); background: #e6f0e8; }
+
+    .cell { text-align: center; font-family: var(--font-h); font-size: .95rem; font-weight: 600; color: var(--text-muted); }
+    .cell-zero { color: #ccc; font-size: .75rem; }
+    .cell-nonzero { color: var(--green-mid); cursor: default; }
+    .cell-nonzero:hover { background: var(--amber-lt); }
+    .cell-total { font-weight: 700; color: var(--text); background: #f0ece3; }
+    .cell-foot { font-weight: 700; background: #e6f0e8; color: var(--green); }
+    .cell-grand { color: #1a3a55; font-size: 1rem; }
+
+    .bal-table tfoot td { border-top: 2px solid var(--border); }
+
+    @media (max-width: 600px) {
+      .ph-title { font-size: 1.55rem; }
+      .pw { padding: 0 .5rem 2rem; }
+      .bal-table th, .bal-table td { padding: .35rem .45rem; font-size: .8rem; }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    const PATROL_DATA = [(${patrolData})];
+  </script>
+  <script type="text/babel">
+    const CUR_YEAR = new Date().getFullYear();
+
+    function Cell({ cell }) {
+      if (!cell || cell.count === 0) return <td className="cell cell-zero">&mdash;</td>;
+      const tip = cell.names.join(', ');
+      return <td className="cell cell-nonzero" title={tip}>{cell.count}</td>;
+    }
+
+    function App() {
+      const d = PATROL_DATA;
+      const noneCol = d.hasNone;
+      const colSpan = d.patrols.length + (noneCol ? 1 : 0) + 2; // label + patrols + none? + total
+
+      return (
+        <div className="pw">
+          <div className="ph">
+            <div className="ph-title">Patrol Balancing</div>
+            <div className="ph-sub">
+              {d.grandTotal} scout{d.grandTotal !== 1 ? 's' : ''} &middot; {d.patrols.length} patrol{d.patrols.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          <div className="tbl-wrap">
+            <table className="bal-table">
+              <thead>
+                <tr>
+                  <th className="th-label"></th>
+                  {d.patrols.map(p => <th key={p} className="th-patrol">{p}</th>)}
+                  {noneCol && <th className="th-none">(None)</th>}
+                  <th className="th-total">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="section-hdr">
+                  <td colSpan={colSpan} className="section-hdr-cell">By Current Rank</td>
+                </tr>
+                {d.rankRows.map(row => (
+                  <tr key={row.label}>
+                    <td className="row-label">{row.label}</td>
+                    {row.cells.map((cell, i) => <Cell key={d.patrols[i]} cell={cell} />)}
+                    {noneCol && <Cell cell={row.noneCell} />}
+                    <td className="cell cell-total">{row.total}</td>
+                  </tr>
+                ))}
+
+                {d.hasAgeData && (
+                  <>
+                    <tr className="section-hdr">
+                      <td colSpan={colSpan} className="section-hdr-cell">By Age</td>
+                    </tr>
+                    {d.ageRows.map(row => (
+                      <tr key={row.label}>
+                        <td className="row-label">{CUR_YEAR - parseInt(row.label)}</td>
+                        {row.cells.map((cell, i) => <Cell key={d.patrols[i]} cell={cell} />)}
+                        {noneCol && <Cell cell={row.noneCell} />}
+                        <td className="cell cell-total">{row.total}</td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="footer-row">
+                  <td className="row-label row-label-total">Total</td>
+                  {d.patrols.map(p => (
+                    <td key={p} className="cell cell-foot">{d.patrolTotals[p] || 0}</td>
+                  ))}
+                  {noneCol && <td className="cell cell-foot">{d.patrolTotals['(none)'] || 0}</td>}
+                  <td className="cell cell-foot cell-grand">{d.grandTotal}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

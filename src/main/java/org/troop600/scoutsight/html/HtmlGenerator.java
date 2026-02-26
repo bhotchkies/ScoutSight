@@ -28,6 +28,10 @@ public class HtmlGenerator {
         Files.createDirectories(outputDir);
         ResourceIO.copyDirectory(Path.of("templates", "images"), outputDir.resolve("images"));
 
+        boolean hasPatrolData = scouts.stream()
+                .anyMatch(s -> s.patrol != null && !s.patrol.isBlank());
+        ThymeleafRenderer.setHasPatrolPage(hasPatrolData);
+
         List<CampConfig> camps = loadCampConfigs(campName);
         List<RequirementCategory> categories = loadRequirementCategories();
         List<EagleSlot> eagleSlots = loadEagleSlots();
@@ -40,6 +44,7 @@ public class HtmlGenerator {
         java.util.Map<String, String> badgeLinks = EagleMBDetailPageWriter.write(scouts, eagleSlots, mbDefs, outputDir);
         EagleMBSummaryPageWriter.write(scouts, eagleSlots, camps, badgeLinks, outputDir, stem);
         HelpPageWriter.write(outputDir);
+        if (hasPatrolData) PatrolBalancingPageWriter.write(scouts, outputDir, stem);
         System.out.println("HTML output written to: output/" + stem + "/");
     }
 
