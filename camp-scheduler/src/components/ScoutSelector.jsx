@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 
 const RANK_ORDER = [
   'Scout Rank', 'Tenderfoot Rank', 'Second Class Rank',
@@ -20,7 +20,9 @@ function shortRank(fullName) {
     .replace('Eagle Scout', 'Eagle')
 }
 
-export default function ScoutSelector({ scouts, campConfig, doneScouts, selections, onSelectScout, onPrint }) {
+export default function ScoutSelector({ scouts, campConfig, doneScouts, selections, onSelectScout, onPrint, onDownloadJSON, onDownloadCSV, onUpload }) {
+  const fileInputRef = useRef(null)
+
   const anySelections = Object.values(selections).some(
     s => s.morning.length > 0 || s.freeTime.length > 0
   )
@@ -44,14 +46,28 @@ export default function ScoutSelector({ scouts, campConfig, doneScouts, selectio
             <p className="select-subtitle">Camp Schedule Picker</p>
           </div>
         </div>
-        <button
-          className="btn btn-print"
-          onClick={onPrint}
-          disabled={!anySelections}
-          title={anySelections ? 'View printable summary' : 'No scouts have made selections yet'}
-        >
-          Print Summary
-        </button>
+        <div className="header-actions">
+          <button className="btn btn-io" onClick={onDownloadCSV}>↓ CSV</button>
+          <button className="btn btn-io" onClick={onDownloadJSON}>↓ JSON</button>
+          <button className="btn btn-io btn-io--upload" onClick={() => fileInputRef.current.click()}>
+            ↑ Upload
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.csv"
+            style={{ display: 'none' }}
+            onChange={e => { if (e.target.files[0]) { onUpload(e.target.files[0]); e.target.value = '' } }}
+          />
+          <button
+            className="btn btn-print"
+            onClick={onPrint}
+            disabled={!anySelections}
+            title={anySelections ? 'View printable summary' : 'No scouts have made selections yet'}
+          >
+            Print Summary
+          </button>
+        </div>
       </header>
 
       <div className="select-body">

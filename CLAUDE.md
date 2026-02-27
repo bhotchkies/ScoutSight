@@ -93,7 +93,10 @@ Input CSVs are exported from BSA's Internet Advancement system. Naming conventio
 **Columns**: `BSA Member ID, First Name, Middle Name, Last Name, Advancement Type, Advancement, Version, Date Completed, Approved, Awarded, Marked Completed By, ...`
 
 **Advancement Type** values:
-- `Rank` — Scout, Tenderfoot, Second Class, First Class, Star, Life, Eagle Scout
+- `Rank` — `Advancement` column values are exact: `"Scout Rank"`, `"Tenderfoot Rank"`,
+  `"Second Class Rank"`, `"First Class Rank"`, `"Star Scout Rank"`, `"Life Scout Rank"`,
+  `"Eagle Scout Rank"`. Note: Star and Life include "Scout" in the name — never "Star Rank"
+  or "Life Rank". Any `RANK_ORDER` array in React must use these exact strings.
 - `Merit Badges` — individual merit badge records
 - `Awards` — Eagle Palms, religious emblems, etc.
 - `<Requirement Set> Requirements` — individual sub-requirements
@@ -177,8 +180,16 @@ absent from `RANK_CLASSES`.
 
 **Build:** `cd camp-scheduler && npm run build`
 - Outputs `src/main/resources/static/camp_scheduler/main.js` (committed build artifact, ~172KB)
-- IIFE format (not ESM) — required for `file://` URL compatibility; CSS auto-inlined into main.js
+- IIFE format (not ESM) — required for `file://` URL compatibility; CSS auto-inlined into main.js (~192KB)
 - After any React change, rebuild and then rebuild the IntelliJ fat JAR to bundle the updated asset
+
+**State coupling:** Scout card green/checkmark is controlled by `doneScouts` (a `Set<memberId>`), separate from
+`selections`. Operations that programmatically populate `selections` (e.g. file upload) must also call
+`setDoneScouts(new Set(Object.keys(newSels)))` or uploaded scouts show counts but not the green/done state.
+
+**File I/O time format:** `scheduleIO.js` uses plain ASCII hyphen `-` between times (e.g. `9:00-10:30`) in
+JSON/CSV files. Display components (MorningClassGrid, TroopGrid, ClassCard) use en-dash `–` for UI only.
+These must stay consistent — import matching in `resolveMorning` compares the same formatted string.
 
 **Runtime:** `CampSchedulerPageWriter` generates `camp_scheduler.html` with all scout/schedule
 data embedded as `window.SCOUT_SIGHT_DATA` at Java report-generation time. No server needed.

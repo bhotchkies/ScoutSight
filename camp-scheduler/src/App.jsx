@@ -3,6 +3,7 @@ import ScoutSelector from './components/ScoutSelector'
 import SchedulePicker from './components/SchedulePicker'
 import PrintSummary from './components/PrintSummary'
 import { toggleMorningSelection, toggleFreeTimeSelection } from './utils/scheduleUtils'
+import { downloadJSON, downloadCSV, handleUploadFile } from './utils/scheduleIO'
 
 export default function App() {
   const { scouts, campSchedule, campConfig } = window.SCOUT_SIGHT_DATA
@@ -45,6 +46,21 @@ export default function App() {
     setSelections(prev => toggleFreeTimeSelection(prev, currentScout.memberId, ftIdx))
   }
 
+  function handleDownloadJSON() {
+    downloadJSON(selections, scouts, campSchedule, campConfig)
+  }
+
+  function handleDownloadCSV() {
+    downloadCSV(selections, scouts, campSchedule, campConfig)
+  }
+
+  function handleUpload(file) {
+    handleUploadFile(file, campSchedule, scouts, newSels => {
+      setSelections(newSels)
+      setDoneScouts(new Set(Object.keys(newSels)))
+    })
+  }
+
   return (
     <div className="app">
       {screen === 'select' && (
@@ -55,6 +71,9 @@ export default function App() {
           selections={selections}
           onSelectScout={handleSelectScout}
           onPrint={handlePrint}
+          onDownloadJSON={handleDownloadJSON}
+          onDownloadCSV={handleDownloadCSV}
+          onUpload={handleUpload}
         />
       )}
       {screen === 'pick' && (
