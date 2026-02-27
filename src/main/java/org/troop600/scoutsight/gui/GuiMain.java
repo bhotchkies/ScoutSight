@@ -306,7 +306,7 @@ public class GuiMain extends JFrame {
 
         r = addFormRow(card, r, "Roster Report", rosterField, rosterBtn, false,
                 "Optional · Adds birth year, join year & positions · Download from advancements.scouting.org",
-                loadHelpHtml("_roster_report_help.html"),280);
+                loadHelpHtml("_roster_report_help.html"),290);
 
         // Camp row
         r = addCampRow(card, r);
