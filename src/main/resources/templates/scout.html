@@ -106,7 +106,7 @@
     .camp-rank-row { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; padding: .3rem 0; border-bottom: 1px solid var(--border-lt); font-size: .88rem; }
     .camp-rank-row:last-child { border-bottom: none; }
     .camp-rank-label { font-family: var(--font-h); font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); min-width: 5.5rem; flex-shrink: 0; }
-    .camp-req-chips { display: flex; flex-wrap: wrap; gap: .25rem; }
+    .camp-req-chips { display: flex; flex-wrap: wrap; gap: .25rem; flex-basis: 100%; }
     .camp-req-chip { background: var(--surface-2); border: 1px solid var(--border); border-radius: 4px; font-family: var(--font-h); font-size: .8rem; font-weight: 600; color: var(--green); padding: .1rem .45rem; cursor: help; }
     .camp-mb-tbl { width: 100%; border-collapse: collapse; }
     .camp-mb-tbl th { font-family: var(--font-h); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: .35rem .75rem; text-align: left; border-bottom: 1px solid var(--border-lt); background: var(--surface-2); font-weight: 500; }
@@ -114,6 +114,9 @@
     .camp-mb-tbl tr:last-child td { border-bottom: none; }
     .camp-mb-eagle-tag { font-size: .67rem; font-weight: 700; font-family: var(--font-h); background: var(--amber-lt); color: #6b3800; padding: .06rem .4rem; border-radius: 3px; margin-left: .35rem; }
     .camp-mb-pct { color: var(--amber); font-weight: 700; font-size: .85rem; }
+
+    .camp-rank-stats { font-size: .78rem; color: var(--text-muted); white-space: nowrap;  }
+    .camp-rank-stats strong { color: var(--amber); font-weight: 700; }
 
     .none-started { color: var(--text-muted); font-style: italic; font-size: .88rem; padding: .5rem 0; }
 
@@ -334,9 +337,8 @@
     }
 
     function CampTab({ campData }) {
-      const campRanks    = campData.ranks.filter(r => r.atCamp.length > 0);
-      const meetingRanks = campData.ranks.filter(r => r.atMeetings.length > 0);
-      const campMBs      = campData.meritBadges || [];
+      const campRanks = campData.ranks.filter(r => r.atCamp.length > 0);
+      const campMBs   = campData.meritBadges || [];
 
       return (
         <div>
@@ -344,39 +346,28 @@
             <div className="camp-section-hdr">Earnable At {campData.campName}</div>
             {campRanks.length === 0
               ? <p className="none-started">No outstanding rank requirements coverable at this camp.</p>
-              : campRanks.map(r => (
-                  <div key={r.rankName} className="camp-rank-row">
-                    <span className="camp-rank-label">{stripRank(r.rankName)}</span>
-                    <div className="camp-req-chips">
-                      {r.atCamp.map(req => (
-                        <span key={req.id} className="camp-req-chip"
-                              title={(RANK_DEFS[r.rankName] || {})[req.id] || ''}>
-                          {req.id}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))
-            }
-          </div>
+              : campRanks.map(r => {
+                  const pctLeft = r.campTotal > 0
+                    ? Math.round(r.atCamp.length / r.campTotal * 100)
+                    : 0;
+                  return (
+                    <div key={r.rankName} className="camp-rank-row">
+                      <span className="camp-rank-label">{stripRank(r.rankName)}</span>
+                       <span className="camp-rank-stats">
+                        <strong>{pctLeft}%</strong> left &middot; {r.campDone}/{r.campTotal}
+                      </span>
+                      <div className="camp-req-chips">
+                        {r.atCamp.map(req => (
+                          <span key={req.id} className="camp-req-chip"
+                                title={(RANK_DEFS[r.rankName] || {})[req.id] || ''}>
+                            {req.id}
+                          </span>
+                        ))}
+                      </div>
 
-          <div className="camp-section">
-            <div className="camp-section-hdr">Needs Troop Meetings</div>
-            {meetingRanks.length === 0
-              ? <p className="none-started">No outstanding requirements requiring meetings.</p>
-              : meetingRanks.map(r => (
-                  <div key={r.rankName} className="camp-rank-row">
-                    <span className="camp-rank-label">{stripRank(r.rankName)}</span>
-                    <div className="camp-req-chips">
-                      {r.atMeetings.map(req => (
-                        <span key={req.id} className="camp-req-chip"
-                              title={(RANK_DEFS[r.rankName] || {})[req.id] || ''}>
-                          {req.id}
-                        </span>
-                      ))}
                     </div>
-                  </div>
-                ))
+                  );
+                })
             }
           </div>
 

@@ -137,28 +137,52 @@ class ScoutPageWriter {
 
         for (String rankName : CAMP_RANK_NAMES) {
             AdvancementItem item = findByName(scout.ranks, rankName);
-            if (item == null) continue;
 
-            if (item.isComplete()) continue; // rank earned → no outstanding requirements
+            if (item != null && item.isComplete()) continue; // rank earned → no outstanding requirements
 
             Set<String> campReqs = camp.rankCoverage.getOrDefault(rankName, Set.of());
+            if (campReqs.isEmpty()) continue;
 
-            List<Requirement> incomplete = item.requirements.stream()
-                    .filter(r -> r.requirementId != null && !r.requirementId.isBlank())
-                    .filter(r -> r.dateCompleted == null)
-                    .sorted(new ReqIdComparator())
-                    .toList();
+            List<Requirement> atCamp;
+            List<Requirement> atMeetings;
 
-            List<Requirement> atCamp = incomplete.stream()
-                    .filter(r -> campReqs.contains(r.requirementId.toLowerCase()))
-                    .toList();
-            List<Requirement> atMeetings = incomplete.stream()
-                    .filter(r -> !campReqs.contains(r.requirementId.toLowerCase()))
-                    .toList();
+            List<Requirement> incomplete = item == null ? List.of()
+                    : item.requirements.stream()
+                            .filter(r -> r.requirementId != null && !r.requirementId.isBlank())
+                            .filter(r -> r.dateCompleted == null)
+                            .sorted(new ReqIdComparator())
+                            .toList();
 
-            if (atCamp.isEmpty() && atMeetings.isEmpty()) continue;
+            if (incomplete.isEmpty()) {
+                // No individual requirement rows recorded — all camp-coverable reqs are outstanding
+                atCamp = campReqs.stream()
+                        .map(id -> new Requirement(id, null, false, false,
+                                null, null, null, null, null, null, null, null))
+                        .sorted(new ReqIdComparator())
+                        .toList();
+                atMeetings = List.of();
+            } else {
+                atCamp = incomplete.stream()
+                        .filter(r -> campReqs.contains(r.requirementId.toLowerCase()))
+                        .toList();
+                atMeetings = incomplete.stream()
+                        .filter(r -> !campReqs.contains(r.requirementId.toLowerCase()))
+                        .toList();
 
-            jb.obj().field("rankName", rankName);
+                if (atCamp.isEmpty() && atMeetings.isEmpty()) continue;
+            }
+
+            int campTotal = campReqs.size();
+            int campDone  = item == null ? 0
+                    : (int) item.requirements.stream()
+                            .filter(r -> r.requirementId != null && !r.requirementId.isBlank())
+                            .filter(r -> r.dateCompleted != null)
+                            .filter(r -> campReqs.contains(r.requirementId.toLowerCase()))
+                            .count();
+
+            jb.obj().field("rankName", rankName)
+                    .field("campDone", campDone)
+                    .field("campTotal", campTotal);
             jb.arr("atCamp");
             for (Requirement r : atCamp) jb.obj().field("id", r.requirementId).endObj();
             jb.endArr();
