@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
  * <pre>
  * {
  *   "campName": "Camp Parsons",
+ *   "scheduleUrl": "https://...",
+ *   "scheduleParser": "CampParsonsScheduleParser",
  *   "rankCoverage": {
  *     "Scout Rank": ["1a","1b",...],
  *     ...
@@ -25,10 +27,14 @@ import java.util.regex.Pattern;
  * }
  * </pre>
  */
-class CampConfigLoader {
+public class CampConfigLoader {
 
     private static final Pattern CAMP_NAME =
             Pattern.compile("\"campName\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern SCHEDULE_URL =
+            Pattern.compile("\"scheduleUrl\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern SCHEDULE_PARSER =
+            Pattern.compile("\"scheduleParser\"\\s*:\\s*\"([^\"]+)\"");
     /** Matches  "key": ["val1","val2",...] */
     private static final Pattern RANK_ENTRY =
             Pattern.compile("\"([^\"]+)\"\\s*:\\s*\\[([^\\]]+)\\]");
@@ -38,12 +44,20 @@ class CampConfigLoader {
     private static final Pattern MB_ARRAY =
             Pattern.compile("\"meritBadges\"\\s*:\\s*\\[([^\\]]+)\\]", Pattern.DOTALL);
 
-    static CampConfig load(Path path) throws IOException {
+    public static CampConfig load(Path path) throws IOException {
         String json = ResourceIO.readString(path);
 
         String campName = path.getFileName().toString();
         Matcher m = CAMP_NAME.matcher(json);
         if (m.find()) campName = m.group(1);
+
+        String scheduleUrl = null;
+        Matcher su = SCHEDULE_URL.matcher(json);
+        if (su.find()) scheduleUrl = su.group(1);
+
+        String scheduleParser = null;
+        Matcher sp = SCHEDULE_PARSER.matcher(json);
+        if (sp.find()) scheduleParser = sp.group(1);
 
         Map<String, Set<String>> coverage = new LinkedHashMap<>();
         int rcStart = json.indexOf("\"rankCoverage\"");
@@ -66,6 +80,7 @@ class CampConfigLoader {
             while (em.find()) meritBadges.add(em.group(1));
         }
 
-        return new CampConfig(campName, coverage, List.copyOf(meritBadges));
+        return new CampConfig(campName, coverage, List.copyOf(meritBadges),
+                scheduleUrl, scheduleParser);
     }
 }

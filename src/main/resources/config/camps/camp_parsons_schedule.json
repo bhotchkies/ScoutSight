@@ -1,0 +1,294 @@
+{
+  "campName": "Camp Parsons",
+  "generatedFrom": "https://www.campparsons.org/bfd_download/advancement-schedule/",
+  "generatedDate": "2026-02-26",
+  "dailyClasses": [
+    {
+      "meritBadges": [],
+      "ranks": ["Scout Rank", "Tenderfoot Rank"],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"}
+      ]
+    },
+    {
+      "meritBadges": [],
+      "ranks": ["Second Class Rank"],
+      "sessions": [
+        {"start": "10:00", "end": "11:00"}
+      ]
+    },
+    {
+      "meritBadges": [],
+      "ranks": ["First Class Rank"],
+      "sessions": [
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Canoeing MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Lifesaving MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Kayaking MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Motorboating MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Rowing MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"}
+      ]
+    },
+    {
+      "meritBadges": ["Small Boat Sailing MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "10:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Swimming MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "10:00", "end": "11:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Model Design and Building MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Art MB", "Animation MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Inventing MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "10:00", "end": "11:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Woodcarving MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "9:30"},
+        {"start": "10:00", "end": "10:30"},
+        {"start": "11:00", "end": "11:30"}
+      ]
+    },
+    {
+      "meritBadges": ["Leatherwork MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:30", "end": "10:00"},
+        {"start": "10:30", "end": "11:00"},
+        {"start": "11:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Archery MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Rifle Shooting MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Climbing MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["First Aid MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "10:00", "end": "11:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Camping MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "10:00", "end": "11:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Emergency Preparedness MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Orienteering MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "10:00", "end": "11:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Pioneering MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:30"},
+        {"start": "10:30", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Signs, Signals, and Codes MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Athletics MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Wilderness Survival MB", "Exploration MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "10:00", "end": "11:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Archaeology MB", "Geology MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "10:00", "end": "11:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Chemistry MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Citizenship in the World MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "10:00", "end": "11:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Engineering MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Environmental Science MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"},
+        {"start": "10:00", "end": "11:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Forestry MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Nature MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Oceanography MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "10:00", "end": "11:00"},
+        {"start": "11:00", "end": "12:00"}
+      ]
+    },
+    {
+      "meritBadges": ["Soil and Water Conservation MB"],
+      "ranks": [],
+      "sessions": [
+        {"start": "9:00", "end": "10:00"}
+      ]
+    }
+  ],
+  "freeTimeClasses": [
+    {"meritBadges": ["Basketry MB"], "day": "Monday", "time": "3:45"},
+    {"meritBadges": ["Basketry MB"], "day": "Tuesday", "time": "3:45"},
+    {"meritBadges": ["Basketry MB"], "day": "Wednesday", "time": "3:45"},
+    {"meritBadges": ["Chess MB"], "day": "Tuesday", "time": "3:45"},
+    {"meritBadges": ["Chess MB"], "day": "Thursday", "time": "3:45"},
+    {"meritBadges": ["Scouting Heritage MB"], "day": "Wednesday", "time": "3:45"},
+    {"meritBadges": ["Scouting Heritage MB"], "day": "Thursday", "time": "3:45"},
+    {"meritBadges": ["Communication MB"], "day": "Monday", "time": "3:45"},
+    {"meritBadges": ["Communication MB"], "day": "Tuesday", "time": "3:45"},
+    {"meritBadges": ["Cooking MB"], "day": "Wednesday", "time": "3:45"},
+    {"meritBadges": ["Cooking MB"], "day": "Thursday", "time": "3:45"},
+    {"meritBadges": ["Astronomy MB"], "day": "Monday", "time": "3:45"},
+    {"meritBadges": ["Fish and Wildlife Management MB"], "day": "Tuesday", "time": "3:45"},
+    {"meritBadges": ["Nuclear Science MB"], "day": "Wednesday", "time": "3:45"},
+    {"meritBadges": ["Pulp and Paper MB"], "day": "Thursday", "time": "3:45"},
+    {"meritBadges": ["Weather MB"], "day": "Monday", "time": "3:45"}
+  ]
+}

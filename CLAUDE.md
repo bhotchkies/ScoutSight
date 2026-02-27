@@ -73,6 +73,7 @@ org.troop600.scoutsight
 ├── html/       Report generation (HtmlGenerator, *PageWriter, ResourceIO, ThymeleafRenderer, loaders)
 ├── model/      Scout, AdvancementItem, Requirement, RawRow, AdvancementType
 ├── parser/     CSV parsers (AdvancementParser, ScoutRosterParser, RosterReportParser, etc.)
+├── tools/      Standalone developer utilities (ScheduleImporter — one-time ETL tools)
 └── util/       DateUtil
 ```
 
@@ -115,7 +116,53 @@ A requirement is complete when `Date Completed` is non-empty (`MM/DD/YYYY` forma
 - `siteHeader` is injected automatically by `ThymeleafRenderer.render()` — do not pass it in the variables map
 - `hasPatrolPage` boolean flag in `ThymeleafRenderer` controls whether the Patrol Balancing nav link appears; set via `setHasPatrolPage()` before any renders
 
+## Package Visibility
+
+Most classes in `html/` are **package-private** by default (`CampConfig`, `CampConfigLoader`,
+`EagleSlotsLoader`, `JsonBuilder`, `ResourceIO`, etc.). Classes accessed from outside `html/`
+(e.g. from `tools/`) must be explicitly made `public`. `JsonBuilder` is package-private and
+cannot be used from other packages — write JSON directly with `StringBuilder` instead.
+
+## Camp Schedule System
+
+Each camp JSON in `config/camps/` may include `scheduleUrl` and `scheduleParser` fields.
+A separate `camp_{stem}_schedule.json` holds the parsed schedule data (committed to repo,
+bundled in JAR). The template file has `"dailyClasses": []` until the importer is run.
+
+**Run the schedule importer** (from project root, after `mvn compile`):
+```bash
+# Dump raw PDF text to verify layout:
+JAVA_HOME="/c/Users/blair/.jdks/openjdk-25" \
+  "/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn" exec:java \
+  -Dexec.mainClass="org.troop600.scoutsight.tools.ScheduleImporter" \
+  -Dexec.args="--dump-text --local-pdf C:/tmp/schedule.pdf parsons"
+
+# Parse and write camp_parsons_schedule.json (auto-downloads from scheduleUrl):
+  -Dexec.args="parsons"
+```
+The importer writes to `src/main/resources/config/camps/` when run from project root.
+`CampParsonsScheduleParser` uses `Loader.loadPDF()` (PDFBox 3.x API; `PDDocument.load()`
+was removed in 3.x). `setSortByPosition(true)` is critical for correct table extraction.
+
+**Schedule JSON schema:**
+- `dailyClasses` entries have `"meritBadges": [...]` AND `"ranks": [...]`; exactly one is
+  non-empty. Merit badge entries have `["Art MB"]`; rank entries have `["Scout Rank", "Tenderfoot Rank"]`.
+  Co-taught badges share one entry, e.g. `["Art MB", "Animation MB"]`.
+- `freeTimeClasses` entries: `{"meritBadges": [...], "day": "Monday", "time": "3:45"}` —
+  one entry per day offering; each session is independent (Scout attends any one day).
+- `meritBadges` list in `camp_parsons.json` acts as an allowlist for both badge and
+  free-time parsing. `RANK_CLASSES` map in `CampParsonsScheduleParser` is hardcoded:
+  Scout & Tenderfoot 9–10, Second Class 10–11, First Class 11–12.
+
+**PDF parsing gotcha:** `setSortByPosition(true)` can emit a time-only line (e.g.
+`"10:00 – 11:00"`) *before* the rank/badge name it belongs to when table columns are
+misaligned. `parseText()` pre-processes lines: if `firstTimeRangeStart == 0`, the line is
+removed and its time text is appended to the next untimed line (forward-merge).
+The bare word "Scout" in the PDF is a spurious column-header artifact — intentionally
+absent from `RANK_CLASSES`.
+
 ## Maven Dependencies
 
 - `org.thymeleaf:thymeleaf:3.1.3.RELEASE` — HTML report generation
 - `org.slf4j:slf4j-nop:1.7.36` — silence Thymeleaf logging
+- `org.apache.pdfbox:pdfbox:3.0.3` — PDF text extraction for schedule importer

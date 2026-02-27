@@ -1,10 +1,13 @@
 {
   "campName": "Camp Parsons",
+  "scheduleUrl": "https://www.campparsons.org/bfd_download/advancement-schedule/",
+  "scheduleParser": "CampParsonsScheduleParser",
   "meritBadges": [
     "Archery MB",
     "Art MB",
     "Animation MB",
     "Astronomy MB",
+    "Archaeology MB",
     "Athletics MB",
     "Basketry MB",
     "Camping MB",

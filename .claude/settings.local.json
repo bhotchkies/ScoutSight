@@ -5,7 +5,14 @@
       "Bash(\"/c/Program Files/Java/openjdk-25/bin/java\":*)",
       "Bash(\"C:/Program Files/Java/openjdk-25/bin/java\":*)",
       "Bash(\"/c/Program Files/Java/openjdk-25/bin/java.exe\":*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "WebFetch(domain:www.campparsons.org)",
+      "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" compile 2>&1)",
+      "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" exec:java -Dexec.mainClass=\"org.troop600.scoutsight.tools.ScheduleImporter\" -Dexec.args=\"--dump-text parsons\" 2>&1)",
+      "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" compile exec:java -Dexec.mainClass=\"org.troop600.scoutsight.tools.ScheduleImporter\" -Dexec.args=\"--dump-text parsons\" 2>&1)",
+      "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" compile exec:java -Dexec.mainClass=\"org.troop600.scoutsight.tools.ScheduleImporter\" -Dexec.args=\"--local-pdf C:/Users/blair/AppData/Local/Temp/scoutsight_parsons_schedule.pdf parsons\" 2>&1)",
+      "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" -o compile 2>&1)",
+      "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" -o exec:java -Dexec.mainClass=\"org.troop600.scoutsight.tools.ScheduleImporter\" -Dexec.args=\"--dump-text --local-pdf C:/Users/blair/AppData/Local/Temp/scoutsight_parsons_schedule.pdf parsons\" 2>&1)"
     ]
   }
 }
