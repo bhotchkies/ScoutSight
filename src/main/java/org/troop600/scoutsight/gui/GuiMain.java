@@ -15,6 +15,10 @@ import java.util.*;
 import java.util.List;
 import java.util.prefs.Preferences;
 import java.util.regex.*;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 /**
  * Swing GUI for ScoutSight report generation.
@@ -50,6 +54,12 @@ public class GuiMain extends JFrame {
     private static final Font FONT_HINT    = ui(Font.ITALIC, 10);
     private static final Font FONT_MONO    = monoFont(12);
     private static final Font FONT_RUN     = ui(Font.BOLD,   13);
+
+    // ── Version ──────────────────────────────────────────────────────────────
+    /** Current application version — keep in sync with pom.xml / GitHub release tag. */
+    static final String APP_VERSION = "1.1";
+    private static final String RELEASES_API =
+            "https://api.github.com/repos/bhotchkies/ScoutSight/releases/latest";
 
     // ── Preferences ──────────────────────────────────────────────────────────
     private static final Preferences PREFS          = Preferences.userNodeForPackage(GuiMain.class);
@@ -169,6 +179,7 @@ public class GuiMain extends JFrame {
         logArea.setWrapStyleWord(false);
         logArea.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
         ((DefaultCaret) logArea.getCaret()).setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+        installUrlClickHandler();
 
         JScrollPane logScroll = new JScrollPane(logArea);
         logScroll.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, C_GREEN));
@@ -187,6 +198,7 @@ public class GuiMain extends JFrame {
         setSize(780, 600);
         setMinimumSize(new Dimension(580, 440));
         setLocationRelativeTo(null);
+        checkForUpdates();
     }
 
     // ── Header ───────────────────────────────────────────────────────────────
@@ -762,6 +774,46 @@ public class GuiMain extends JFrame {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    private static final Pattern URL_PATTERN = Pattern.compile("https?://\\S+");
+
+    /**
+     * Adds mouse listeners to {@link #logArea} so that {@code https://...} URLs
+     * are clickable (opens the system browser) and show a hand cursor on hover.
+     */
+    private void installUrlClickHandler() {
+        logArea.addMouseMotionListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseMoved(java.awt.event.MouseEvent e) {
+                logArea.setCursor(urlAtPoint(e.getPoint()) != null
+                        ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                        : Cursor.getDefaultCursor());
+            }
+        });
+        logArea.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseClicked(java.awt.event.MouseEvent e) {
+                String url = urlAtPoint(e.getPoint());
+                if (url != null) {
+                    try { Desktop.getDesktop().browse(URI.create(url)); }
+                    catch (Exception ex) {
+                        appendLog("Could not open browser: " + ex.getMessage() + "\n");
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Returns the URL string in the log area that contains the character at
+     * {@code point}, or {@code null} if the click was not over a URL.
+     */
+    private String urlAtPoint(java.awt.Point p) {
+        int offset = logArea.viewToModel2D(p);
+        Matcher m = URL_PATTERN.matcher(logArea.getText());
+        while (m.find()) {
+            if (m.start() <= offset && offset < m.end()) return m.group();
+        }
+        return null;
+    }
+
     private void appendLog(String text) {
         SwingUtilities.invokeLater(() -> logArea.append(text));
     }
@@ -775,6 +827,111 @@ public class GuiMain extends JFrame {
 
     private static boolean isWindows() {
         return System.getProperty("os.name", "").toLowerCase().contains("win");
+    }
+
+    // ── Version check ────────────────────────────────────────────────────────
+
+    /**
+     * Checks GitHub for a newer release in a daemon thread and logs the result
+     * to the log area. Runs immediately on startup so the user sees it first.
+     */
+    private void checkForUpdates() {
+        Thread t = new Thread(() -> {
+            try {
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(RELEASES_API))
+                        .header("Accept", "application/vnd.github+json")
+                        .header("User-Agent", "ScoutSight/" + APP_VERSION)
+                        .build();
+                HttpResponse<String> resp = client.send(request,
+                        HttpResponse.BodyHandlers.ofString());
+
+                if (resp.statusCode() == 200) {
+                    String body      = resp.body();
+                    String tagName   = extractJsonString(body, "tag_name");
+                    String relName   = extractJsonString(body, "name");
+                    String published = extractJsonString(body, "published_at");
+                    String dlUrl     = extractDownloadUrl(body);
+
+                    String latestVer  = tagName != null ? tagName.replaceFirst("^[vV]", "") : null;
+                    String displayVer = tagName != null ? tagName : "unknown";
+                    String pubShort   = published != null && published.length() >= 10
+                                        ? published.substring(0, 10) : published;
+
+                    if (latestVer != null && isNewerVersion(latestVer, APP_VERSION)) {
+                        appendLog("╔══ Update Available ══════════════════════════════════╗\n");
+                        appendLog(" version  : v" + APP_VERSION + "\n");
+                        appendLog(" Latest   : " + (relName != null ? relName : displayVer)
+                                + (pubShort != null ? "  (" + pubShort + ")" : "") + "\n");
+                        if (dlUrl != null) {
+                            appendLog(" Download : " + dlUrl + "\n");
+                        }
+                        appendLog("╚══════════════════════════════════════════════════════╝\n\n");
+                    } else {
+                        appendLog("ScoutSight v" + APP_VERSION + " — Up to date"
+                                + (pubShort != null ? " (latest release: " + pubShort + ")" : "")
+                                + "\n\n");
+                    }
+                } else if (resp.statusCode() == 404) {
+                    appendLog("ScoutSight v" + APP_VERSION + " — (No releases published yet on GitHub)\n\n");
+                } else {
+                    appendLog("ScoutSight v" + APP_VERSION
+                            + " — Version check failed (HTTP " + resp.statusCode() + ")\n\n");
+                }
+            } catch (Exception e) {
+                appendLog("ScoutSight v" + APP_VERSION
+                        + " — Version check unavailable (no network or GitHub unreachable)\n\n");
+            }
+        }, "version-check");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /** Extracts a simple string value from a JSON body by key name using regex. */
+    private static String extractJsonString(String json, String key) {
+        Matcher m = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"([^\"\\\\]*)\"")
+                           .matcher(json);
+        return m.find() ? m.group(1) : null;
+    }
+
+    /** Extracts the first {@code browser_download_url} value from the release JSON. */
+    private static String extractDownloadUrl(String json) {
+        Matcher m = Pattern.compile("\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+        return m.find() ? m.group(1) : null;
+    }
+
+    /**
+     * Returns {@code true} if {@code latest} is a higher semantic version than
+     * {@code current}. Strips non-numeric qualifiers (SNAPSHOT, -rc, etc.) then
+     * compares dot-separated segments numerically.
+     */
+    private static boolean isNewerVersion(String latest, String current) {
+        try {
+            int[] l = parseVersionSegments(latest);
+            int[] c = parseVersionSegments(current);
+            int len = Math.max(l.length, c.length);
+            for (int i = 0; i < len; i++) {
+                int lv = i < l.length ? l[i] : 0;
+                int cv = i < c.length ? c[i] : 0;
+                if (lv > cv) return true;
+                if (lv < cv) return false;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Splits a version string into numeric segments, ignoring qualifiers. */
+    private static int[] parseVersionSegments(String ver) {
+        String[] parts = ver.replaceAll("[^0-9.]", " ").trim().split("[\\s.]+");
+        int[] result = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            try { result[i] = Integer.parseInt(parts[i]); }
+            catch (NumberFormatException ignored) { result[i] = 0; }
+        }
+        return result;
     }
 
     // ── Camp model ───────────────────────────────────────────────────────────
