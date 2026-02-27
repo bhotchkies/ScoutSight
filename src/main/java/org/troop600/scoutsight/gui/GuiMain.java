@@ -628,8 +628,14 @@ public class GuiMain extends JFrame {
         Path campsDir = Path.of(workDir.isEmpty() ? "." : workDir, "config", "camps");
         try {
             List<Path> campFiles = Files.isDirectory(campsDir)
-                    ? Files.list(campsDir).filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList()
-                    : ResourceIO.listDirectory(Path.of("config", "camps"), ".json");
+                    ? Files.list(campsDir).filter(p -> {
+                          String n = p.getFileName().toString();
+                          return n.endsWith(".json") && !n.contains("_schedule");
+                      }).sorted().toList()
+                    : ResourceIO.listDirectory(Path.of("config", "camps"), ".json")
+                            .stream()
+                            .filter(p -> !p.getFileName().toString().contains("_schedule"))
+                            .toList();
             for (Path p : campFiles) {
                 String stem = p.getFileName().toString().replace(".json", "");
                 entries.add(new CampEntry(readCampName(p, stem), stem));

@@ -55,6 +55,8 @@ The IntelliJ artifact builder may compile with a newer JDK than the system `java
 | Path | Purpose |
 |------|---------|
 | `src/main/java/` | Java source root — package `org.troop600.scoutsight` |
+| `camp-scheduler/` | Vite + React source for camp schedule picker; `npm run build` outputs to resources |
+| `src/main/resources/static/camp_scheduler/` | Committed React bundle (`main.js`); rebuilt via `npm run build` in `camp-scheduler/` |
 | `src/main/resources/templates/` | Thymeleaf HTML templates (index, scout, patrol_balancing, eagle_mb_summary, eagle_mb_detail, trail_to_first_class, help, _header) |
 | `src/main/resources/templates/_*_help.html` | Partial templates (six files) included by help.html; `meetings_aggregate.html` exists but is an unused stub replaced by trail_to_first_class |
 | `src/main/resources/config/` | Config files: camps, definitions (rank/MB), mb-categories, requirement-categories |
@@ -115,6 +117,7 @@ A requirement is complete when `Date Completed` is non-empty (`MM/DD/YYYY` forma
 - Standard `th:` attribute syntax (e.g. `th:text`, `th:if`) does **not** work
 - `siteHeader` is injected automatically by `ThymeleafRenderer.render()` — do not pass it in the variables map
 - `hasPatrolPage` boolean flag in `ThymeleafRenderer` controls whether the Patrol Balancing nav link appears; set via `setHasPatrolPage()` before any renders
+- `hasSchedulerPage` boolean flag controls the Camp Scheduler nav link; same pattern — add a `static boolean` + setter in `ThymeleafRenderer`, set it in `HtmlGenerator.generate()` **before** any page writes, and add `[# th:if="${flagName}"]...[/]` to `_header.html`
 
 ## Package Visibility
 
@@ -144,6 +147,13 @@ The importer writes to `src/main/resources/config/camps/` when run from project 
 `CampParsonsScheduleParser` uses `Loader.loadPDF()` (PDFBox 3.x API; `PDDocument.load()`
 was removed in 3.x). `setSortByPosition(true)` is critical for correct table extraction.
 
+**Camp stem gotcha:** The GUI dropdown passes full filename stems (e.g., `camp_parsons`);
+the CLI conventionally passes short stems (e.g., `parsons`). `HtmlGenerator` normalizes via
+`campFileStem` (strips leading `camp_` prefix) before constructing schedule file paths.
+Any new code that constructs `config/camps/camp_<stem>_*.json` paths must use `campFileStem`,
+not the raw `campName` parameter. Also: always exclude `_schedule` files when listing
+camp configs (they match the same needle but are not valid `CampConfig` JSON).
+
 **Schedule JSON schema:**
 - `dailyClasses` entries have `"meritBadges": [...]` AND `"ranks": [...]`; exactly one is
   non-empty. Merit badge entries have `["Art MB"]`; rank entries have `["Scout Rank", "Tenderfoot Rank"]`.
@@ -160,6 +170,21 @@ misaligned. `parseText()` pre-processes lines: if `firstTimeRangeStart == 0`, th
 removed and its time text is appended to the next untimed line (forward-merge).
 The bare word "Scout" in the PDF is a spurious column-header artifact — intentionally
 absent from `RANK_CLASSES`.
+
+## Camp Scheduler React App
+
+`camp-scheduler/` — Vite + React source for the camp schedule picker frontend.
+
+**Build:** `cd camp-scheduler && npm run build`
+- Outputs `src/main/resources/static/camp_scheduler/main.js` (committed build artifact, ~172KB)
+- IIFE format (not ESM) — required for `file://` URL compatibility; CSS auto-inlined into main.js
+- After any React change, rebuild and then rebuild the IntelliJ fat JAR to bundle the updated asset
+
+**Runtime:** `CampSchedulerPageWriter` generates `camp_scheduler.html` with all scout/schedule
+data embedded as `window.SCOUT_SIGHT_DATA` at Java report-generation time. No server needed.
+
+**Dev mock data:** `camp-scheduler/src/dev/mockData.js` — used when `window.SCOUT_SIGHT_DATA`
+is undefined (i.e., when running via `npm run dev` against `index.html`).
 
 ## Maven Dependencies
 

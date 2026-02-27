@@ -32,6 +32,19 @@ public class HtmlGenerator {
                 .anyMatch(s -> s.patrol != null && !s.patrol.isBlank());
         ThymeleafRenderer.setHasPatrolPage(hasPatrolData);
 
+        // Normalize campName for file path construction — strips leading "camp_" if present
+        // so that GUI-sourced stems like "camp_parsons" and CLI-sourced "parsons" both work.
+        String campFileStem = campName == null ? null
+                : (campName.toLowerCase().startsWith("camp_")
+                        ? campName.toLowerCase().substring(5)
+                        : campName.toLowerCase());
+
+        // Set scheduler flag before any pages render so all headers include the link.
+        boolean hasSchedulerData = campFileStem != null && ResourceIO.exists(
+                Path.of("config", "camps", "camp_" + campFileStem + "_schedule.json"))
+                && ResourceIO.exists(Path.of("static", "camp_scheduler", "main.js"));
+        ThymeleafRenderer.setHasSchedulerPage(hasSchedulerData);
+
         List<CampConfig> camps = loadCampConfigs(campName);
         List<RequirementCategory> categories = loadRequirementCategories();
         List<EagleSlot> eagleSlots = loadEagleSlots();
@@ -45,6 +58,22 @@ public class HtmlGenerator {
         EagleMBSummaryPageWriter.write(scouts, eagleSlots, camps, badgeLinks, outputDir, stem);
         HelpPageWriter.write(outputDir);
         if (hasPatrolData) PatrolBalancingPageWriter.write(scouts, outputDir, stem);
+
+        // Camp scheduler: generated when a schedule JSON exists for the camp.
+        if (campFileStem != null && !camps.isEmpty()) {
+            CampConfig primaryCamp = camps.get(0);
+            Path schedulePath = Path.of("config", "camps",
+                    "camp_" + campFileStem + "_schedule.json");
+            List<String> eagleBadgeNames = eagleSlots.stream()
+                    .flatMap(slot -> slot.badgeNames().stream())
+                    .toList();
+            if (ResourceIO.exists(schedulePath)) {
+                CampSchedulerPageWriter.write(scouts, primaryCamp, schedulePath, outputDir,
+                        eagleBadgeNames, rankDefsOrdered, mbDefs);
+                System.out.println("Camp scheduler written to: output/" + stem + "/camp_scheduler.html");
+            }
+        }
+
         System.out.println("HTML output written to: output/" + stem + "/");
     }
 
@@ -53,7 +82,10 @@ public class HtmlGenerator {
         String needle = campName.toLowerCase();
         List<Path> jsonFiles = ResourceIO.listDirectory(Path.of("config", "camps"), ".json")
                 .stream()
-                .filter(p -> p.getFileName().toString().toLowerCase().contains(needle))
+                .filter(p -> {
+                    String n = p.getFileName().toString().toLowerCase();
+                    return n.contains(needle) && !n.contains("_schedule");
+                })
                 .toList();
         if (jsonFiles.isEmpty()) {
             System.err.println("Warning: no camp config file found matching '" + campName + "' in config/camps/");

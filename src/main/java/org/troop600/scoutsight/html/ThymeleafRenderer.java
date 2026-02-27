@@ -28,9 +28,11 @@ class ThymeleafRenderer {
         ENGINE.setTemplateResolver(resolver);
     }
 
-    private static boolean hasPatrolPage = false;
+    private static boolean hasPatrolPage    = false;
+    private static boolean hasSchedulerPage = false;
 
-    static void setHasPatrolPage(boolean v) { hasPatrolPage = v; }
+    static void setHasPatrolPage(boolean v)    { hasPatrolPage = v; }
+    static void setHasSchedulerPage(boolean v) { hasSchedulerPage = v; }
 
     static String render(String templateName, Map<String, String> variables) {
         String content;
@@ -41,15 +43,16 @@ class ThymeleafRenderer {
         }
         Context ctx = new Context();
         variables.forEach(ctx::setVariable);
-        ctx.setVariable("siteHeader", loadHeader(hasPatrolPage));
+        ctx.setVariable("siteHeader", loadHeader(hasPatrolPage, hasSchedulerPage));
         return ENGINE.process(content, ctx);
     }
 
-    private static String loadHeader(boolean flag) {
+    private static String loadHeader(boolean patrolPage, boolean schedulerPage) {
         try {
             String headerTemplate = ResourceIO.readString(Path.of("templates", "_header.html")).trim();
             Context ctx = new Context();
-            ctx.setVariable("hasPatrolPage", flag);
+            ctx.setVariable("hasPatrolPage",    patrolPage);
+            ctx.setVariable("hasSchedulerPage", schedulerPage);
             return ENGINE.process(headerTemplate, ctx);
         } catch (IOException e) {
             return "";
