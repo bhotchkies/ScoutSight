@@ -1105,3 +1105,327 @@ button:disabled { cursor: not-allowed; }
 
   .print-main-title { font-size: 20pt; }
 }
+
+/* ============================================================
+   GOOGLE SHEETS SYNC — Connect Screen
+   ============================================================ */
+
+.connect-header {
+  background: var(--green-dark);
+  color: #fff;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.connect-title {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.connect-body {
+  max-width: 680px;
+  width: 100%;
+  margin: 2.5rem auto;
+  padding: 0 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.connect-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+/* Status bar */
+.connect-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+}
+.connect-status--live { background: var(--selected-bg);  color: var(--selected-accent); }
+.connect-status--off  { background: var(--surface-2);    color: var(--text-muted);      }
+
+.connect-url-preview {
+  font-weight: 400;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px;
+}
+
+.connect-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--selected-accent);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px rgba(27,107,58,0.2);
+}
+.connect-dot--off {
+  background: var(--text-light);
+  box-shadow: none;
+}
+
+/* Form */
+.connect-form { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.connect-label {
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.connect-input {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.55rem 0.85rem;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.connect-input:focus {
+  outline: none;
+  border-color: var(--green-mid);
+  background: #fff;
+}
+
+.connect-error {
+  font-size: 0.85rem;
+  color: #c00;
+  margin-top: 0.2rem;
+}
+
+/* Buttons */
+.connect-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-danger {
+  background: #fff0f0;
+  color: #b00;
+  border: 1.5px solid #f5c0c0;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 1.1rem;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #ffe0e0; }
+
+/* Live indicator button in Scout Selector header */
+.btn-io--live {
+  background: rgba(100,220,140,0.2);
+  border-color: rgba(100,220,140,0.5);
+}
+.btn-io--live:hover { background: rgba(100,220,140,0.32); }
+
+/* Locked scout card */
+.scout-card--locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--conflict-bg) !important;
+}
+.scout-card--locked:hover { transform: none !important; box-shadow: none !important; }
+
+.locked-badge {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--nearly-bg);
+  color: var(--nearly-accent);
+  border: 1px solid var(--nearly-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+/* Setup instructions */
+.connect-setup {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.connect-setup-toggle {
+  width: 100%;
+  text-align: left;
+  background: var(--surface-2);
+  border: none;
+  padding: 0.9rem 1.25rem;
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.connect-setup-toggle:hover { background: var(--border); }
+
+.connect-setup-body {
+  padding: 1.25rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-top: 1.5px solid var(--border);
+}
+
+.connect-setup-intro {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.connect-steps {
+  padding-left: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.connect-steps kbd {
+  font-family: monospace;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 0.8em;
+}
+
+.connect-code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--green-dark);
+  color: rgba(255,255,255,0.75);
+  padding: 0.5rem 0.85rem;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.btn-copy {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: background 0.15s;
+}
+.btn-copy:hover { background: rgba(255,255,255,0.25); }
+
+.connect-code {
+  background: #1a1e14;
+  color: #c8d8b0;
+  font-family: 'Consolas', 'Fira Code', 'Courier New', monospace;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  padding: 1rem 1rem 1.25rem;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* ============================================================
+   SYNC OVERLAY — loading indicator for Sheets operations
+   ============================================================ */
+
+.sync-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 12, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.sync-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-lg);
+  min-width: 220px;
+}
+
+.sync-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green-mid);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.sync-msg {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  text-align: center;
+}

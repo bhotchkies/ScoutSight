@@ -20,7 +20,11 @@ function shortRank(fullName) {
     .replace('Eagle Scout', 'Eagle')
 }
 
-export default function ScoutSelector({ scouts, campConfig, doneScouts, selections, onSelectScout, onPrint, onDownloadJSON, onDownloadCSV, onUpload }) {
+export default function ScoutSelector({
+  scouts, campConfig, doneScouts, selections,
+  locks, deviceId, connected,
+  onSelectScout, onPrint, onDownloadJSON, onDownloadCSV, onUpload, onOpenSync
+}) {
   const fileInputRef = useRef(null)
 
   const anySelections = Object.values(selections).some(
@@ -47,6 +51,13 @@ export default function ScoutSelector({ scouts, campConfig, doneScouts, selectio
           </div>
         </div>
         <div className="header-actions">
+          <button
+            className={`btn btn-io ${connected ? 'btn-io--live' : ''}`}
+            onClick={onOpenSync}
+            title={connected ? 'Live sync active — click to manage' : 'Connect to Google Sheet for multi-device sync'}
+          >
+            {connected ? '● Live' : '⟲ Sync'}
+          </button>
           <button className="btn btn-io" onClick={onDownloadCSV}>↓ CSV</button>
           <button className="btn btn-io" onClick={onDownloadJSON}>↓ JSON</button>
           <button className="btn btn-io btn-io--upload" onClick={() => fileInputRef.current.click()}>
@@ -80,18 +91,21 @@ export default function ScoutSelector({ scouts, campConfig, doneScouts, selectio
             <h2 className="patrol-name">{patrol}</h2>
             <div className="scout-grid">
               {members.map(({ scout, idx }) => {
-                const done = doneScouts.has(scout.memberId)
-                const sel = selections[scout.memberId]
+                const done   = doneScouts.has(scout.memberId)
+                const locked = locks?.[scout.memberId] && locks[scout.memberId] !== deviceId
+                const sel    = selections[scout.memberId]
                 const morningCount = sel?.morning.length ?? 0
-                const ftCount = sel?.freeTime.length ?? 0
+                const ftCount      = sel?.freeTime.length ?? 0
                 const totalSelections = morningCount + ftCount
                 return (
                   <button
                     key={scout.memberId}
-                    className={`scout-card ${done ? 'scout-card--done' : ''}`}
-                    onClick={() => onSelectScout(idx)}
+                    className={`scout-card ${done ? 'scout-card--done' : ''} ${locked ? 'scout-card--locked' : ''}`}
+                    onClick={() => !locked && onSelectScout(idx)}
+                    disabled={locked}
                   >
-                    {done && <span className="done-check">✓</span>}
+                    {done   && <span className="done-check">✓</span>}
+                    {locked && <span className="locked-badge">In use</span>}
                     <span className="scout-card-name">{scout.name}</span>
                     <span className="scout-card-rank">{shortRank(currentRank(scout))}</span>
                     {totalSelections > 0 && (
