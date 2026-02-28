@@ -18,13 +18,19 @@ import java.util.List;
  */
 public class HtmlGenerator {
 
+    /** CLI entry point — resolves output relative to the current working directory. */
     public static void generate(List<Scout> scouts, Path csvPath, String campName) throws IOException {
+        generate(scouts, csvPath, campName, Path.of("."));
+    }
+
+    /** Full entry point — {@code outputBase} is the root under which {@code output/<stem>/} is created. */
+    public static void generate(List<Scout> scouts, Path csvPath, String campName, Path outputBase) throws IOException {
         String filename = csvPath.getFileName().toString();
         String stem = filename.endsWith(".csv")
                 ? filename.substring(0, filename.length() - 4)
                 : filename;
 
-        Path outputDir = Path.of("output", stem);
+        Path outputDir = outputBase.resolve(Path.of("output", stem));
         Files.createDirectories(outputDir);
         ResourceIO.copyDirectory(Path.of("templates", "images"), outputDir.resolve("images"));
 

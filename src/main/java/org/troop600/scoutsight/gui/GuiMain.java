@@ -702,47 +702,23 @@ public class GuiMain extends JFrame {
     }
 
     private void runCli(String workDir, String advCsv, String scoutsCsv,
-                        String campStem, String rosterCsv) {
-        String javaExe = Path.of(System.getProperty("java.home"), "bin",
-                isWindows() ? "java.exe" : "java").toString();
-        String classpath = System.getProperty("java.class.path");
+                        String campStem, String rosterCsv) throws Exception {
 
-        List<String> cmd = List.of(
-                javaExe, "-cp", classpath,
-                "org.troop600.scoutsight.cli.Main",
-                advCsv, scoutsCsv, campStem, rosterCsv);
-
-        String filename = Path.of(advCsv).getFileName().toString();
-        String stem     = filename.endsWith(".csv") ? filename.substring(0, filename.length() - 4) : filename;
-        try {
-            Files.createDirectories(Path.of(workDir, "output", stem));
-        } catch (IOException e) {
-            appendLog("ERROR: Could not create output directory: " + e.getMessage() + "\n");
-            return;
-        }
+        PrintStream logStream = new PrintStream(new OutputStream() {
+            @Override public void write(int b) {
+                write(new byte[]{(byte) b}, 0, 1);
+            }
+            @Override public void write(byte[] b, int off, int len) {
+                String s = new String(b, off, len);
+                SwingUtilities.invokeLater(() -> logArea.append(s));
+            }
+        }, /*autoFlush=*/true);
 
         appendLog("Running in: " + workDir + "\n\n");
 
-        ProcessBuilder pb = new ProcessBuilder(cmd);
-        pb.directory(new File(workDir));
-        pb.redirectErrorStream(true);
-
-        try {
-            Process proc = pb.start();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(proc.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String text = line + "\n";
-                    SwingUtilities.invokeLater(() -> logArea.append(text));
-                }
-            }
-            int exit = proc.waitFor();
-            if (exit != 0) appendLog("\nProcess exited with code " + exit + "\n");
-            else           appendLog("\nDone.\n");
-        } catch (IOException | InterruptedException e) {
-            appendLog("\nERROR: " + e.getMessage() + "\n");
-        }
+        String[] args = { advCsv, scoutsCsv, campStem, rosterCsv };
+        org.troop600.scoutsight.cli.Main.run(args, Path.of(workDir), logStream);
+        appendLog("\nDone.\n");
     }
 
     // ── View reports ─────────────────────────────────────────────────────────

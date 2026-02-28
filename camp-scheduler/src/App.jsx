@@ -85,10 +85,10 @@ export default function App() {
       }
       setSyncMsg(null)
       editingMemberIdRef.current = scout.memberId
-      // Ping every 20 s to keep the lock alive (lock expires at 60 s server-side)
+      // Ping every 5 s to keep the lock alive (lock expires at 60 s server-side)
       pingRef.current = setInterval(() => {
         sheetsPing(sheetsUrl, scout.memberId, deviceId).catch(() => {})
-      }, 20000)
+      }, 5000)
     }
     setCurrentScoutIdx(idx)
     setScreen('pick')

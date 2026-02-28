@@ -14,7 +14,7 @@
  *   ping         — refresh lock timestamp (keepalive while editing)
  *
  * Lock expiry: locks older than 60 s auto-expire server-side (dead-tab protection).
- * Ping interval in App.jsx: every 20 s while editing.
+ * Ping interval in App.jsx: every 5 s while editing.
  */
 
 const TIMEOUT_MS = 15000

@@ -9,6 +9,7 @@ import org.troop600.scoutsight.parser.ScoutRosterEntry;
 import org.troop600.scoutsight.parser.ScoutRosterParser;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -18,6 +19,10 @@ import java.util.Map;
 public class Main {
 
     public static void main(String[] args) throws IOException {
+        run(args, Path.of(System.getProperty("user.dir")), System.out);
+    }
+
+    public static void run(String[] args, Path workDir, PrintStream log) throws IOException {
         Path csv;
         if (args.length > 0) {
             csv = Path.of(args[0]);
@@ -29,12 +34,12 @@ public class Main {
         String campName       = (args.length > 2 && !args[2].isEmpty()) ? args[2] : null;
         Path rosterReportCsv  = (args.length > 3 && !args[3].isEmpty()) ? Path.of(args[3]) : null;
 
-        System.out.println("Parsing: " + csv);
+        log.println("Parsing: " + csv);
         List<Scout> scouts = new AdvancementParser().parse(csv);
-        System.out.printf("Loaded %d scouts%n%n", scouts.size());
+        log.printf("Loaded %d scouts%n%n", scouts.size());
 
         if (rosterCsv != null) {
-            System.out.println("Parsing roster: " + rosterCsv);
+            log.println("Parsing roster: " + rosterCsv);
             Map<String, ScoutRosterEntry> roster = new ScoutRosterParser().parse(rosterCsv);
             int joined = 0;
             for (Scout s : scouts) {
@@ -46,11 +51,11 @@ public class Main {
                     joined++;
                 }
             }
-            System.out.printf("Joined roster data for %d/%d scouts%n%n", joined, scouts.size());
+            log.printf("Joined roster data for %d/%d scouts%n%n", joined, scouts.size());
         }
 
         if (rosterReportCsv != null) {
-            System.out.println("Parsing roster report: " + rosterReportCsv);
+            log.println("Parsing roster report: " + rosterReportCsv);
             Map<String, RosterReportEntry> report = new RosterReportParser().parse(rosterReportCsv);
             int joined = 0;
             for (Scout s : scouts) {
@@ -66,18 +71,18 @@ public class Main {
                     joined++;
                 }
             }
-            System.out.printf("Joined roster report data for %d/%d scouts%n%n", joined, scouts.size());
+            log.printf("Joined roster report data for %d/%d scouts%n%n", joined, scouts.size());
         }
 
         for (Scout s : scouts) {
-            System.out.printf("  %-30s  ranks: %2d  merit badges: %3d  awards: %3d%n",
+            log.printf("  %-30s  ranks: %2d  merit badges: %3d  awards: %3d%n",
                 s.displayName(),
                 s.ranks.size(),
                 s.meritBadges.size(),
                 s.awards.size());
         }
 
-        HtmlGenerator.generate(scouts, csv, campName);
+        HtmlGenerator.generate(scouts, csv, campName, workDir);
     }
 
     private static Path findLatestCsv(Path dir) throws IOException {

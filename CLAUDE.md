@@ -210,6 +210,19 @@ URL-encoded params to avoid this. Do not convert them to POST.
 gives per-tab stability. `localStorage` would be shared across tabs on the same machine, breaking
 the lock system.
 
+## GUI–CLI Integration
+
+The GUI calls CLI logic **in-process** — do not use `ProcessBuilder` to spawn a subprocess.
+`jpackage --type app-image` uses jlink, which strips `java.exe` from the bundled JRE.
+A subprocess looking for `java.exe` in `runtime/bin/` will fail silently in distributed builds.
+
+**Public API surface:**
+- `cli.Main.run(String[] args, Path workDir, PrintStream log)` — all CLI logic; `main()` delegates here with `System.getProperty("user.dir")` and `System.out`.
+- `HtmlGenerator.generate(scouts, csvPath, campName)` — CLI overload; resolves output relative to CWD (`Path.of(".")`).
+- `HtmlGenerator.generate(scouts, csvPath, campName, Path outputBase)` — GUI overload; writes to `outputBase/output/<stem>/`.
+
+**GuiMain worker pattern:** generation runs on a daemon `Thread`; log streaming uses a `PrintStream` wrapping an anonymous `OutputStream` that forwards bytes to `logArea` via `SwingUtilities.invokeLater()`.
+
 ## Maven Dependencies
 
 - `org.thymeleaf:thymeleaf:3.1.3.RELEASE` — HTML report generation
