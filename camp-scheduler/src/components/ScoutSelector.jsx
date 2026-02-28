@@ -80,7 +80,12 @@ export default function ScoutSelector({
           </button>
           <button className="btn btn-io" onClick={onDownloadCSV}>↓ CSV</button>
           <button className="btn btn-io" onClick={onDownloadJSON}>↓ JSON</button>
-          <button className="btn btn-io btn-io--upload" onClick={() => fileInputRef.current.click()}>
+          <button
+            className="btn btn-io btn-io--upload"
+            onClick={() => fileInputRef.current.click()}
+            disabled={connected}
+            title={connected ? 'Disconnect from Live Sync before uploading' : 'Upload a saved JSON or CSV file'}
+          >
             ↑ Upload
           </button>
           <input
