@@ -62,6 +62,21 @@ export default function App() {
       .finally(() => setSyncMsg(null))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Release lock immediately if the user closes the tab or navigates away while editing.
+  // keepalive: true lets the request survive page unload; GET avoids the Apps Script POST-redirect issue.
+  useEffect(() => {
+    if (!sheetsUrl || screen !== 'pick') return
+    function handlePageHide() {
+      const memberId = editingMemberIdRef.current
+      if (!memberId) return
+      clearInterval(pingRef.current)
+      const qs = new URLSearchParams({ action: 'dropLock', scoutId: memberId, deviceId, t: Date.now() }).toString()
+      fetch(`${sheetsUrl}?${qs}`, { keepalive: true }).catch(() => {})
+    }
+    window.addEventListener('pagehide', handlePageHide)
+    return () => window.removeEventListener('pagehide', handlePageHide)
+  }, [sheetsUrl, screen, deviceId])
+
   // Poll for updates when connected and on the select screen.
   // Stops polling on 'pick' to avoid overwriting in-progress edits.
   // Polls immediately on entering 'select' so released locks clear right away,

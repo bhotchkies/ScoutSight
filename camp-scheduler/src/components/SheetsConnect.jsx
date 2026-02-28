@@ -6,7 +6,7 @@ import { sheetsConnect } from '../utils/sheetsIO'
 // deploy as a Web App (Execute as: Me, Access: Anyone), and share the URL.
 
 const APPS_SCRIPT = `// Camp Scheduler — Google Apps Script Backend
-// Version 1.1
+// Version 1.2
 //
 // SETUP:
 // 1. In your Google Sheet go to Extensions → Apps Script
@@ -76,7 +76,7 @@ function handleAcquireLock(scoutId, deviceId) {
     const now  = Date.now();
     const ts   = new Date().toISOString();
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] !== scoutId) continue;
+      if (String(rows[i][0]) !== scoutId) continue;
       const age = now - new Date(rows[i][2]).getTime();
       if (age < LOCK_EXPIRY_MS && rows[i][1] !== deviceId) {
         return { ok: false, lockedBy: rows[i][1] };
@@ -100,7 +100,7 @@ function handleReleaseLock(scoutId, deviceId, selectionsJson) {
     const rows     = selSheet.getDataRange().getValues();
     let found      = false;
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === scoutId) {
+      if (String(rows[i][0]) === scoutId) {
         selSheet.getRange(i + 1, 1, 1, 2).setValues([[scoutId, selectionsJson]]);
         found = true;
         break;
@@ -123,7 +123,7 @@ function handlePing(scoutId, deviceId) {
   );
   const rows = lockSheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][0] === scoutId && rows[i][1] === deviceId) {
+    if (String(rows[i][0]) === scoutId && rows[i][1] === deviceId) {
       lockSheet.getRange(i + 1, 3).setValue(new Date().toISOString());
       return { ok: true };
     }
@@ -135,7 +135,7 @@ function removeLockRow(ss, scoutId, deviceId) {
   const lockSheet = getOrCreate(ss, LOCKS_SHEET, ['ScoutId', 'DeviceId', 'LockedAt']);
   const rows      = lockSheet.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][0] === scoutId && rows[i][1] === deviceId) {
+    if (String(rows[i][0]) === scoutId && rows[i][1] === deviceId) {
       lockSheet.deleteRow(i + 1);
       return;
     }
