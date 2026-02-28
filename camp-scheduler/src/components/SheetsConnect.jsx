@@ -6,7 +6,7 @@ import { sheetsConnect } from '../utils/sheetsIO'
 // deploy as a Web App (Execute as: Me, Access: Anyone), and share the URL.
 
 const APPS_SCRIPT = `// Camp Scheduler — Google Apps Script Backend
-// Version 1.0
+// Version 1.1
 //
 // SETUP:
 // 1. In your Google Sheet go to Extensions → Apps Script
@@ -82,9 +82,11 @@ function handleAcquireLock(scoutId, deviceId) {
         return { ok: false, lockedBy: rows[i][1] };
       }
       lockSheet.getRange(i + 1, 1, 1, 3).setValues([[scoutId, deviceId, ts]]);
+      SpreadsheetApp.flush(); // commit before releasing LockService lock
       return { ok: true };
     }
     lockSheet.appendRow([scoutId, deviceId, ts]);
+    SpreadsheetApp.flush(); // commit before releasing LockService lock
     return { ok: true };
   } finally {
     gl.releaseLock();

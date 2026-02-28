@@ -46,8 +46,8 @@
   --shadow: 0 3px 12px rgba(0,0,0,0.09);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
 
-  --font-heading: 'Barlow Condensed', 'Gill Sans', Optima, sans-serif;
-  --font-body: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-heading: 'Oswald', 'Gill Sans', Optima, sans-serif;
+  --font-body: 'Nunito', 'Segoe UI', Arial, sans-serif;
 }
 
 /* ── Reset & Base ─────────────────────────────────────────── */
@@ -148,6 +148,25 @@ button:disabled { cursor: not-allowed; }
   background: rgba(255,180,40,0.12);
 }
 .btn-io--upload:hover { background: rgba(255,180,40,0.22); }
+
+.btn-back-to-reports {
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.4rem 0.75rem;
+  border: 1.5px solid rgba(255,255,255,0.2);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.btn-back-to-reports:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  text-decoration: none;
+}
 
 .select-body {
   max-width: 1100px;

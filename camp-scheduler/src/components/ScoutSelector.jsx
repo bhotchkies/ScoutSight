@@ -31,6 +31,18 @@ export default function ScoutSelector({
     s => s.morning.length > 0 || s.freeTime.length > 0
   )
 
+  function handleBackToReports(e) {
+    if (!connected && anySelections) {
+      const ok = window.confirm(
+        'You have unsaved selections.\n\n' +
+        'In offline mode, selections are stored in this browser tab only. ' +
+        'Download a JSON backup before leaving or your data will be lost.\n\n' +
+        'Leave anyway?'
+      )
+      if (!ok) e.preventDefault()
+    }
+  }
+
   // Group scouts by patrol
   const patrols = {}
   scouts.forEach((scout, idx) => {
@@ -51,6 +63,14 @@ export default function ScoutSelector({
           </div>
         </div>
         <div className="header-actions">
+          <a
+            className="btn-back-to-reports"
+            href="index.html"
+            onClick={handleBackToReports}
+            title="Return to ScoutSight advancement reports"
+          >
+            ← Reports
+          </a>
           <button
             className={`btn btn-io ${connected ? 'btn-io--live' : ''}`}
             onClick={onOpenSync}

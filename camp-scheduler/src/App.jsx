@@ -7,6 +7,15 @@ import { toggleMorningSelection, toggleFreeTimeSelection } from './utils/schedul
 import { downloadJSON, downloadCSV, handleUploadFile } from './utils/scheduleIO'
 import { sheetsGetAll, sheetsAcquireLock, sheetsReleaseLock, sheetsDropLock, sheetsPing } from './utils/sheetsIO'
 
+/** Returns a Set of memberIds that have at least one morning or free-time selection. */
+function doneFromSelections(sels) {
+  return new Set(
+    Object.entries(sels)
+      .filter(([, s]) => (s?.morning?.length ?? 0) + (s?.freeTime?.length ?? 0) > 0)
+      .map(([id]) => id)
+  )
+}
+
 export default function App() {
   const { scouts, campSchedule, campConfig } = window.SCOUT_SIGHT_DATA
 
@@ -43,7 +52,7 @@ export default function App() {
     sheetsGetAll(sheetsUrl)
       .then(data => {
         setSelections(data.selections ?? {})
-        setDoneScouts(new Set(Object.keys(data.selections ?? {})))
+        setDoneScouts(doneFromSelections(data.selections ?? {}))
         setLocks(data.locks ?? {})
       })
       .catch(e => console.warn('Initial sheets load failed:', e.message))
@@ -58,7 +67,7 @@ export default function App() {
       try {
         const data = await sheetsGetAll(sheetsUrl)
         setSelections(data.selections ?? {})
-        setDoneScouts(new Set(Object.keys(data.selections ?? {})))
+        setDoneScouts(doneFromSelections(data.selections ?? {}))
         setLocks(data.locks ?? {})
       } catch (e) {
         console.warn('Sheets sync failed:', e.message)
@@ -74,6 +83,15 @@ export default function App() {
       try {
         const result = await sheetsAcquireLock(sheetsUrl, scout.memberId, deviceId)
         if (!result.ok) {
+          setSyncMsg(null)
+          alert(`${scout.name} is currently being edited by another device. Try again in a moment.`)
+          return
+        }
+        // Re-verify: read the sheet back to confirm our lock is actually there.
+        // If two devices both received ok:true, only the one whose deviceId is in
+        // the sheet should proceed — the other backs off here.
+        const verify = await sheetsGetAll(sheetsUrl)
+        if (verify.locks[scout.memberId] !== deviceId) {
           setSyncMsg(null)
           alert(`${scout.name} is currently being edited by another device. Try again in a moment.`)
           return
@@ -111,7 +129,14 @@ export default function App() {
       setSyncMsg(null)
       editingMemberIdRef.current = null
     }
-    setDoneScouts(prev => new Set([...prev, currentScout.memberId]))
+    setDoneScouts(prev => {
+      const sel = selections[currentScout.memberId]
+      const hasSelections = (sel?.morning?.length ?? 0) + (sel?.freeTime?.length ?? 0) > 0
+      const next = new Set(prev)
+      if (hasSelections) next.add(currentScout.memberId)
+      else next.delete(currentScout.memberId)
+      return next
+    })
     setScreen('select')
   }
 
@@ -155,14 +180,14 @@ export default function App() {
   function handleUpload(file) {
     handleUploadFile(file, campSchedule, scouts, newSels => {
       setSelections(newSels)
-      setDoneScouts(new Set(Object.keys(newSels)))
+      setDoneScouts(doneFromSelections(newSels))
     })
   }
 
   function handleSheetsConnect(url, initialData) {
     setSheetsUrl(url)
     setSelections(initialData.selections ?? {})
-    setDoneScouts(new Set(Object.keys(initialData.selections ?? {})))
+    setDoneScouts(doneFromSelections(initialData.selections ?? {}))
     setLocks(initialData.locks ?? {})
     setScreen('select')
   }
