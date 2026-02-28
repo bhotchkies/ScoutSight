@@ -64,19 +64,25 @@ export default function App() {
 
   // Poll for updates when connected and on the select screen.
   // Stops polling on 'pick' to avoid overwriting in-progress edits.
+  // Polls immediately on entering 'select' so released locks clear right away,
+  // then repeats every 4 s.
   useEffect(() => {
     if (!sheetsUrl || screen !== 'select') return
-    const id = setInterval(async () => {
+    let active = true
+    async function poll() {
       try {
         const data = await sheetsGetAll(sheetsUrl)
+        if (!active) return
         setSelections(data.selections ?? {})
         setDoneScouts(doneFromSelections(data.selections ?? {}))
         setLocks(data.locks ?? {})
       } catch (e) {
         console.warn('Sheets sync failed:', e.message)
       }
-    }, 4000)
-    return () => clearInterval(id)
+    }
+    poll()                          // immediate — clears stale locks on screen entry
+    const id = setInterval(poll, 4000)
+    return () => { active = false; clearInterval(id) }
   }, [sheetsUrl, screen])
 
   async function handleSelectScout(idx) {

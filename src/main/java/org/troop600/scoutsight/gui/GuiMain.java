@@ -756,6 +756,9 @@ public class GuiMain extends JFrame {
                        rosterField.getText().trim());
                 setStatus("Done", C_GREEN_MID);
             } catch (Exception e) {
+                java.io.StringWriter sw = new java.io.StringWriter();
+                e.printStackTrace(new java.io.PrintWriter(sw));
+                appendLog("\nError: " + e.getMessage() + "\n" + sw);
                 setStatus("Error — see log", C_RED);
             } finally {
                 SwingUtilities.invokeLater(() -> runButton.setEnabled(true));
