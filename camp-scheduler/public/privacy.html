@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Information — ScoutSight Camp Scheduler</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-dark:  #1b4332;
+      --green-mid:   #2d6a4f;
+      --bg:          #f0ece0;
+      --surface:     #ffffff;
+      --border:      #d0c8b0;
+      --text:        #1a1a14;
+      --text-muted:  #706a60;
+      --font-head:   'Barlow Condensed', 'Gill Sans', Optima, sans-serif;
+      --font-body:   'Source Serif 4', Georgia, 'Times New Roman', serif;
+      --radius:      10px;
+      --shadow:      0 3px 12px rgba(0,0,0,0.09);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.65;
+    }
+
+    header {
+      background: var(--green-dark);
+      color: #fff;
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .header-icon { font-size: 2rem; line-height: 1; }
+
+    header h1 {
+      font-family: var(--font-head);
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      opacity: 0.7;
+      margin-top: 2px;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 2.5rem auto;
+      padding: 0 1.5rem 5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--green-dark);
+      margin-bottom: 0.75rem;
+    }
+
+    .card p, .card li { font-size: 0.95rem; color: var(--text); }
+
+    .card ul {
+      padding-left: 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .card p + p { margin-top: 0.6rem; }
+
+    .tag {
+      display: inline-block;
+      font-family: var(--font-head);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    .tag--local  { background: #e4f7ee; color: #1b6b3a; border: 1px solid #7ecfa0; }
+    .tag--shared { background: #eef0f8; color: #4a5ab8; border: 1px solid #c5caee; }
+    .tag--none   { background: #f0efed; color: #706a60; border: 1px solid #d0c8b0; }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+
+    .summary-table th {
+      font-family: var(--font-head);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: left;
+      background: #f5f2e8;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 2px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .summary-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .summary-table tr:last-child td { border-bottom: none; }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    footer a { color: var(--green-mid); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-icon">&#9978;</div>
+  <div>
+    <h1>ScoutSight Camp Scheduler</h1>
+    <p>Privacy Information</p>
+  </div>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Summary</h2>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Where it goes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Scout names, patrol assignments, ages</td>
+          <td><span class="tag tag--local">Local only</span> Never leaves your device</td>
+        </tr>
+        <tr>
+          <td>Rank progress, merit badge completion</td>
+          <td><span class="tag tag--local">Local only</span> Never leaves your device</td>
+        </tr>
+        <tr>
+          <td>BSA Member ID</td>
+          <td><span class="tag tag--shared">Sheets sync</span> Sent to your troop's Google Sheet (optional)</td>
+        </tr>
+        <tr>
+          <td>Class schedule selections (badge/rank names, times)</td>
+          <td><span class="tag tag--shared">Sheets sync</span> Sent to your troop's Google Sheet (optional)</td>
+        </tr>
+        <tr>
+          <td>Any data sent to ScoutSight or third parties</td>
+          <td><span class="tag tag--none">None</span> This app has no connection to ScoutSight servers</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>What stays on your device</h2>
+    <p>
+      This page is a self-contained HTML file generated from your troop's BSA advancement
+      export. All scout information — including names, patrol assignments, ages, rank
+      progress, and merit badge completion records — is embedded directly in this file
+      and exists only in your browser while the page is open.
+    </p>
+    <p>
+      This data is never transmitted to any server, analytics service, or third party.
+      Closing the page or clearing your browser removes it entirely.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>What is sent to Google Sheets (optional)</h2>
+    <p>
+      Google Sheets sync is entirely optional. If you choose to use it, the scheduler
+      sends only:
+    </p>
+    <ul>
+      <li><strong>BSA Member ID</strong> — a numeric identifier assigned by BSA</li>
+      <li><strong>Class schedule selections</strong> — the badge or rank names and session
+        times each scout has chosen</li>
+    </ul>
+    <p>
+      Scout names, patrol assignments, ages, and all other personal details are
+      <strong>never included</strong> in data sent to Google Sheets.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Who controls the data</h2>
+    <p>
+      When sync is enabled, your troop admin creates and owns the Google Sheet. Only
+      people the admin shares the Apps Script URL with can connect to that sheet.
+      Google's standard data handling terms apply to data stored in your troop's Sheet.
+    </p>
+    <p>
+      ScoutSight does not operate any servers, does not receive sync data, and has no
+      access to your troop's Google Sheet.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Using the app offline</h2>
+    <p>
+      Choosing <em>Use Offline</em> on the sync screen means no data is sent anywhere
+      at all. All schedule selections remain in your browser only until you download
+      them as a CSV or JSON file.
+    </p>
+    <p>
+      Downloaded CSV and JSON files contain BSA Member IDs and class selections only —
+      the same information that would be sent to Google Sheets.
+    </p>
+  </div>
+
+</main>
+
+<footer>
+  <a href="../camp_scheduler.html">&#8592; Back to Camp Scheduler</a>
+</footer>
+
+</body>
+</html>

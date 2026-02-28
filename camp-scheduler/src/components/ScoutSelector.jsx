@@ -78,6 +78,15 @@ export default function ScoutSelector({
           >
             Print Summary
           </button>
+          <a
+            className="btn-privacy-link"
+            href="camp_scheduler/privacy.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Privacy information — what data is shared"
+          >
+            Privacy
+          </a>
         </div>
       </header>
 

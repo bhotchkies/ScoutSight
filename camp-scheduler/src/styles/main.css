@@ -1380,6 +1380,57 @@ button:disabled { cursor: not-allowed; }
   margin: 0;
 }
 
+/* Privacy link in Scout Selector header */
+.btn-privacy-link {
+  color: rgba(255,255,255,0.5);
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  padding: 0.3rem 0.5rem;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+.btn-privacy-link:hover { color: rgba(255,255,255,0.9); }
+
+/* Privacy expandable section in SheetsConnect */
+.privacy-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  font-size: 0.88rem;
+}
+.privacy-dl dt {
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-top: 0.15rem;
+}
+.privacy-dl dd {
+  color: var(--text);
+  line-height: 1.55;
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.privacy-dl dd:last-child { border-bottom: none; }
+
+.privacy-full-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green-mid);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+.privacy-full-link:hover { text-decoration: underline; }
+
 /* ============================================================
    SYNC OVERLAY — loading indicator for Sheets operations
    ============================================================ */

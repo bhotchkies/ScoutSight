@@ -158,7 +158,8 @@ export default function SheetsConnect({ sheetsUrl, onConnect, onDisconnect, onBa
   const [url, setUrl]           = useState(sheetsUrl ?? '')
   const [status, setStatus]     = useState('idle') // 'idle' | 'connecting' | 'error'
   const [errorMsg, setErrorMsg] = useState('')
-  const [showSetup, setShowSetup] = useState(false)
+  const [showSetup, setShowSetup]     = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [copied, setCopied]     = useState(false)
 
   const connected = !!sheetsUrl
@@ -293,6 +294,56 @@ export default function SheetsConnect({ sheetsUrl, onConnect, onDisconnect, onBa
             </div>
           )}
         </div>
+        <div className="connect-setup">
+          <button
+            className="connect-setup-toggle"
+            onClick={() => setShowPrivacy(s => !s)}
+          >
+            {showPrivacy ? '▾' : '▸'} Privacy — what data is shared
+          </button>
+
+          {showPrivacy && (
+            <div className="connect-setup-body">
+              <dl className="privacy-dl">
+                <dt>What stays on your device</dt>
+                <dd>
+                  Scout names, patrol assignments, ages, rank progress, and merit badge
+                  completion records are loaded from your BSA advancement export and kept
+                  in your browser only. They are never transmitted anywhere.
+                </dd>
+
+                <dt>What is sent to Google Sheets</dt>
+                <dd>
+                  When sync is enabled, only the <strong>BSA Member ID</strong> and each
+                  scout's <strong>class schedule selections</strong> (badge/rank names and
+                  session times) are sent. No names or personal details are included.
+                </dd>
+
+                <dt>Who controls the data</dt>
+                <dd>
+                  Your troop admin creates and owns the Google Sheet. Only people the admin
+                  shares the Apps Script URL with can access it. ScoutSight has no
+                  connection to your troop's sheet and receives no data.
+                </dd>
+
+                <dt>Offline mode</dt>
+                <dd>
+                  Choosing <em>Use Offline</em> means nothing is sent anywhere. Downloaded
+                  CSV/JSON files contain BSA Member IDs and class selections only.
+                </dd>
+              </dl>
+              <a
+                className="privacy-full-link"
+                href="camp_scheduler/privacy.html"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                → Full privacy policy
+              </a>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )

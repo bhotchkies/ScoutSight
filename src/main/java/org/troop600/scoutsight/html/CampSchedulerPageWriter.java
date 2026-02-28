@@ -30,7 +30,8 @@ import java.util.stream.Collectors;
  */
 class CampSchedulerPageWriter {
 
-    private static final Path BUNDLE_PATH = Path.of("static", "camp_scheduler", "main.js");
+    private static final Path BUNDLE_PATH  = Path.of("static", "camp_scheduler", "main.js");
+    private static final Path PRIVACY_PATH = Path.of("static", "camp_scheduler", "privacy.html");
 
     /**
      * Generates the camp scheduler page.
@@ -58,10 +59,13 @@ class CampSchedulerPageWriter {
 
         Files.writeString(outputDir.resolve("camp_scheduler.html"), html);
 
-        // Copy the React bundle alongside the HTML.
+        // Copy static assets alongside the HTML.
         Path assetDir = outputDir.resolve("camp_scheduler");
         Files.createDirectories(assetDir);
         Files.writeString(assetDir.resolve("main.js"), ResourceIO.readString(BUNDLE_PATH));
+        if (ResourceIO.exists(PRIVACY_PATH)) {
+            Files.writeString(assetDir.resolve("privacy.html"), ResourceIO.readString(PRIVACY_PATH));
+        }
     }
 
     // -------------------------------------------------------------------------
