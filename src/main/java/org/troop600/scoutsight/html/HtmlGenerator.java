@@ -18,6 +18,14 @@ import java.util.List;
  */
 public class HtmlGenerator {
 
+    /** Apps Script Web App URL pre-seeded by the GUI for distribution packages. */
+    private static String sheetsUrl = null;
+
+    /** Sets the Apps Script URL to embed in {@code camp_scheduler.html}. Call before {@link #generate}. */
+    public static void setSheetsUrl(String url) {
+        sheetsUrl = (url != null && !url.isBlank()) ? url.trim() : null;
+    }
+
     /** CLI entry point — resolves output relative to the current working directory. */
     public static void generate(List<Scout> scouts, Path csvPath, String campName) throws IOException {
         generate(scouts, csvPath, campName, Path.of("."));
@@ -75,7 +83,7 @@ public class HtmlGenerator {
                     .toList();
             if (ResourceIO.exists(schedulePath)) {
                 CampSchedulerPageWriter.write(scouts, primaryCamp, schedulePath, outputDir,
-                        eagleBadgeNames, rankDefsOrdered, mbDefs);
+                        eagleBadgeNames, rankDefsOrdered, mbDefs, sheetsUrl);
                 System.out.println("Camp scheduler written to: output/" + stem + "/camp_scheduler.html");
             }
         }

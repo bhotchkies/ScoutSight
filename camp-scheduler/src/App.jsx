@@ -27,6 +27,9 @@ export default function App() {
 
   // Google Sheets sync state
   const [sheetsUrl, setSheetsUrl]       = useState(() => {
+    // Pre-seeded URL from a distribution package takes priority over localStorage
+    const seeded = window.SCOUT_SIGHT_DATA?.sheetsUrl
+    if (seeded) return seeded
     const s = localStorage.getItem('sheetsUrl')
     return (s && s !== 'offline') ? s : null
   })

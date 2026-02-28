@@ -68,6 +68,7 @@ public class GuiMain extends JFrame {
     private static final String      PREF_SCOUTS    = "scoutsCsv";
     private static final String      PREF_ROSTER    = "rosterReportCsv";
     private static final String      PREF_CAMP      = "camp";
+    private static final String      PREF_SHEETS_URL = "sheetsUrl";
 
     // ── Component references ─────────────────────────────────────────────────
     private final JTextField          workDirField;
@@ -75,9 +76,11 @@ public class GuiMain extends JFrame {
     private final JTextField          scoutsField;
     private final JTextField          rosterField;
     private final JComboBox<CampEntry> campCombo;
+    private final JTextField          sheetsUrlField;
     private final JTextArea           logArea;
     private final JButton             runButton;
     private final JButton             viewButton;
+    private final JButton             packageButton;
     private final JLabel              statusLabel;
 
     // ── Entry point ──────────────────────────────────────────────────────────
@@ -135,6 +138,11 @@ public class GuiMain extends JFrame {
             PREFS.put(PREF_CAMP, sel != null ? sel.stem() : "");
         });
 
+        // Apps Script URL field — persisted in preferences, embedded in generated scheduler HTML
+        sheetsUrlField = styledField(PREFS.get(PREF_SHEETS_URL, ""));
+        sheetsUrlField.getDocument().addDocumentListener(docListener(() ->
+                PREFS.put(PREF_SHEETS_URL, sheetsUrlField.getText().trim())));
+
         workDirField.addActionListener(e -> onWorkDirChanged());
         workDirField.addFocusListener(new FocusAdapter() {
             @Override public void focusLost(FocusEvent e) { onWorkDirChanged(); }
@@ -160,7 +168,17 @@ public class GuiMain extends JFrame {
         styleSecondaryButton(viewButton);
         viewButton.addActionListener(e -> viewReports());
         updateViewButton();
-        advancementField.getDocument().addDocumentListener(docListener(this::updateViewButton));
+
+        packageButton = new JButton("Package…");
+        styleSecondaryButton(packageButton);
+        packageButton.addActionListener(e -> packageForDistribution());
+        packageButton.setEnabled(false);
+        updatePackageButton();
+
+        advancementField.getDocument().addDocumentListener(docListener(() -> {
+            updateViewButton();
+            updatePackageButton();
+        }));
 
         // Status label
         statusLabel = new JLabel("Ready");
@@ -311,6 +329,9 @@ public class GuiMain extends JFrame {
         // Camp row
         r = addCampRow(card, r);
 
+        // Apps Script URL row
+        r = addSheetsUrlRow(card, r);
+
         // Action bar (inside card, at bottom)
         GridBagConstraints abc = gbc(0, r, 3, 1);
         abc.fill = GridBagConstraints.HORIZONTAL;
@@ -397,6 +418,49 @@ public class GuiMain extends JFrame {
         return row + 1;
     }
 
+    /** Adds the Apps Script URL row (text field only, no browse button) and returns next row index. */
+    private int addSheetsUrlRow(JPanel card, int row) {
+        JLabel label = new JLabel("<html><b>Apps Script URL</b></html>");
+        label.setFont(FONT_LABEL);
+        label.setForeground(C_TEXT);
+
+        JPanel labelPanel = new JPanel();
+        labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.LINE_AXIS));
+        labelPanel.setOpaque(false);
+        labelPanel.add(label);
+        labelPanel.add(Box.createHorizontalStrut(4));
+        labelPanel.add(infoButton(
+                "<html><body>" +
+                "<p><b>Apps Script URL</b></p>" +
+                "<p>Optional. If the camp scheduler's Google Sheets live-sync is set up, " +
+                "paste the Web App URL here. It will be embedded in the generated reports " +
+                "so anyone who opens camp_scheduler.html is automatically connected — " +
+                "no manual URL entry required.</p>" +
+                "<p>Leave blank if you are not using Google Sheets sync.</p>" +
+                "</body></html>", 90));
+
+        GridBagConstraints lc = gbc(0, row, 1, 1);
+        lc.anchor = GridBagConstraints.LINE_END;
+        lc.insets = new Insets(6, 0, 2, 6);
+        card.add(labelPanel, lc);
+
+        JPanel fieldStack = new JPanel(new BorderLayout(0, 2));
+        fieldStack.setOpaque(false);
+        fieldStack.add(sheetsUrlField, BorderLayout.CENTER);
+        JLabel hintLbl = new JLabel("Optional · Pre-connects camp scheduler for report recipients");
+        hintLbl.setFont(FONT_HINT);
+        hintLbl.setForeground(C_MUTED);
+        fieldStack.add(hintLbl, BorderLayout.SOUTH);
+
+        GridBagConstraints fc = gbc(1, row, 2, 1);  // colspan=2 — no browse button
+        fc.fill = GridBagConstraints.HORIZONTAL;
+        fc.weightx = 1.0;
+        fc.insets = new Insets(4, 0, 2, 0);
+        card.add(fieldStack, fc);
+
+        return row + 1;
+    }
+
     // ── Action bar ───────────────────────────────────────────────────────────
 
     private JPanel buildActionBar() {
@@ -410,6 +474,7 @@ public class GuiMain extends JFrame {
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         right.setOpaque(false);
         right.add(viewButton);
+        right.add(packageButton);
         right.add(runButton);
 
         bar.add(left,  BorderLayout.WEST);
@@ -695,6 +760,7 @@ public class GuiMain extends JFrame {
             } finally {
                 SwingUtilities.invokeLater(() -> runButton.setEnabled(true));
                 updateViewButton();
+                updatePackageButton();
             }
         }, "report-generator");
         worker.setDaemon(true);
@@ -716,6 +782,9 @@ public class GuiMain extends JFrame {
 
         appendLog("Running in: " + workDir + "\n\n");
 
+        // Inject Apps Script URL so camp_scheduler.html is pre-connected for recipients
+        org.troop600.scoutsight.html.HtmlGenerator.setSheetsUrl(sheetsUrlField.getText().trim());
+
         String[] args = { advCsv, scoutsCsv, campStem, rosterCsv };
         org.troop600.scoutsight.cli.Main.run(args, Path.of(workDir), logStream);
         appendLog("\nDone.\n");
@@ -728,13 +797,25 @@ public class GuiMain extends JFrame {
         SwingUtilities.invokeLater(() -> viewButton.setEnabled(exists));
     }
 
-    private Path resolveIndexHtml() {
+    private void updatePackageButton() {
+        boolean exists = resolveOutputDir() != null;
+        SwingUtilities.invokeLater(() -> packageButton.setEnabled(exists));
+    }
+
+    private Path resolveOutputDir() {
         String workDir = workDirField.getText().trim();
         String advCsv  = advancementField.getText().trim();
         if (workDir.isBlank() || advCsv.isBlank()) return null;
         String filename = Path.of(advCsv).getFileName().toString();
         String stem     = filename.endsWith(".csv") ? filename.substring(0, filename.length() - 4) : filename;
-        Path   index    = Path.of(workDir, "output", stem, "index.html");
+        Path   dir      = Path.of(workDir, "output", stem);
+        return Files.isDirectory(dir) ? dir : null;
+    }
+
+    private Path resolveIndexHtml() {
+        Path dir = resolveOutputDir();
+        if (dir == null) return null;
+        Path index = dir.resolve("index.html");
         return Files.exists(index) ? index : null;
     }
 
@@ -752,6 +833,103 @@ public class GuiMain extends JFrame {
                     "Could not open browser:\n" + e.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    // ── Package for distribution ─────────────────────────────────────────────
+
+    private void packageForDistribution() {
+        Path outputDir = resolveOutputDir();
+        if (outputDir == null) {
+            JOptionPane.showMessageDialog(this,
+                    "No reports found. Run Generate Reports first.",
+                    "Not Found", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Password dialog
+        JPasswordField pwField = new JPasswordField(20);
+        JPanel pwPanel = new JPanel(new BorderLayout(0, 6));
+        pwPanel.add(new JLabel("Password (leave blank for no encryption):"), BorderLayout.NORTH);
+        pwPanel.add(pwField, BorderLayout.CENTER);
+        int result = JOptionPane.showConfirmDialog(this, pwPanel,
+                "Package for Distribution", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) return;
+        char[] password = pwField.getPassword();
+
+        // Save As dialog — pre-populate with TroopName_Reporting.zip in working directory
+        String stem      = outputDir.getFileName().toString();
+        String troopName = extractTroopName(stem);
+        File suggested   = new File(workDirField.getText().trim(), troopName + "_Reporting.zip");
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Save Distribution Package");
+        chooser.setSelectedFile(suggested);
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("ZIP files", "zip"));
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+            Arrays.fill(password, '\0');
+            return;
+        }
+        File destFile = chooser.getSelectedFile();
+        if (!destFile.getName().toLowerCase().endsWith(".zip")) {
+            destFile = new File(destFile.getParent(), destFile.getName() + ".zip");
+        }
+
+        // Run zip on a background thread so the UI stays responsive
+        final File dest = destFile;
+        final char[] pw = password;
+        packageButton.setEnabled(false);
+        appendLog("Packaging to: " + dest.getAbsolutePath() + "\n");
+        new Thread(() -> {
+            try {
+                createZip(outputDir, dest, pw);
+                appendLog("Package created: " + dest.getAbsolutePath() + "\n");
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(this,
+                                "Package saved:\n" + dest.getAbsolutePath(),
+                                "Package Created", JOptionPane.INFORMATION_MESSAGE));
+            } catch (Exception e) {
+                appendLog("ERROR packaging: " + e.getMessage() + "\n");
+            } finally {
+                Arrays.fill(pw, '\0');
+                updatePackageButton();
+            }
+        }, "packager").start();
+    }
+
+    /**
+     * Zips the <em>contents</em> of {@code sourceDir} (not the directory itself) into
+     * {@code destFile}.  When {@code password} is non-empty, AES-256 encryption is applied.
+     */
+    private static void createZip(Path sourceDir, File destFile, char[] password)
+            throws IOException {
+        net.lingala.zip4j.model.ZipParameters params =
+                new net.lingala.zip4j.model.ZipParameters();
+        if (password != null && password.length > 0) {
+            params.setEncryptFiles(true);
+            params.setEncryptionMethod(net.lingala.zip4j.model.enums.EncryptionMethod.AES);
+            params.setAesKeyStrength(net.lingala.zip4j.model.enums.AesKeyStrength.KEY_STRENGTH_256);
+        }
+        try (net.lingala.zip4j.ZipFile zip = (password != null && password.length > 0)
+                ? new net.lingala.zip4j.ZipFile(destFile, password)
+                : new net.lingala.zip4j.ZipFile(destFile)) {
+            File[] children = sourceDir.toFile().listFiles();
+            if (children != null) {
+                for (File f : children) {
+                    if (f.isDirectory()) zip.addFolder(f, params);
+                    else                 zip.addFile(f, params);
+                }
+            }
+        }
+    }
+
+    /**
+     * Strips {@code _Advancement_<digits>} from a CSV stem.
+     * Example: {@code Troop0600B_Advancement_20260224} → {@code Troop0600B}.
+     * Falls back to the full stem if the pattern does not match.
+     */
+    private static String extractTroopName(String stem) {
+        java.util.regex.Matcher m =
+                Pattern.compile("(.+?)_Advancement_\\d+", Pattern.CASE_INSENSITIVE).matcher(stem);
+        return m.matches() ? m.group(1) : stem;
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

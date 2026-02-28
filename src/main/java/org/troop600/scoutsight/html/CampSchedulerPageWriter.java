@@ -46,7 +46,8 @@ class CampSchedulerPageWriter {
                       Path scheduleJsonPath, Path outputDir,
                       List<String> eagleBadges,
                       LinkedHashMap<String, List<String[]>> rankDefs,
-                      Map<String, Map<String, String>> mbDefs) throws IOException {
+                      Map<String, Map<String, String>> mbDefs,
+                      String sheetsUrl) throws IOException {
         if (!ResourceIO.exists(BUNDLE_PATH)) {
             System.err.println("Warning: React bundle not found at " + BUNDLE_PATH
                     + ". Run `npm run build` in camp-scheduler/ to generate it.");
@@ -54,7 +55,7 @@ class CampSchedulerPageWriter {
         }
 
         String rawScheduleJson = ResourceIO.readString(scheduleJsonPath);
-        String dataJson = buildDataJson(scouts, campConfig, rawScheduleJson, eagleBadges, rankDefs, mbDefs);
+        String dataJson = buildDataJson(scouts, campConfig, rawScheduleJson, eagleBadges, rankDefs, mbDefs, sheetsUrl);
         String html = buildHtml(campConfig.campName, dataJson);
 
         Files.writeString(outputDir.resolve("camp_scheduler.html"), html);
@@ -102,9 +103,15 @@ class CampSchedulerPageWriter {
     private static String buildDataJson(List<Scout> scouts, CampConfig campConfig,
                                         String rawScheduleJson, List<String> eagleBadges,
                                         LinkedHashMap<String, List<String[]>> rankDefs,
-                                        Map<String, Map<String, String>> mbDefs) {
+                                        Map<String, Map<String, String>> mbDefs,
+                                        String sheetsUrl) {
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
+
+        // Optional Apps Script URL — pre-seeds the Sheets connection for distributed packages
+        if (sheetsUrl != null && !sheetsUrl.isBlank()) {
+            sb.append("  \"sheetsUrl\": \"").append(escapeJson(sheetsUrl)).append("\",\n");
+        }
 
         // eagleRequiredBadges array
         sb.append("  \"eagleRequiredBadges\": [");
