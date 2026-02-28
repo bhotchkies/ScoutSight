@@ -197,6 +197,19 @@ data embedded as `window.SCOUT_SIGHT_DATA` at Java report-generation time. No se
 **Dev mock data:** `camp-scheduler/src/dev/mockData.js` — used when `window.SCOUT_SIGHT_DATA`
 is undefined (i.e., when running via `npm run dev` against `index.html`).
 
+**Static assets in the build output:** `vite.config.js` has `emptyOutDir: true`, which wipes
+`src/main/resources/static/camp_scheduler/` before every build. Static files (e.g. `privacy.html`)
+must live in `camp-scheduler/public/` — Vite copies `public/` into outDir AFTER the empty step,
+so they survive. Never write static files directly into the resources output dir.
+
+**Google Sheets Apps Script — GET only:** Apps Script web apps redirect POST requests in a way
+that browsers do not forward the request body through. All `sheetsIO.js` calls use GET with
+URL-encoded params to avoid this. Do not convert them to POST.
+
+**`deviceId` uses `sessionStorage`:** Each browser tab needs its own lock identity; `sessionStorage`
+gives per-tab stability. `localStorage` would be shared across tabs on the same machine, breaking
+the lock system.
+
 ## Maven Dependencies
 
 - `org.thymeleaf:thymeleaf:3.1.3.RELEASE` — HTML report generation
