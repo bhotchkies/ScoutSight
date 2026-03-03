@@ -114,7 +114,7 @@ class IndexPageWriter {
         return current;
     }
 
-    private static final String[] RANK_LABELS = {
+    static final String[] RANK_LABELS = {
         "Scout", "Tenderfoot", "2nd Class", "1st Class", "Star", "Life", "Eagle"
     };
 }

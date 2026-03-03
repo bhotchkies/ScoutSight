@@ -45,6 +45,7 @@ public class HtmlGenerator {
         boolean hasPatrolData = scouts.stream()
                 .anyMatch(s -> s.patrol != null && !s.patrol.isBlank());
         ThymeleafRenderer.setHasPatrolPage(hasPatrolData);
+        ThymeleafRenderer.setHasAdvancementPlansPage(true);
 
         // Normalize campName for file path construction — strips leading "camp_" if present
         // so that GUI-sourced stems like "camp_parsons" and CLI-sourced "parsons" both work.
@@ -71,6 +72,7 @@ public class HtmlGenerator {
         java.util.Map<String, String> badgeLinks = EagleMBDetailPageWriter.write(scouts, eagleSlots, mbDefs, outputDir);
         EagleMBSummaryPageWriter.write(scouts, eagleSlots, camps, badgeLinks, outputDir, stem);
         HelpPageWriter.write(outputDir);
+        AdvancementPlansPageWriter.write(scouts, rankDefsOrdered, categories, camps, outputDir, stem);
         if (hasPatrolData) PatrolBalancingPageWriter.write(scouts, outputDir, stem);
 
         // Camp scheduler: generated when a schedule JSON exists for the camp.

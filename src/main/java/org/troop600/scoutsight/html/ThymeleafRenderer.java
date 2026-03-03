@@ -28,11 +28,13 @@ class ThymeleafRenderer {
         ENGINE.setTemplateResolver(resolver);
     }
 
-    private static boolean hasPatrolPage    = false;
-    private static boolean hasSchedulerPage = false;
+    private static boolean hasPatrolPage           = false;
+    private static boolean hasSchedulerPage        = false;
+    private static boolean hasAdvancementPlansPage = false;
 
-    static void setHasPatrolPage(boolean v)    { hasPatrolPage = v; }
-    static void setHasSchedulerPage(boolean v) { hasSchedulerPage = v; }
+    static void setHasPatrolPage(boolean v)           { hasPatrolPage = v; }
+    static void setHasSchedulerPage(boolean v)        { hasSchedulerPage = v; }
+    static void setHasAdvancementPlansPage(boolean v) { hasAdvancementPlansPage = v; }
 
     static String render(String templateName, Map<String, String> variables) {
         String content;
@@ -43,16 +45,17 @@ class ThymeleafRenderer {
         }
         Context ctx = new Context();
         variables.forEach(ctx::setVariable);
-        ctx.setVariable("siteHeader", loadHeader(hasPatrolPage, hasSchedulerPage));
+        ctx.setVariable("siteHeader", loadHeader(hasPatrolPage, hasSchedulerPage, hasAdvancementPlansPage));
         return ENGINE.process(content, ctx);
     }
 
-    private static String loadHeader(boolean patrolPage, boolean schedulerPage) {
+    private static String loadHeader(boolean patrolPage, boolean schedulerPage, boolean advancementPlansPage) {
         try {
             String headerTemplate = ResourceIO.readString(Path.of("templates", "_header.html")).trim();
             Context ctx = new Context();
-            ctx.setVariable("hasPatrolPage",    patrolPage);
-            ctx.setVariable("hasSchedulerPage", schedulerPage);
+            ctx.setVariable("hasPatrolPage",           patrolPage);
+            ctx.setVariable("hasSchedulerPage",        schedulerPage);
+            ctx.setVariable("hasAdvancementPlansPage", advancementPlansPage);
             return ENGINE.process(headerTemplate, ctx);
         } catch (IOException e) {
             return "";

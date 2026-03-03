@@ -57,7 +57,7 @@ The IntelliJ artifact builder may compile with a newer JDK than the system `java
 | `src/main/java/` | Java source root — package `org.troop600.scoutsight` |
 | `camp-scheduler/` | Vite + React source for camp schedule picker; `npm run build` outputs to resources |
 | `src/main/resources/static/camp_scheduler/` | Committed React bundle (`main.js`); rebuilt via `npm run build` in `camp-scheduler/` |
-| `src/main/resources/templates/` | Thymeleaf HTML templates (index, scout, patrol_balancing, eagle_mb_summary, eagle_mb_detail, trail_to_first_class, help, _header) |
+| `src/main/resources/templates/` | Thymeleaf HTML templates (index, scout, patrol_balancing, eagle_mb_summary, eagle_mb_detail, trail_to_first_class, advancement_plans, help, _header) |
 | `src/main/resources/templates/_*_help.html` | Partial templates (six files) included by help.html; `meetings_aggregate.html` exists but is an unused stub replaced by trail_to_first_class |
 | `src/main/resources/config/` | Config files: camps, definitions (rank/MB), mb-categories, requirement-categories |
 | `src/main/resources/META-INF/MANIFEST.MF` | JAR manifest (Main-Class: cli.Main) |
@@ -120,7 +120,17 @@ A requirement is complete when `Date Completed` is non-empty (`MM/DD/YYYY` forma
 - Standard `th:` attribute syntax (e.g. `th:text`, `th:if`) does **not** work
 - `siteHeader` is injected automatically by `ThymeleafRenderer.render()` — do not pass it in the variables map
 - `hasPatrolPage` boolean flag in `ThymeleafRenderer` controls whether the Patrol Balancing nav link appears; set via `setHasPatrolPage()` before any renders
-- `hasSchedulerPage` boolean flag controls the Camp Scheduler nav link; same pattern — add a `static boolean` + setter in `ThymeleafRenderer`, set it in `HtmlGenerator.generate()` **before** any page writes, and add `[# th:if="${flagName}"]...[/]` to `_header.html`
+- `hasSchedulerPage` boolean flag controls the Camp Scheduler nav link; same pattern — add a `static boolean` + setter in `ThymeleafRenderer`, add the flag as a parameter to `loadHeader()` and a matching `ctx.setVariable()` call inside it, set it in `HtmlGenerator.generate()` **before** any page writes, and add `[# th:if="${flagName}"]...[/]` to `_header.html`
+
+## Rank Definitions
+
+`RankDefinitionsLoader.loadOrdered()` returns `LinkedHashMap<String, List<String[]>>` — rank name → list of `[reqId, reqText]` pairs in JSON order. Already loaded in `HtmlGenerator` as `rankDefsOrdered` and passed to `TrailToFirstClassPageWriter` and `AdvancementPlansPageWriter`; reuse rather than reload.
+
+**`currentRankShort()` default:** Returns `"Scout"` for scouts with no completed ranks AND for scouts who have completed Scout rank — the value does not distinguish between the two cases. For "under First Class" checks, treat `["Scout","Tenderfoot","2nd Class"].includes(currentRank)` as "hasn't completed First Class", which is correct for both cases.
+
+**Requirement categories:** `RequirementCategory` JSON files only contain data for Scout, Tenderfoot, Second Class, and First Class ranks. `cant_earn_at_camp` is derived — computed as `!campCovered.contains(reqIdLower)` — and only added when `hasCampConfig` is true and the rank is one of the four Trail ranks. Star/Life/Eagle have no category assignments.
+
+**Cross-page filter state:** Pass active filters as URL search params when linking between report pages (e.g., index → advancement_plans). Grade = numeric string (`"7"`), patrol = patrol name string, birthYear/joinYear = year string, ranks = comma-separated short labels (`"Star,Life"`). The target page reads params with `new URLSearchParams(window.location.search)` and initialises React state from them.
 
 ## Package Visibility
 
@@ -209,6 +219,14 @@ URL-encoded params to avoid this. Do not convert them to POST.
 **`deviceId` uses `sessionStorage`:** Each browser tab needs its own lock identity; `sessionStorage`
 gives per-tab stability. `localStorage` would be shared across tabs on the same machine, breaking
 the lock system.
+
+**Apps Script template location:** The Google Apps Script code troops deploy is embedded as the
+`APPS_SCRIPT` constant in `camp-scheduler/src/components/SheetsConnect.jsx` (displayed in the
+Setup Instructions UI). Any changes to the server-side script must be edited there.
+
+**Google Sheets `getValues()` type gotcha:** Numeric-looking cell values (e.g. BSA Member IDs)
+are returned as JS `number`, not `string`. URL query params are always strings, so `===`
+comparisons fail silently. Always use `String(rows[i][0]) === scoutId`, not `rows[i][0] === scoutId`.
 
 ## GUI–CLI Integration
 

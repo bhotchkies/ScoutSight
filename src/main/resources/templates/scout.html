@@ -45,8 +45,10 @@
     .breadcrumb a:hover { color: var(--green); }
 
     /* Page header */
-    .ph { padding: .5rem 0 1.1rem; margin-bottom: .9rem; border-bottom: 2px solid var(--border); }
+    .ph { padding: .5rem 0 1.1rem; margin-bottom: .9rem; border-bottom: 2px solid var(--border); display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
     .ph-title { font-family: var(--font-h); font-size: 2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+    .adv-plan-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem 1rem; background: var(--green); color: #fff; border: none; border-radius: var(--r); font-family: var(--font-h); font-size: .88rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; text-decoration: none; cursor: pointer; box-shadow: var(--sh-sm); transition: background var(--t); white-space: nowrap; }
+    .adv-plan-btn:hover { background: var(--green-mid); color: #fff; text-decoration: none; }
 
     /* Roster info pills */
     .roster-panel { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1.2rem; }
@@ -420,6 +422,9 @@
           </div>
           <div className="ph">
             <div className="ph-title">{d.title}</div>
+            <a href={`advancement_plans.html?scout=${d.memberId}`} target="_blank" className="adv-plan-btn">
+              &#128438; Print Advancement Plan
+            </a>
           </div>
 
           <RosterPanel info={d.rosterInfo} />

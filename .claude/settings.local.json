@@ -15,7 +15,8 @@
       "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight\" && JAVA_HOME=\"/c/Users/blair/.jdks/openjdk-25\" \"/c/Program Files/JetBrains/IntelliJ IDEA 2025.2.4/plugins/maven/lib/maven3/bin/mvn\" -o exec:java -Dexec.mainClass=\"org.troop600.scoutsight.tools.ScheduleImporter\" -Dexec.args=\"--dump-text --local-pdf C:/Users/blair/AppData/Local/Temp/scoutsight_parsons_schedule.pdf parsons\" 2>&1)",
       "Bash(cd \"C:/Users/blair/IdeaProjects/ScoutSight/camp-scheduler\" && npm run build 2>&1)",
       "Bash(cd \"/c/Users/blair/IdeaProjects/ScoutSight/camp-scheduler\" && npm run build 2>&1)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Skill(claude-md-management:revise-claude-md)"
     ]
   }
 }

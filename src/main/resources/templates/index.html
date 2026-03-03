@@ -63,6 +63,8 @@
     .fsel { padding: .28rem .6rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); font-family: var(--font-b); font-size: .85rem; color: var(--text); cursor: pointer; }
     .reset-btn { margin-left: auto; padding: .2rem .8rem; background: none; border: 1.5px solid var(--border); border-radius: var(--r); font-family: var(--font-b); font-size: .8rem; color: var(--text-muted); cursor: pointer; transition: all var(--t); white-space: nowrap; }
     .reset-btn:hover { background: var(--surface-2); color: var(--text); border-color: #b0a890; }
+    .print-plans-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .28rem .95rem; background: var(--green); color: #fff; border: none; border-radius: var(--r); font-family: var(--font-h); font-size: .82rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; transition: background var(--t); white-space: nowrap; box-shadow: var(--sh-sm); }
+    .print-plans-btn:hover { background: var(--green-mid); }
 
     /* Summary bar */
     .sbar { display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; padding: .55rem 0; margin-bottom: 1rem; border-bottom: 1px dashed var(--border); font-size: .85rem; color: var(--text-muted); }
@@ -169,6 +171,16 @@
       const upperGrades = [...new Set(sorted.map(s => s.grade).filter(g => g >= 7))].sort((a, b) => a - b);
       const presentRanks = RANK_ORDER.filter(r => sorted.some(s => s.currentRank === r));
 
+      function handlePrintPlans() {
+        const params = new URLSearchParams();
+        if (grade !== 'All' && grade !== 'Unknown') params.set('grade', grade);
+        if (patrol !== 'All') params.set('patrol', patrol);
+        if (birthYear !== 'All') params.set('birthYear', birthYear);
+        if (joinYear !== 'All') params.set('joinYear', joinYear);
+        if (ranks.size > 0) params.set('ranks', [...ranks].join(','));
+        window.open('advancement_plans.html?' + params.toString(), '_blank');
+      }
+
       const visible = sorted.filter(s => {
         if (grade !== 'All') {
           if (grade === 'Unknown' && s.grade >= 7) return false;
@@ -260,6 +272,9 @@
           <div className="sbar">
             <div className="sstat"><strong>{visible.length}</strong> scout{visible.length !== 1 ? 's' : ''}</div>
             {hasActive && <span className="sbar-filter-active">&#9650; Filters active</span>}
+            <button className="print-plans-btn" type="button" onClick={handlePrintPlans} style={{marginLeft:'auto'}}>
+              &#128438; Print Plans
+            </button>
           </div>
 
           {/* Table */}

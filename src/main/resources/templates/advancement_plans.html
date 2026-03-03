@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Advancement Plans &mdash; ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design Tokens ──────────────────────────── */
+    :root {
+      --bg:           #f0ebe0;
+      --surface:      #faf7f2;
+      --surface-2:    #f5f0e6;
+      --border:       #d6ccb8;
+      --border-lt:    #e8e1d4;
+      --text:         #28200f;
+      --text-muted:   #7a6e58;
+      --green:        #1a4d2e;
+      --green-mid:    #256937;
+      --green-lt:     #3a8a50;
+      --amber:        #c47a0e;
+      --amber-lt:     #fde8b8;
+      --blue-lt:      #d8eaf8;
+      --teal:         #1a6060;
+      --teal-lt:      #d0efef;
+      --red-lt:       #fddcdc;
+      --nav-green:    #fff;
+      --nav-green-hv: rgba(255,255,255,0.75);
+      --stripe:       #2d6a4f;
+      --font-h:       'Oswald', sans-serif;
+      --font-b:       'Nunito', sans-serif;
+      --r:            6px;
+      --r-lg:         10px;
+      --sh-sm:        0 1px 3px rgba(0,0,0,.10);
+      --sh-md:        0 3px 12px rgba(0,0,0,.14);
+      --t:            .15s ease;
+    }
+
+    /* ── Base ───────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; }
+    button { font-family: inherit; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    /* ── Site Header ────────────────────────────── */
+    .site-header {
+      background: #1b4332;
+      border-bottom: 3px solid var(--stripe);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .5rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 300;
+    }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    #root { display: contents; }
+
+    /* ── Page Wrapper ───────────────────────────── */
+    .pw { max-width: 960px; margin: 0 auto; padding: 0 1rem 3rem; }
+
+    /* ── Breadcrumb ─────────────────────────────── */
+    .breadcrumb { padding: 1rem 0 .4rem; font-size: .85rem; }
+    .breadcrumb a { color: var(--green-mid); font-weight: 600; display: inline-flex; align-items: center; gap: .3rem; }
+    .breadcrumb a:hover { color: var(--green); text-decoration: underline; }
+
+    /* ── Page Header ────────────────────────────── */
+    .ph {
+      padding: .9rem 0 1rem;
+      margin-bottom: 1.1rem;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .75rem;
+    }
+    .ph-title { font-family: var(--font-h); font-size: 2.2rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; }
+    .ph-sub { font-size: .88rem; color: var(--text-muted); margin-top: .35rem; }
+
+    /* ── Print Button ───────────────────────────── */
+    .print-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .55rem 1.3rem;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--r);
+      font-family: var(--font-h);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: var(--sh-md);
+      transition: background var(--t), transform var(--t);
+    }
+    .print-btn:hover { background: var(--green-mid); transform: translateY(-1px); }
+    .print-btn:active { transform: none; }
+
+    /* ── Filter Panel ───────────────────────────── */
+    .filter-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      margin-bottom: 1.25rem;
+      overflow: hidden;
+      box-shadow: var(--sh-sm);
+    }
+    .filter-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .65rem 1rem;
+      cursor: pointer;
+      user-select: none;
+      font-family: var(--font-h);
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--green);
+      transition: background var(--t);
+    }
+    .filter-head:hover { background: var(--surface-2); }
+    .filter-chevron { font-size: .8rem; color: var(--text-muted); }
+    .filter-active-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-family: var(--font-b);
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--amber);
+    }
+    .filter-active-dot {
+      width: 7px; height: 7px;
+      background: var(--amber);
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .filter-body {
+      border-top: 1px solid var(--border-lt);
+      padding: .65rem 1rem .85rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .75rem;
+      align-items: flex-start;
+    }
+    .frow { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .flabel {
+      font-size: .72rem;
+      font-family: var(--font-h);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      min-width: 5rem;
+      white-space: nowrap;
+    }
+    .fsel {
+      padding: .28rem .6rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      background: var(--surface);
+      font-family: var(--font-b);
+      font-size: .85rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+    /* Rank chips */
+    .chip { padding: .2rem .75rem; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; font-family: var(--font-b); font-size: .82rem; font-weight: 600; line-height: 1.4; transition: all var(--t); white-space: nowrap; }
+    .chip:hover:not(.chip-on) { background: #e6e0d4; border-color: #c4baa8; }
+    .chip-on { background: var(--green); border-color: var(--green); color: #fff; }
+
+    .reset-btn {
+      margin-left: auto;
+      padding: .2rem .8rem;
+      background: none;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      font-family: var(--font-b);
+      font-size: .8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all var(--t);
+      white-space: nowrap;
+    }
+    .reset-btn:hover { background: var(--surface-2); color: var(--text); border-color: #b0a890; }
+
+    /* ── Show-all Toggle ────────────────────────── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      padding: .55rem 1rem .7rem;
+      border-top: 1px solid var(--border-lt);
+    }
+    .toggle-wrap { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: background var(--t);
+    }
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    input:checked + .toggle-slider { background: var(--green-mid); }
+    input:checked + .toggle-slider::before { transform: translateX(16px); }
+    .toggle-label { font-size: .85rem; color: var(--text); font-weight: 500; cursor: pointer; user-select: none; }
+
+    /* ── Summary Bar ────────────────────────────── */
+    .sbar {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      padding: .3rem 0 1rem;
+      font-size: .84rem;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+    .sbar strong { color: var(--green); }
+    .sbar-note { font-size: .78rem; font-style: italic; }
+
+    /* ── Scout Plan Cards ───────────────────────── */
+    .plans-grid { display: flex; flex-direction: column; gap: 2rem; }
+
+    .scout-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      box-shadow: var(--sh-md);
+    }
+
+    .scout-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: .6rem;
+      padding: .85rem 1.25rem;
+      background: var(--green);
+      color: #fff;
+    }
+    .scout-name {
+      font-family: var(--font-h);
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      line-height: 1.1;
+    }
+    .scout-pills { display: flex; gap: .45rem; flex-wrap: wrap; align-items: center; }
+    .scout-pill {
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 999px;
+      padding: .18rem .7rem;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      white-space: nowrap;
+    }
+
+    .scout-card-body { padding: .9rem 1.1rem; display: flex; flex-direction: column; gap: .85rem; }
+
+    /* ── Rank Plan Cards ────────────────────────── */
+    .rank-card {
+      border: 1px solid var(--border-lt);
+      border-radius: var(--r);
+      overflow: hidden;
+      border-left-width: 4px;
+    }
+    .rank-card.tier-high { border-left-color: var(--green-lt); }
+    .rank-card.tier-mid  { border-left-color: var(--amber);    }
+    .rank-card.tier-low  { border-left-color: var(--border);   }
+
+    .rank-card-head {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      padding: .5rem .85rem;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border-lt);
+    }
+    .rank-name {
+      font-family: var(--font-h);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--green);
+    }
+    .pct-badge {
+      font-size: .7rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: .15rem .55rem;
+      white-space: nowrap;
+    }
+    .pct-badge.tier-high { background: #d4edda; color: #145a32; }
+    .pct-badge.tier-mid  { background: var(--amber-lt); color: #7a4a00; }
+    .pct-badge.tier-low  { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* ── Requirements Table ─────────────────────── */
+    .req-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .req-table th {
+      font-family: var(--font-h);
+      font-size: .68rem;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-align: left;
+      padding: .38rem .75rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-lt);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .req-table td {
+      padding: .5rem .75rem;
+      vertical-align: top;
+      border-bottom: 1px solid var(--border-lt);
+      line-height: 1.45;
+    }
+    .req-table tbody tr:last-child td { border-bottom: none; }
+    .req-table tbody tr:nth-child(even) { background: rgba(0,0,0,.018); }
+    .col-id   { width: 3.5rem; }
+    .col-plan { width: 10rem; }
+    .col-date { width: 6rem; }
+    .req-id {
+      font-family: var(--font-h);
+      font-size: .92rem;
+      font-weight: 700;
+      color: var(--green-mid);
+      white-space: nowrap;
+    }
+    .req-plan-cell, .req-date-cell { background: rgba(255,255,255,.65); }
+
+    /* ── Requirement Category Tags ──────────────── */
+    .req-cats { display: flex; flex-wrap: wrap; gap: .25rem; margin-top: .3rem; }
+    .rcat {
+      font-size: .63rem;
+      font-family: var(--font-h);
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: .08rem .42rem;
+      border-radius: 3px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .rcat-camp     { background: var(--teal-lt);   color: #0d4040; border-color: #a0d4d4; }
+    .rcat-planning { background: var(--amber-lt);  color: #6b3800; border-color: #e8c070; }
+    .rcat-meeting  { background: var(--blue-lt);   color: #1a3a6a; border-color: #a0c4e8; }
+    .rcat-nocamp   { background: var(--red-lt);    color: #6a1a1a; border-color: #e8a0a0; }
+
+    /* ── Empty State ────────────────────────────── */
+    .empty {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2.5rem 1rem;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--r-lg);
+    }
+    .empty-icon { font-size: 2.2rem; margin-bottom: .6rem; }
+    .empty strong {
+      display: block;
+      font-family: var(--font-h);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: .35rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .empty span { font-size: .88rem; font-style: italic; }
+
+    /* ── Responsive ─────────────────────────────── */
+    @media (max-width: 600px) {
+      .ph-title { font-size: 1.65rem; }
+      .scout-name { font-size: 1.25rem; }
+      .scout-card-header { padding: .75rem 1rem; }
+      .scout-card-body { padding: .75rem .85rem; }
+      .col-plan { width: 7rem; }
+      .col-date { width: 5rem; }
+    }
+
+    /* ── Print Styles ───────────────────────────── */
+    @media print {
+      /* Hide interactive UI */
+      .site-header,
+      .no-print { display: none !important; }
+
+      body { background: #fff; color: #000; font-size: 10pt; }
+
+      .pw { max-width: 100%; padding: 0; margin: 0; }
+
+      .plans-grid { gap: 0; }
+
+      /* Page break between scouts */
+      .scout-card {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        background: #fff;
+        break-inside: avoid-page;
+        page-break-inside: avoid;
+      }
+      .scout-card + .scout-card {
+        break-before: page;
+        page-break-before: always;
+      }
+
+      /* Clean scout header for print */
+      .scout-card-header {
+        background: #fff;
+        color: #000;
+        border-bottom: 3px solid #1a4d2e;
+        padding: 0 0 .5rem 0;
+      }
+      .scout-name { color: #1a4d2e; font-size: 16pt; letter-spacing: .04em; }
+      .scout-pill { background: transparent; border: 1px solid #999; color: #444; font-size: 8pt; }
+
+      .scout-card-body { padding: .6rem 0; gap: .7rem; }
+
+      /* Rank cards in print */
+      .rank-card { border: 1px solid #bbb; border-radius: 0; border-left-width: 4px; break-inside: avoid; page-break-inside: avoid; }
+      .rank-card.tier-high { border-left-color: #3a8a50; }
+      .rank-card.tier-mid  { border-left-color: #c47a0e; }
+      .rank-card.tier-low  { border-left-color: #aaa; }
+
+      .rank-card-head { background: #f2f2f2; border-bottom: 1px solid #ccc; padding: .4rem .75rem; }
+      .rank-name { color: #1a4d2e; font-size: 11pt; }
+      .pct-badge { border: 1px solid #bbb; background: #f8f8f8; color: #555; font-size: 7pt; }
+
+      /* Requirements table in print */
+      .req-table { font-size: 9pt; }
+      .req-table th { background: #efefef; color: #555; font-size: 7pt; padding: .3rem .6rem; }
+      .req-table td { border-bottom: 1px solid #ddd; padding: .4rem .6rem; }
+      .req-table tbody tr:nth-child(even) { background: transparent; }
+      .req-id { color: #1a4d2e; font-size: 9pt; }
+
+      /* Writing lines in My Plan cells */
+      .req-plan-cell, .req-date-cell { background: #fff; }
+
+      /* Category tags — keep visible in print, strip backgrounds to ink-friendly */
+      .rcat { background: transparent; border: 1px solid #999; color: #444; font-size: 6pt; }
+      .req-plan-cell {
+        background-image: repeating-linear-gradient(
+          transparent,
+          transparent 18px,
+          #ccc 18px,
+          #ccc 19px
+        );
+        background-position: 0 1.6rem;
+        min-height: 2.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  [(${siteHeader})]
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    const PLANS_DATA = [(${plansData})];
+  </script>
+  <script type="text/babel">
+
+    /* ── URL Params ─────────────────────────────── */
+    const urlParams    = new URLSearchParams(window.location.search);
+    const SCOUT_FILTER = urlParams.get('scout')     || null;
+    const INIT_GRADE   = urlParams.get('grade')     || 'All';
+    const INIT_PATROL  = urlParams.get('patrol')    || 'All';
+    const INIT_BY      = urlParams.get('birthYear') || 'All years';
+    const INIT_JY      = urlParams.get('joinYear')  || 'All years';
+    const INIT_RANKS   = new Set(urlParams.get('ranks') ? urlParams.get('ranks').split(',') : []);
+
+    const RANK_ORDER = ['Scout','Tenderfoot','2nd Class','1st Class','Star','Life','Eagle'];
+
+    const CAT_META = {
+      cant_earn_at_camp: { label: "Can't Earn At Camp", cls: 'nocamp'   },
+      camping_trip:      { label: 'Camping Trip',       cls: 'camp'     },
+      planning_required: { label: 'Planning Required',  cls: 'planning' },
+      troop_meeting:     { label: 'Troop Meeting',      cls: 'meeting'  },
+    };
+
+    const d = PLANS_DATA;
+
+    /* ── Helpers ────────────────────────────────── */
+    function pctTier(pct) {
+      if (pct > 75) return 'high';
+      if (pct > 50) return 'mid';
+      return 'low';
+    }
+
+    function pctLabel(pct) {
+      if (pct === 0) return 'Not started';
+      return pct + '% complete';
+    }
+
+    function gradeLabel(g) {
+      return (g >= 7) ? 'Grade ' + g : null;
+    }
+
+    /* ── RankPlanCard ───────────────────────────── */
+    function RankPlanCard({ plan }) {
+      const tier = pctTier(plan.pctComplete);
+      return (
+        <div className={`rank-card tier-${tier}`}>
+          <div className="rank-card-head">
+            <span className="rank-name">{plan.rankLabel}</span>
+            <span className={`pct-badge tier-${tier}`}>{pctLabel(plan.pctComplete)}</span>
+          </div>
+          <table className="req-table">
+            <thead>
+              <tr>
+                <th className="col-id">Req</th>
+                <th>Requirement</th>
+                <th className="col-plan">My Plan</th>
+                <th className="col-date">Target Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {plan.remainingReqs.map(r => (
+                <tr key={r.id}>
+                  <td className="req-id">{r.id}</td>
+                  <td>
+                    {r.text}
+                    {r.categories && r.categories.length > 0 && (
+                      <div className="req-cats">
+                        {r.categories.map(c => CAT_META[c] && (
+                          <span key={c} className={`rcat rcat-${CAT_META[c].cls}`}>
+                            {CAT_META[c].label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td className="req-plan-cell"></td>
+                  <td className="req-date-cell"></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    /* ── ScoutPlanCard ──────────────────────────── */
+    const UNDER_FC_RANKS = new Set(['Scout', 'Tenderfoot', '2nd Class']);
+
+    function ScoutPlanCard({ scout, showAll }) {
+      const underFirstClass = UNDER_FC_RANKS.has(scout.currentRank);
+      const plans = scout.plans.filter((p, idx) => {
+        if (showAll)           return true;   // toggle overrides everything
+        if (p.pctComplete > 50) return true;  // standard threshold
+        if (idx === 0)          return true;  // always show current working rank
+        if (underFirstClass && idx === 1) return true; // always show next rank for trail scouts
+        return false;
+      });
+      if (plans.length === 0) return null;
+
+      const pills = [];
+      if (scout.patrol) pills.push(scout.patrol);
+      const gl = gradeLabel(scout.grade);
+      if (gl) pills.push(gl);
+
+      return (
+        <div className="scout-card">
+          <div className="scout-card-header">
+            <span className="scout-name">{scout.name}</span>
+            {pills.length > 0 && (
+              <div className="scout-pills">
+                {pills.map(p => <span key={p} className="scout-pill">{p}</span>)}
+              </div>
+            )}
+          </div>
+          <div className="scout-card-body">
+            {plans.map(plan => <RankPlanCard key={plan.rankName} plan={plan} />)}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── App ────────────────────────────────────── */
+    function App() {
+      const [grade,       setGrade]       = React.useState(INIT_GRADE);
+      const [patrol,      setPatrol]      = React.useState(INIT_PATROL);
+      const [birthYear,   setBirthYear]   = React.useState(INIT_BY);
+      const [joinYear,    setJoinYear]    = React.useState(INIT_JY);
+      const [ranks,       setRanks]       = React.useState(INIT_RANKS);
+      const [showAll,     setShowAll]     = React.useState(false);
+      const [filtersOpen, setFiltersOpen] = React.useState(true);
+
+      function toggleRank(r) {
+        setRanks(prev => { const n = new Set(prev); n.has(r) ? n.delete(r) : n.add(r); return n; });
+      }
+
+      const singleScout = SCOUT_FILTER !== null;
+
+      /* Filter scouts */
+      const filtered = d.scouts.filter(s => {
+        if (singleScout) return s.memberId === SCOUT_FILTER;
+        if (grade     !== 'All'      && s.grade     !== Number(grade))  return false;
+        if (patrol    !== 'All'      && s.patrol    !== patrol)         return false;
+        if (birthYear !== 'All years' && s.birthYear !== birthYear)     return false;
+        if (joinYear  !== 'All years' && s.joinYear  !== joinYear)      return false;
+        if (ranks.size > 0 && !ranks.has(s.currentRank))               return false;
+        return true;
+      });
+
+      /* Count scouts that have at least one visible plan */
+      const withPlans = filtered.filter(s =>
+        s.plans.some(p => showAll || p.pctComplete > 50)
+      ).length;
+
+      const anyFilter = grade !== 'All' || patrol !== 'All' ||
+                        birthYear !== 'All years' || joinYear !== 'All years' || ranks.size > 0;
+
+      function reset() {
+        setGrade('All'); setPatrol('All');
+        setBirthYear('All years'); setJoinYear('All years');
+        setRanks(new Set());
+      }
+
+      const presentRanks = RANK_ORDER.filter(r => d.scouts.some(s => s.currentRank === r));
+
+      const availableGrades = [7,8,9,10,11,12].filter(g =>
+        d.scouts.some(s => s.grade === g)
+      );
+
+      return (
+        <div className="pw">
+
+          {/* Breadcrumb — single-scout mode */}
+          {singleScout && (
+            <div className="breadcrumb no-print">
+              <a href="index.html">&#8592; All Scouts</a>
+            </div>
+          )}
+
+          {/* Page header */}
+          <div className="ph no-print">
+            <div>
+              <div className="ph-title">Advancement Plans</div>
+              <div className="ph-sub">Printable plans for scouts to track remaining rank requirements</div>
+            </div>
+            <button className="print-btn" onClick={() => window.print()}>
+              &#9113;&nbsp; Print Plans
+            </button>
+          </div>
+
+          {/* Filter panel — hidden in single-scout mode */}
+          {!singleScout && (
+            <div className="filter-wrap no-print">
+              <div className="filter-head" onClick={() => setFiltersOpen(v => !v)}>
+                <span>
+                  Filters
+                  {anyFilter && (
+                    <span className="filter-active-indicator">
+                      &nbsp;<span className="filter-active-dot" /> active
+                    </span>
+                  )}
+                </span>
+                <span className="filter-chevron">{filtersOpen ? '▲' : '▼'}</span>
+              </div>
+              {filtersOpen && (
+                <>
+                  <div className="filter-body">
+                    {presentRanks.length > 0 && (
+                      <div className="frow" style={{flexWrap:'wrap'}}>
+                        <span className="flabel">Current Rank</span>
+                        <div style={{display:'flex',gap:'.3rem',flexWrap:'wrap'}}>
+                          <button type="button" className={'chip' + (ranks.size === 0 ? ' chip-on' : '')} onClick={() => setRanks(new Set())}>All</button>
+                          {presentRanks.map(r => (
+                            <button key={r} type="button" className={'chip' + (ranks.has(r) ? ' chip-on' : '')} onClick={() => toggleRank(r)}>{r}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {d.patrols.length > 0 && (
+                      <div className="frow">
+                        <span className="flabel">Patrol</span>
+                        <select className="fsel" value={patrol} onChange={e => setPatrol(e.target.value)}>
+                          <option>All</option>
+                          {d.patrols.map(p => <option key={p}>{p}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {availableGrades.length > 0 && (
+                      <div className="frow">
+                        <span className="flabel">Grade</span>
+                        <select className="fsel" value={grade} onChange={e => setGrade(e.target.value)}>
+                          <option>All</option>
+                          {availableGrades.map(g => (
+                            <option key={g} value={String(g)}>{g}th</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {d.birthYears.length > 0 && (
+                      <div className="frow">
+                        <span className="flabel">Birth Year</span>
+                        <select className="fsel" value={birthYear} onChange={e => setBirthYear(e.target.value)}>
+                          <option>All years</option>
+                          {d.birthYears.map(y => <option key={y}>{y}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {d.joinYears.length > 0 && (
+                      <div className="frow">
+                        <span className="flabel">Join Year</span>
+                        <select className="fsel" value={joinYear} onChange={e => setJoinYear(e.target.value)}>
+                          <option>All years</option>
+                          {d.joinYears.map(y => <option key={y}>{y}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {anyFilter && <button className="reset-btn" onClick={reset}>Reset all</button>}
+                  </div>
+                  <div className="toggle-row">
+                    <label className="toggle-wrap" htmlFor="showAllToggle">
+                      <input
+                        id="showAllToggle"
+                        type="checkbox"
+                        checked={showAll}
+                        onChange={e => setShowAll(e.target.checked)}
+                      />
+                      <span className="toggle-slider" />
+                    </label>
+                    <label className="toggle-label" htmlFor="showAllToggle">
+                      Show all incomplete ranks (including those under 50% complete)
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Single-scout show-all toggle */}
+          {singleScout && (
+            <div className="filter-wrap no-print" style={{marginBottom:'1rem'}}>
+              <div className="toggle-row">
+                <label className="toggle-wrap" htmlFor="showAllToggleSingle">
+                  <input
+                    id="showAllToggleSingle"
+                    type="checkbox"
+                    checked={showAll}
+                    onChange={e => setShowAll(e.target.checked)}
+                  />
+                  <span className="toggle-slider" />
+                </label>
+                <label className="toggle-label" htmlFor="showAllToggleSingle">
+                  Show all incomplete ranks (including those under 50% complete)
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Summary bar */}
+          {!singleScout && (
+            <div className="sbar no-print">
+              <span>
+                Showing <strong>{withPlans}</strong> scout{withPlans !== 1 ? 's' : ''} with plans
+              </span>
+              {!showAll && <span className="sbar-note">Displaying ranks &gt;50% complete only</span>}
+            </div>
+          )}
+
+          {/* Plans */}
+          {withPlans === 0 ? (
+            <div className="empty no-print">
+              <div className="empty-icon">&#128203;</div>
+              <strong>No plans to show</strong>
+              <span>
+                {showAll
+                  ? 'No scouts match the current filters.'
+                  : 'No scouts have ranks more than 50% complete. Try enabling "Show all incomplete ranks".'}
+              </span>
+            </div>
+          ) : (
+            <div className="plans-grid">
+              {filtered.map(s => (
+                <ScoutPlanCard key={s.memberId} scout={s} showAll={showAll} />
+              ))}
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
