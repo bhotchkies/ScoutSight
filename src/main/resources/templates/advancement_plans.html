@@ -379,6 +379,17 @@
     .rcat-meeting  { background: var(--blue-lt);   color: #1a3a6a; border-color: #a0c4e8; }
     .rcat-nocamp   { background: var(--red-lt);    color: #6a1a1a; border-color: #e8a0a0; }
 
+    /* ── Eagle MB Plan Footer ───────────────────── */
+    .eagle-mb-electives {
+      padding: .5rem .85rem;
+      font-size: .83rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-lt);
+      background: var(--surface);
+      font-style: italic;
+    }
+    .col-eagle-status { width: 9rem; }
+
     /* ── Empty State ────────────────────────────── */
     .empty {
       text-align: center;
@@ -471,6 +482,8 @@
 
       /* Category tags — keep visible in print, strip backgrounds to ink-friendly */
       .rcat { background: transparent; border: 1px solid #999; color: #444; font-size: 6pt; }
+
+      .eagle-mb-electives { background: #f8f8f8; color: #555; }
       .req-plan-cell {
         background-image: repeating-linear-gradient(
           transparent,
@@ -576,6 +589,55 @@
       );
     }
 
+    /* ── EagleMBPlanSection ─────────────────────── */
+    function EagleMBPlanSection({ plan }) {
+      const completedCount = plan.slotsTotal - plan.incompleteSlots.length;
+      const tier = completedCount === plan.slotsTotal ? 'high'
+                 : completedCount >= plan.slotsTotal / 2 ? 'mid' : 'low';
+      return (
+        <div className={`rank-card tier-${tier}`}>
+          <div className="rank-card-head">
+            <span className="rank-name">Eagle Merit Badges</span>
+            <span className={`pct-badge tier-${tier}`}>{completedCount}/{plan.slotsTotal} slots earned</span>
+          </div>
+          {plan.incompleteSlots.length > 0 ? (
+            <table className="req-table">
+              <thead>
+                <tr>
+                  <th className="col-id">Slot</th>
+                  <th>Required Badge</th>
+                  <th className="col-eagle-status">Progress</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plan.incompleteSlots.map(s => (
+                  <tr key={s.slotNum}>
+                    <td className="req-id">{s.slotNum}</td>
+                    <td>{s.slotLabel}</td>
+                    <td>
+                      {s.pct === 0
+                        ? <span style={{color:'var(--text-muted)',fontStyle:'italic',fontSize:'.82rem'}}>Not started</span>
+                        : <span style={{color:'var(--amber)',fontWeight:700}}>
+                            {s.inProgress ? s.inProgress + ' \u2014 ' : ''}{s.pct}%
+                          </span>
+                      }
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{padding:'.6rem 1rem',color:'var(--green-mid)',fontWeight:600,fontSize:'.85rem'}}>
+              All {plan.slotsTotal} Eagle-required slots earned!
+            </div>
+          )}
+          <div className="eagle-mb-electives">
+            {plan.electivesEarned} elective merit badge{plan.electivesEarned !== 1 ? 's' : ''} earned
+          </div>
+        </div>
+      );
+    }
+
     /* ── ScoutPlanCard ──────────────────────────── */
     const UNDER_FC_RANKS = new Set(['Scout', 'Tenderfoot', '2nd Class']);
 
@@ -607,6 +669,7 @@
           </div>
           <div className="scout-card-body">
             {plans.map(plan => <RankPlanCard key={plan.rankName} plan={plan} />)}
+            {scout.eagleMBPlan && <EagleMBPlanSection plan={scout.eagleMBPlan} />}
           </div>
         </div>
       );

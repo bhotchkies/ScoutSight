@@ -72,7 +72,7 @@ public class HtmlGenerator {
         java.util.Map<String, String> badgeLinks = EagleMBDetailPageWriter.write(scouts, eagleSlots, mbDefs, outputDir);
         EagleMBSummaryPageWriter.write(scouts, eagleSlots, camps, badgeLinks, outputDir, stem);
         HelpPageWriter.write(outputDir);
-        AdvancementPlansPageWriter.write(scouts, rankDefsOrdered, categories, camps, outputDir, stem);
+        AdvancementPlansPageWriter.write(scouts, rankDefsOrdered, categories, camps, eagleSlots, outputDir, stem);
         if (hasPatrolData) PatrolBalancingPageWriter.write(scouts, outputDir, stem);
 
         // Camp scheduler: generated when a schedule JSON exists for the camp.

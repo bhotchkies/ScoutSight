@@ -12,7 +12,6 @@
     { "num": 10, "label": "Personal Management",                    "badges": ["Personal Management MB"] },
     { "num": 11, "label": "Swimming, Hiking, or Cycling",           "badges": ["Swimming MB", "Hiking MB", "Cycling MB"] },
     { "num": 12, "label": "Camping",                                "badges": ["Camping MB"] },
-    { "num": 13, "label": "Family Life",                            "badges": ["Family Life MB"] },
-    { "num": 14, "label": "Citizenship in Society",                 "badges": ["Citizenship in Society MB"] }
+    { "num": 13, "label": "Family Life",                            "badges": ["Family Life MB"] }
   ]
 }

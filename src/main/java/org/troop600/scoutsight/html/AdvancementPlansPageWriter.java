@@ -28,6 +28,9 @@ class AdvancementPlansPageWriter {
             "Scout Rank", "Tenderfoot Rank", "Second Class Rank", "First Class Rank"
     );
 
+    /** Short rank labels for scouts who get the Eagle MB plan section. */
+    private static final Set<String> STAR_PLUS_LABELS = Set.of("Star", "Life", "Eagle");
+
     /** Maps a RequirementCategory's categoryName to its JSON key (mirrors TrailToFirstClassPageWriter). */
     private static final Map<String, String> CAT_KEY = Map.of(
             "Done on Camping Trips",  "camping_trip",
@@ -39,9 +42,10 @@ class AdvancementPlansPageWriter {
                       LinkedHashMap<String, List<String[]>> rankDefsOrdered,
                       List<RequirementCategory> categories,
                       List<CampConfig> camps,
+                      List<EagleSlot> eagleSlots,
                       Path outputDir,
                       String stem) throws IOException {
-        String json = buildJson(scouts, rankDefsOrdered, categories, camps, stem);
+        String json = buildJson(scouts, rankDefsOrdered, categories, camps, eagleSlots, stem);
         String html = ThymeleafRenderer.render("advancement_plans", Map.of("plansData", json));
         Files.writeString(outputDir.resolve("advancement_plans.html"), html);
     }
@@ -52,6 +56,7 @@ class AdvancementPlansPageWriter {
                                     LinkedHashMap<String, List<String[]>> rankDefsOrdered,
                                     List<RequirementCategory> categories,
                                     List<CampConfig> camps,
+                                    List<EagleSlot> eagleSlots,
                                     String stem) {
         // Camp union: rank → set of covered req IDs (lowercase)
         Map<String, Set<String>> campUnion = new HashMap<>();
@@ -170,13 +175,73 @@ class AdvancementPlansPageWriter {
                   .endObj(); // rank plan entry
             }
 
-            jb.endArr()  // plans
-              .endObj(); // scout
+            jb.endArr();  // plans
+
+            if (STAR_PLUS_LABELS.contains(IndexPageWriter.currentRankShort(scout))) {
+                appendEagleMBPlan(jb, scout, eagleSlots);
+            }
+
+            jb.endObj(); // scout
         }
 
         jb.endArr()  // scouts
           .endObj(); // root
         return jb.toString();
+    }
+
+    /** Appends an {@code "eagleMBPlan"} object to {@code jb} for the given Star+ scout. */
+    private static void appendEagleMBPlan(JsonBuilder jb, Scout scout, List<EagleSlot> eagleSlots) {
+        Set<String> allEagleNames = eagleSlots.stream()
+                .flatMap(s -> s.badgeNames().stream())
+                .collect(Collectors.toSet());
+
+        long electivesEarned = scout.meritBadges.stream()
+                .filter(mb -> mb.isComplete() && !allEagleNames.contains(mb.name))
+                .count();
+
+        jb.obj("eagleMBPlan")
+          .field("slotsTotal",     eagleSlots.size())
+          .field("electivesEarned", (int) electivesEarned)
+          .arr("incompleteSlots");
+
+        for (EagleSlot slot : eagleSlots) {
+            List<AdvancementItem> started = scout.meritBadges.stream()
+                    .filter(mb -> slot.badgeNames().contains(mb.name) && isStarted(mb))
+                    .toList();
+            boolean complete = started.stream().anyMatch(AdvancementItem::isComplete);
+            if (complete) continue;
+
+            int bestPct = 0;
+            String inProgress = null;
+            for (AdvancementItem badge : started) {
+                int total = badge.requirements.size();
+                int done  = (int) badge.requirements.stream()
+                        .filter(r -> r.dateCompleted != null).count();
+                int pct = total > 0 ? (int) Math.round(100.0 * done / total) : 0;
+                if (pct > bestPct) {
+                    bestPct = pct;
+                    // Only show the badge name for multi-choice slots (label ≠ badge name)
+                    if (slot.badgeNames().size() > 1) {
+                        String n = badge.name;
+                        inProgress = n.endsWith(" MB") ? n.substring(0, n.length() - 3) : n;
+                    }
+                }
+            }
+
+            jb.obj()
+              .field("slotNum",    slot.num())
+              .field("slotLabel",  slot.label())
+              .field("pct",        bestPct)
+              .field("inProgress", inProgress != null ? inProgress : "")
+              .endObj();
+        }
+
+        jb.endArr()  // incompleteSlots
+          .endObj(); // eagleMBPlan
+    }
+
+    private static boolean isStarted(AdvancementItem item) {
+        return item.isComplete() || item.requirements.stream().anyMatch(r -> r.dateCompleted != null);
     }
 
     private static AdvancementItem findRank(Scout scout, String rankName) {
