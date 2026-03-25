@@ -181,13 +181,12 @@
     table.uu-table tr:last-child td { border-bottom: none; }
     table.uu-table tr:hover td { background: var(--surface-2); }
     .td-name  { font-weight: 700; color: var(--text); white-space: nowrap; }
-    .td-email { color: var(--text-muted); font-size: .82rem; }
+    .td-email { color: var(--text-muted); font-size: .82rem; word-break: break-all; }
     .td-ou    { font-size: .78rem; color: var(--text-muted); font-family: monospace; white-space: nowrap; }
     .td-mono  { font-family: monospace; font-size: .82rem; color: var(--text); }
     .td-text  { font-size: .85rem; color: var(--text); }
     .td-status { white-space: nowrap; }
-    /* Horizontally scrollable table for wide column sets */
-    #table-body-wrap { overflow-x: auto; }
+    #table-body-wrap { overflow-x: hidden; }
     .pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: .15rem .55rem; border: 1px solid; white-space: nowrap; }
     .pill-suspended { color: var(--red); background: var(--red-lt); border-color: var(--red); }
     .pill-active    { color: var(--green-mid); background: #e6f4ec; border-color: var(--green-lt); }
@@ -197,7 +196,20 @@
     .uu-spinner { display: inline-block; width: 1.4rem; height: 1.4rem; border: 3px solid var(--border); border-top-color: var(--green-mid); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .5rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .uu-error { background: var(--red-lt); border-top: 1px solid var(--red); padding: .8rem 1.1rem; font-size: .84rem; color: var(--red); display: flex; gap: .5rem; align-items: flex-start; }
+
+    /* Change diff cells */
+    .td-changes { vertical-align: top; }
+    .change-item { display: flex; align-items: baseline; gap: .3rem; font-size: .82rem; margin-bottom: .2rem; flex-wrap: wrap; }
+    .change-item:last-child { margin-bottom: 0; }
+    .change-field { font-weight: 700; font-size: .75rem; letter-spacing: .03em; color: var(--text); white-space: nowrap; min-width: 5rem; }
+    .change-old { color: var(--red); text-decoration: line-through; font-family: 'Courier New', monospace; font-size: .8rem; white-space: nowrap; opacity: .85; }
+    .change-arrow { color: var(--text-muted); font-size: .8rem; flex-shrink: 0; }
+    .change-new { color: var(--green-mid); font-family: 'Courier New', monospace; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+    .change-empty { font-style: italic; color: var(--text-muted); }
+    input.change-check { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
+    input.check-all-changes { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
   </style>
+  <script>window.ROSTER_CSV = `[(${rosterCsvData})]`;</script>
 </head>
 <body>
 
@@ -504,6 +516,9 @@ function dumpFirst() {
           <button class="btn-secondary" id="debug-btn" onclick="dumpFirstUser()" disabled style="font-size:.78rem;padding:.38rem .8rem;">
             &#128270; Debug Fields
           </button>
+          <button class="btn-secondary" onclick="dumpRoster()" style="font-size:.78rem;padding:.38rem .8rem;">
+            &#128196; Debug Roster
+          </button>
           <button class="btn-link" id="um-show-config" onclick="showUmConfig()" style="display:none">
             &#9881; Change connection
           </button>
@@ -537,6 +552,12 @@ function dumpFirst() {
             </div>
           </div>
         </div>
+
+        <!-- In Scoutbook, Not On Site -->
+        <div id="unmatched-table-wrap" style="display:none"></div>
+
+        <!-- Proposed Updates -->
+        <div id="changes-table-wrap" style="display:none"></div>
 
       </div><!-- /.uu-layout -->
     </div><!-- /#panel-unmatched-users -->
@@ -777,7 +798,9 @@ function dumpFirst() {
 
   // ── Fetch users ───────────────────────────────────────────────────────────
 
-  var allUsers = [];
+  var allUsers    = [];
+  var rosterIndex = null;
+  var parsedRoster = null;
 
   function loadUsers() {
     var url = localStorage.getItem(GWS_URL_KEY) || '';
@@ -865,6 +888,30 @@ function dumpFirst() {
     });
   }
 
+  /** Dumps the parsed roster state to the debug panel for diagnosing CSV parsing issues. */
+  function dumpRoster() {
+    var TARGET_BSA = '140698387'; // Kevin Zhao — the canary
+    var out = {
+      rosterCsvPresent: !!(window.ROSTER_CSV && window.ROSTER_CSV.length > 0),
+      rosterCsvLength:  window.ROSTER_CSV ? window.ROSTER_CSV.length : 0,
+      parsedRosterRows: parsedRoster ? parsedRoster.length : null,
+      rosterIndexBuilt: !!rosterIndex,
+      targetBsaInRoster:  parsedRoster ? parsedRoster.some(function(r) {
+        return findField(r, ['bsa number']) === TARGET_BSA;
+      }) : false,
+      targetBsaInByScoutId: rosterIndex ? !!rosterIndex.byScoutId[TARGET_BSA] : false,
+      targetRow: parsedRoster ? (parsedRoster.filter(function(r) {
+        return findField(r, ['bsa number']) === TARGET_BSA;
+      })[0] || null) : null,
+      byEmailKeys: rosterIndex ? Object.keys(rosterIndex.byEmail) : [],
+      byNameSample: rosterIndex ? Object.keys(rosterIndex.byName).slice(0, 10) : []
+    };
+    var pre = document.getElementById('debug-pre');
+    pre.textContent = JSON.stringify(out, null, 2);
+    document.getElementById('debug-out').style.display = '';
+    document.getElementById('debug-out').querySelector('span').textContent = 'Roster parse diagnostic';
+  }
+
   // ── Table rendering ───────────────────────────────────────────────────────
 
   var sortCol   = 'lastName';
@@ -882,6 +929,8 @@ function dumpFirst() {
 
     if (!users.length) {
       setTableContent('<div class="uu-empty"><div class="uu-empty-icon">&#128100;</div>No users found.</div>');
+      renderUnmatchedTable(new Set());
+      renderChangesTable([]);
       return;
     }
 
@@ -891,19 +940,18 @@ function dumpFirst() {
       return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
     });
 
+    var hasRoster      = !!rosterIndex;
+    var matchedBsaNums = new Set();
+    var matchedPairs   = [];
+
     var cols = [
       { key: 'lastName',       label: 'Last Name'       },
       { key: 'firstName',      label: 'First Name'      },
       { key: 'email',          label: 'Primary Email'   },
       { key: 'secondaryEmail', label: 'Secondary Email', noSort: true },
-      { key: 'scoutId',        label: 'Scout ID'        },
-      { key: 'isYouth',        label: 'Youth'           },
-      { key: 'rank',           label: 'Rank'            },
-      { key: 'patrol',         label: 'Patrol'          },
-      { key: 'parents',        label: 'Parents',        noSort: true },
-      { key: 'orgUnit',        label: 'Org Unit'        },
       { key: 'suspended',      label: 'Status'          }
     ];
+    if (hasRoster) cols.push({ key: 'match', label: 'Match', noSort: true });
 
     var arrow = sortAsc ? ' &#9650;' : ' &#9660;';
     var thead = '<thead><tr>' + cols.map(function(c) {
@@ -914,32 +962,40 @@ function dumpFirst() {
     }).join('') + '</tr></thead>';
 
     var tbody = '<tbody>' + sorted.map(function(u) {
+      var matchRow = hasRoster ? matchRoster(u) : null;
+      if (matchRow) {
+        var bn = findField(matchRow, ['bsa number']);
+        if (bn) {
+          matchedBsaNums.add(bn);
+          matchedPairs.push({ gwsUser: u, rosterRow: matchRow });
+        }
+      }
       var pill = u.suspended
         ? '<span class="pill pill-suspended">&#9679; Suspended</span>'
         : '<span class="pill pill-active">&#9679; Active</span>';
       var secondaryHtml = (u.secondaryEmails || []).map(function(e) {
         return '<div class="td-email">' + esc(e) + '</div>';
       }).join('') || '<span style="color:var(--border)">—</span>';
-      var youthHtml = u.isYouth === '' ? '<span style="color:var(--border)">—</span>'
-        : (String(u.isYouth).toLowerCase() === 'true' || u.isYouth === true)
-          ? '<span class="pill pill-active">Yes</span>'
-          : '<span style="color:var(--text-muted);font-size:.82rem">No</span>';
+      var matchCell = hasRoster
+        ? (matchRow
+            ? '<td class="td-status"><span class="pill pill-active">Yes</span></td>'
+            : '<td class="td-status"><span class="pill pill-suspended">No</span></td>')
+        : '';
       return '<tr>' +
-        '<td class="td-name">'   + esc(u.lastName)                                + '</td>' +
-        '<td class="td-name">'   + esc(u.firstName)                               + '</td>' +
-        '<td class="td-email">'  + esc(u.email)                                   + '</td>' +
-        '<td>'                   + secondaryHtml                                   + '</td>' +
-        '<td class="td-mono">'   + esc(u.scoutId)                                 + '</td>' +
-        '<td>'                   + youthHtml                                       + '</td>' +
-        '<td class="td-text">'   + esc(u.rank)                                    + '</td>' +
-        '<td class="td-text">'   + esc(u.patrol)                                  + '</td>' +
-        '<td class="td-email">'  + esc(u.parents)                                 + '</td>' +
-        '<td class="td-ou">'     + esc(u.orgUnit)                                 + '</td>' +
-        '<td class="td-status">' + pill                                            + '</td>' +
+        '<td class="td-name">'   + esc(u.lastName)  + '</td>' +
+        '<td class="td-name">'   + esc(u.firstName) + '</td>' +
+        '<td class="td-email">'  + esc(u.email)     + '</td>' +
+        '<td>'                   + secondaryHtml    + '</td>' +
+        '<td class="td-status">' + pill             + '</td>' +
+        matchCell +
         '</tr>';
     }).join('') + '</tbody>';
 
     setTableContent('<table class="uu-table">' + thead + tbody + '</table>');
+    if (hasRoster) {
+      renderUnmatchedTable(matchedBsaNums);
+      renderChangesTable(matchedPairs);
+    }
   }
 
   function sortBy(col) {
@@ -967,6 +1023,351 @@ function dumpFirst() {
 
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Roster CSV parsing ────────────────────────────────────────────────────
+
+  /** Parses a single CSV line, handling quoted fields and escaped double-quotes. */
+  function parseCsvLine(line) {
+    var cells = [], cell = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (c === '"') {
+        if (inQ && line[i + 1] === '"') { cell += '"'; i++; }
+        else inQ = !inQ;
+      } else if (c === ',' && !inQ) { cells.push(cell); cell = ''; }
+      else cell += c;
+    }
+    cells.push(cell);
+    return cells;
+  }
+
+  /**
+   * Case-insensitive lookup of a field in a roster row object.
+   * Row keys are raw CSV header strings; names are the lowercase values to match.
+   */
+  function findField(obj, names) {
+    for (var k in obj) {
+      if (k === '_section') continue;
+      if (names.indexOf(k.toLowerCase().trim()) !== -1) return obj[k];
+    }
+    return null;
+  }
+
+  /**
+   * Parses the multi-section BSA Full Troop Roster CSV.
+   * Section headers: first cell = blank/space, second cell = section name.
+   * Column headers: first cell = blank/space AND cells contain "First Name" / "Last Name".
+   * Data rows: first cell is a row number.
+   * Deduplicates by BSA Number (first occurrence wins). Skips DEN CHIEF MEMBERS sections.
+   */
+  function parseRosterCsv(text) {
+    if (!text || !text.trim()) return null;
+    var lines        = text.split(/\r?\n/);
+    var section      = '';
+    var headers      = null;
+    var rows         = [];
+    var seenBsa      = {};
+    var skipSection  = false;
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (!line.trim()) continue;
+      var cells = parseCsvLine(line);
+      if (!cells.length) continue;
+      var first = cells[0].trim();
+
+      // BSA section/column-header rows always have a QUOTED SPACE as the first field:
+      //   " ",SECTION NAME  or  " ","First Name","Last Name",...
+      // After parseCsvLine that becomes cells[0] === ' ' (single space).
+      //
+      // Multi-parent continuation rows look like  ,,,,,"Parent Name",...
+      // After parseCsvLine cells[0] === '' (empty string — no quotes, no content).
+      //
+      // Both trim() to '' which made them indistinguishable; check cells[0] BEFORE trim.
+      if (cells[0] === ' ') {
+        // Detect whether this is a column-header row or a section-name row.
+        var isColHeader = cells.some(function(c) {
+          var cl = c.trim().toLowerCase();
+          return cl === 'first name' || cl === 'last name' || cl === 'email';
+        });
+        if (isColHeader) {
+          headers = cells.slice(1).map(function(c) { return c.trim(); });
+        } else {
+          var sName = (cells[1] || '').trim();
+          skipSection = sName.toUpperCase().indexOf('DEN CHIEF') !== -1;
+          section  = sName;
+          headers  = null; // each section provides its own header row
+        }
+      } else if (!skipSection && headers && /^\d+$/.test(first)) {
+        // Data row — build object from current header set
+        var dataCells = cells.slice(1);
+        var obj = { _section: section };
+        headers.forEach(function(h, idx) {
+          obj[h] = (dataCells[idx] || '').trim();
+        });
+        var bsaNum = findField(obj, ['bsa number']);
+        if (bsaNum && !seenBsa[bsaNum]) {
+          seenBsa[bsaNum] = true;
+          rows.push(obj);
+        }
+      }
+    }
+
+    if (rows.length === 0) return { rows: [] };
+
+    // Validate that key identity columns were found in the parsed data
+    var sample  = rows[0];
+    var missing = [];
+    if (!findField(sample, ['first name'])) missing.push('First Name');
+    if (!findField(sample, ['last name']))  missing.push('Last Name');
+    if (!findField(sample, ['email']))      missing.push('Email');
+    if (!findField(sample, ['bsa number'])) missing.push('BSA Number');
+    if (missing.length) return { error: 'Required columns not found: ' + missing.join(', ') };
+
+    return { rows: rows };
+  }
+
+  /** Builds lookup maps from parsed roster rows for fast matching. */
+  function buildRosterIndex(rows) {
+    var byScoutId = {}, byEmail = {}, byName = {};
+    rows.forEach(function(row) {
+      var bsaNum = findField(row, ['bsa number']) || '';
+      var first  = (findField(row, ['first name'])|| '').toLowerCase().trim();
+      var last   = (findField(row, ['last name']) || '').toLowerCase().trim();
+      if (bsaNum) byScoutId[bsaNum] = row;
+      if (first && last) byName[first + ' ' + last] = row;
+
+      // In the YOUTH MEMBERS section the "Email" column holds the parent/guardian's
+      // email address, not the scout's own email.  Indexing it would cause parent GWS
+      // accounts to falsely "match" youth roster rows, hiding unmatched youth scouts.
+      // Adult section rows use their own email, so those are safe to index.
+      if (row._section !== 'YOUTH MEMBERS') {
+        var email = (findField(row, ['email']) || '').toLowerCase();
+        if (email) byEmail[email] = row;
+      }
+    });
+    return { byScoutId: byScoutId, byEmail: byEmail, byName: byName };
+  }
+
+  /**
+   * Attempts to match a GWS user to a roster row.
+   * Match priority: Scout ID (BSA#) → primary email → secondary emails → first+last name.
+   * Note: email matching only hits adult roster rows — youth rows are excluded from byEmail
+   * because their "Email" column is the parent's email, not the scout's own address.
+   * Youth scouts are matched via Scout_ID or name only.
+   */
+  function matchRoster(gwsUser) {
+    if (!rosterIndex) return null;
+
+    // 1. Scout ID (Workspace scoutId == BSA Number)
+    if (gwsUser.scoutId && rosterIndex.byScoutId[gwsUser.scoutId]) {
+      return rosterIndex.byScoutId[gwsUser.scoutId];
+    }
+    // 2. Primary email (adult GWS accounts only — youth have no personal email in roster)
+    var email = (gwsUser.email || '').toLowerCase();
+    if (email && rosterIndex.byEmail[email]) return rosterIndex.byEmail[email];
+
+    // 3. Secondary emails (e.g. parent's personal email on an adult GWS account)
+    var secEmails = gwsUser.secondaryEmails || [];
+    for (var i = 0; i < secEmails.length; i++) {
+      var se = (secEmails[i] || '').toLowerCase();
+      if (se && rosterIndex.byEmail[se]) return rosterIndex.byEmail[se];
+    }
+    // 4. First + Last name (works for both youth and adults)
+    var name = ((gwsUser.firstName || '') + ' ' + (gwsUser.lastName || '')).toLowerCase().trim();
+    if (name && rosterIndex.byName[name]) return rosterIndex.byName[name];
+
+    return null;
+  }
+
+  // Initialise roster index from the CSV embedded by Java at generation time.
+  (function initRoster() {
+    if (!window.ROSTER_CSV) return;
+    var result = parseRosterCsv(window.ROSTER_CSV);
+    if (!result) return;
+    if (result.error) { console.error('Roster CSV error:', result.error); return; }
+    parsedRoster = result.rows;
+    rosterIndex  = buildRosterIndex(result.rows);
+    console.log('Roster loaded:', parsedRoster.length, 'members');
+  })();
+
+  // ── Proposed changes table ───────────────────────────────────────────────
+
+  var pendingChanges = []; // module-level so updateSelected() can index into it
+
+  /**
+   * Compares matched GWS users against roster values for the four synced fields.
+   * Trims all values before comparison. Returns only entries with at least one diff.
+   * Fields: BSA Number (all), Is_Youth (all), Patrol (youth), Rank (youth).
+   */
+  function computeChanges(pairs) {
+    var result = [];
+    pairs.forEach(function(pair) {
+      var u = pair.gwsUser;
+      var r = pair.rosterRow;
+      var isYouth = r._section === 'YOUTH MEMBERS';
+      var diffs = [];
+
+      function diff(label, gwsRaw, rosterRaw) {
+        var gws    = String(gwsRaw    == null ? '' : gwsRaw).trim();
+        var roster = String(rosterRaw == null ? '' : rosterRaw).trim();
+        if (gws !== roster) {
+          diffs.push({ field: label, oldVal: gws, newVal: roster });
+        }
+      }
+
+      // BSA Number — all members
+      diff('BSA Number', u.scoutId, findField(r, ['bsa number']));
+
+      // Is_Youth — all members (adults always false, youth always true)
+      var gwsIsYouth  = u.isYouth === true || u.isYouth === 'true';
+      var expIsYouth  = isYouth;
+      if (gwsIsYouth !== expIsYouth) {
+        diffs.push({ field: 'Is_Youth',
+          oldVal: gwsIsYouth ? 'true' : 'false',
+          newVal: expIsYouth ? 'true' : 'false' });
+      }
+
+      // Patrol — youth only
+      if (isYouth) diff('Patrol', u.patrol, findField(r, ['patrol']));
+
+      // Rank — youth only
+      if (isYouth) diff('Rank', u.rank, findField(r, ['rank']));
+
+      if (diffs.length) result.push({ gwsUser: u, rosterRow: r, diffs: diffs });
+    });
+    return result;
+  }
+
+  /** Renders (or hides) the "Proposed Updates" changes table. */
+  function renderChangesTable(pairs) {
+    var wrap = document.getElementById('changes-table-wrap');
+    if (!wrap) return;
+
+    pendingChanges = computeChanges(pairs);
+    wrap.style.display = '';
+
+    var countBadge = '<span class="uu-count-badge">' + pendingChanges.length + ' user' +
+                     (pendingChanges.length !== 1 ? 's' : '') + ' with changes</span>';
+    var toolbar = '<div class="uu-table-toolbar">' +
+      '<div style="display:flex;align-items:center;gap:.6rem;">' +
+        '<span class="uu-table-title">Proposed Updates</span>' + countBadge +
+      '</div>' +
+      (pendingChanges.length ? '<button class="btn-primary" style="font-size:.82rem;padding:.45rem 1rem;" onclick="updateSelected()">Update Selected</button>' : '') +
+    '</div>';
+
+    if (!pendingChanges.length) {
+      wrap.innerHTML = '<div class="uu-table-wrap" style="margin-top:0;">' + toolbar +
+        '<div class="uu-empty"><div class="uu-empty-icon" style="font-size:1.4rem;">&#10003;</div>' +
+        'All matched users are up to date.</div></div>';
+      return;
+    }
+
+    var thead = '<thead><tr>' +
+      '<th style="width:2rem;text-align:center;">' +
+        '<input type="checkbox" class="check-all-changes" title="Select all" onchange="toggleAllChanges(this.checked)">' +
+      '</th>' +
+      '<th>Last Name</th><th>First Name</th><th>Primary Email</th><th>Changes</th>' +
+    '</tr></thead>';
+
+    var tbody = '<tbody>' + pendingChanges.map(function(entry, idx) {
+      var u = entry.gwsUser;
+      var diffsHtml = entry.diffs.map(function(d) {
+        var oldHtml = d.oldVal ? ('<span class="change-old">' + esc(d.oldVal) + '</span>')
+                                : '<span class="change-old change-empty">(not set)</span>';
+        var newHtml = d.newVal ? ('<span class="change-new">' + esc(d.newVal) + '</span>')
+                                : '<span class="change-new change-empty">(empty)</span>';
+        return '<div class="change-item">' +
+          '<span class="change-field">' + esc(d.field) + '</span>' +
+          oldHtml +
+          '<span class="change-arrow">&#8594;</span>' +
+          newHtml +
+        '</div>';
+      }).join('');
+      return '<tr>' +
+        '<td style="text-align:center;"><input type="checkbox" class="change-check" data-idx="' + idx + '"></td>' +
+        '<td class="td-name">'    + esc(u.lastName)  + '</td>' +
+        '<td class="td-name">'    + esc(u.firstName) + '</td>' +
+        '<td class="td-email">'   + esc(u.email)     + '</td>' +
+        '<td class="td-changes">' + diffsHtml        + '</td>' +
+      '</tr>';
+    }).join('') + '</tbody>';
+
+    wrap.innerHTML = '<div class="uu-table-wrap" style="margin-top:0;">' + toolbar +
+      '<table class="uu-table">' + thead + tbody + '</table>' +
+    '</div>';
+  }
+
+  function toggleAllChanges(checked) {
+    document.querySelectorAll('.change-check').forEach(function(cb) { cb.checked = checked; });
+  }
+
+  /** Collects checked rows and logs them; Apps Script write call goes here later. */
+  function updateSelected() {
+    var selected = [];
+    document.querySelectorAll('.change-check:checked').forEach(function(cb) {
+      selected.push(pendingChanges[parseInt(cb.getAttribute('data-idx'), 10)]);
+    });
+    if (!selected.length) {
+      alert('No users selected. Check the boxes next to the users you want to update.');
+      return;
+    }
+    // TODO: call Apps Script ?action=updateUsers with selected changes
+    console.log('Update selected (' + selected.length + '):', JSON.stringify(selected, null, 2));
+    alert('Update not yet implemented.\n' + selected.length + ' user(s) selected — see browser console for details.');
+  }
+
+  // ── Unmatched roster table ────────────────────────────────────────────────
+
+  /** Renders (or hides) the "In Scoutbook, Not On Site" table below the GWS table. */
+  function renderUnmatchedTable(matchedBsaNums) {
+    var wrap = document.getElementById('unmatched-table-wrap');
+    if (!wrap) return;
+
+    if (!parsedRoster || !parsedRoster.length) {
+      wrap.style.display = 'none';
+      return;
+    }
+
+    var unmatched = parsedRoster.filter(function(row) {
+      var bn = findField(row, ['bsa number']);
+      return bn && !matchedBsaNums.has(bn);
+    });
+
+    wrap.style.display = '';
+
+    var countBadge = '<span class="uu-count-badge">' + unmatched.length + ' unmatched</span>';
+    var toolbar = '<div class="uu-table-toolbar">' +
+      '<div style="display:flex;align-items:center;gap:.6rem;">' +
+        '<span class="uu-table-title">In Scoutbook, Not On Site</span>' + countBadge +
+      '</div></div>';
+
+    if (!unmatched.length) {
+      wrap.innerHTML = '<div class="uu-table-wrap" style="margin-top:0;">' + toolbar +
+        '<div class="uu-empty"><div class="uu-empty-icon" style="font-size:1.4rem;">&#10003;</div>' +
+        'All roster members matched to a Workspace account.</div></div>';
+      return;
+    }
+
+    var thead = '<thead><tr>' +
+      '<th>Last Name</th><th>First Name</th><th>Email</th>' +
+      '<th>BSA Number</th><th>Section</th>' +
+      '</tr></thead>';
+
+    var tbody = '<tbody>' + unmatched.map(function(row) {
+      return '<tr>' +
+        '<td class="td-name">'  + esc(findField(row, ['last name'])  || '') + '</td>' +
+        '<td class="td-name">'  + esc(findField(row, ['first name']) || '') + '</td>' +
+        '<td class="td-email">' + esc(findField(row, ['email'])      || '') + '</td>' +
+        '<td class="td-mono">'  + esc(findField(row, ['bsa number']) || '') + '</td>' +
+        '<td class="td-text">'  + esc(row._section || '')                   + '</td>' +
+        '</tr>';
+    }).join('') + '</tbody>';
+
+    wrap.innerHTML = '<div class="uu-table-wrap" style="margin-top:0;">' + toolbar +
+      '<div style="overflow-x:auto;"><table class="uu-table">' + thead + tbody + '</table></div>' +
+    '</div>';
   }
 </script>
 

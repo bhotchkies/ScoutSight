@@ -83,7 +83,7 @@ public class HtmlGenerator {
         HelpPageWriter.write(outputDir);
         AdvancementPlansPageWriter.write(scouts, rankDefsOrdered, categories, camps, eagleSlots, outputDir, stem);
         if (hasPatrolData) PatrolBalancingPageWriter.write(scouts, outputDir, stem);
-        if (adminRosterPath != null) AdminPageWriter.write(outputDir);
+        if (adminRosterPath != null) AdminPageWriter.write(outputDir, adminRosterPath);
 
         // Camp scheduler: generated when a schedule JSON exists for the camp.
         if (campFileStem != null && !camps.isEmpty()) {
