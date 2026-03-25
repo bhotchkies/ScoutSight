@@ -26,6 +26,10 @@ import java.net.http.HttpResponse;
  * <p>Styled to match the HTML output — parchment/forest-green palette, Nimbus L&amp;F
  * with custom color overrides, black header with blue accent stripe, contextual
  * per-field help buttons, and a dark terminal-style log area.
+ *
+ * <p>A secondary "Troop 600 Admin" card (gated by {@code adminModeCheckbox}) provides
+ * file selection for the full troop admin roster CSV; upload logic to Google Workspace
+ * (troop600.com) is reserved for a future implementation pass.
  */
 public class GuiMain extends JFrame {
 
@@ -68,7 +72,9 @@ public class GuiMain extends JFrame {
     private static final String      PREF_SCOUTS    = "scoutsCsv";
     private static final String      PREF_ROSTER    = "rosterReportCsv";
     private static final String      PREF_CAMP      = "camp";
-    private static final String      PREF_SHEETS_URL = "sheetsUrl";
+    private static final String      PREF_SHEETS_URL  = "sheetsUrl";
+    private static final String      PREF_ADMIN_MODE  = "adminMode";
+    private static final String      PREF_ADMIN_ROSTER = "adminRosterCsv";
 
     // ── Component references ─────────────────────────────────────────────────
     private final JTextField          workDirField;
@@ -77,6 +83,9 @@ public class GuiMain extends JFrame {
     private final JTextField          rosterField;
     private final JComboBox<CampEntry> campCombo;
     private final JTextField          sheetsUrlField;
+    private final JCheckBox           adminModeCheckbox;
+    private final JTextField          adminRosterField;
+    private final JButton             adminRosterBtn;
     private final JTextArea           logArea;
     private final JButton             runButton;
     private final JButton             viewButton;
@@ -143,6 +152,27 @@ public class GuiMain extends JFrame {
         sheetsUrlField.getDocument().addDocumentListener(docListener(() ->
                 PREFS.put(PREF_SHEETS_URL, sheetsUrlField.getText().trim())));
 
+        // Admin mode — checkbox gates the full troop roster field
+        boolean adminEnabled = Boolean.parseBoolean(PREFS.get(PREF_ADMIN_MODE, "false"));
+        adminModeCheckbox = new JCheckBox("Enable Troop 600 Admin Mode");
+        adminModeCheckbox.setFont(FONT_LABEL);
+        adminModeCheckbox.setOpaque(false);
+        adminModeCheckbox.setSelected(adminEnabled);
+
+        adminRosterField = styledField(PREFS.get(PREF_ADMIN_ROSTER, ""));
+        adminRosterField.setEnabled(adminEnabled);
+
+        adminRosterBtn = browseButton();
+        adminRosterBtn.setEnabled(adminEnabled);
+        adminRosterBtn.addActionListener(e -> pickFile(adminRosterField, PREF_ADMIN_ROSTER));
+
+        adminModeCheckbox.addActionListener(e -> {
+            boolean on = adminModeCheckbox.isSelected();
+            PREFS.put(PREF_ADMIN_MODE, Boolean.toString(on));
+            adminRosterField.setEnabled(on);
+            adminRosterBtn.setEnabled(on);
+        });
+
         workDirField.addActionListener(e -> onWorkDirChanged());
         workDirField.addFocusListener(new FocusAdapter() {
             @Override public void focusLost(FocusEvent e) { onWorkDirChanged(); }
@@ -207,13 +237,20 @@ public class GuiMain extends JFrame {
         setLayout(new BorderLayout());
         add(buildHeader(), BorderLayout.NORTH);
 
+        // Stack input-files card and admin card vertically above the log
+        JPanel cardsPanel = new JPanel();
+        cardsPanel.setLayout(new BoxLayout(cardsPanel, BoxLayout.Y_AXIS));
+        cardsPanel.setBackground(C_BG);
+        cardsPanel.add(buildFormCard(workDirField, workDirBtn, advBtn, scoutsBtn, rosterBtn));
+        cardsPanel.add(buildAdminCard());
+
         JPanel body = new JPanel(new BorderLayout());
         body.setBackground(C_BG);
-        body.add(buildFormCard(workDirField, workDirBtn, advBtn, scoutsBtn, rosterBtn), BorderLayout.NORTH);
+        body.add(cardsPanel, BorderLayout.NORTH);
         body.add(logScroll, BorderLayout.CENTER);
         add(body, BorderLayout.CENTER);
 
-        setSize(780, 600);
+        setSize(780, 680);
         setMinimumSize(new Dimension(580, 440));
         setLocationRelativeTo(null);
         checkForUpdates();
@@ -240,9 +277,9 @@ public class GuiMain extends JFrame {
 
         ImageIcon logoIcon = loadLogoIcon(32);
         if (logoIcon != null) {
-            JLabel logoLbl = new JLabel(logoIcon);
-            logoLbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-            left.add(logoLbl);
+            JLabel logoLabel = new JLabel(logoIcon);
+            logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            left.add(logoLabel);
         } else {
             // Fallback: plain text title
             JLabel title = new JLabel("ScoutSight");
@@ -459,6 +496,53 @@ public class GuiMain extends JFrame {
         card.add(fieldStack, fc);
 
         return row + 1;
+    }
+
+    /**
+     * Builds the "Troop 600 Admin" card shown below the main input-files card.
+     * The card is gated by {@link #adminModeCheckbox}; when unchecked all file
+     * controls are disabled. No generation logic lives here yet — file selection
+     * only, for future Google Workspace upload integration.
+     */
+    private JPanel buildAdminCard() {
+        JPanel card = new JPanel(new GridBagLayout());
+        card.setBackground(C_SURFACE2);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, C_BORDER),
+                BorderFactory.createEmptyBorder(10, 18, 10, 18)));
+
+        int r = 0;
+
+        // Section header: label + checkbox on the same row
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.LINE_AXIS));
+        headerPanel.setOpaque(false);
+
+        JLabel sectionLbl = new JLabel("TROOP 600 ADMIN");
+        sectionLbl.setFont(FONT_SECTION);
+        sectionLbl.setForeground(C_STRIPE);
+        headerPanel.add(sectionLbl);
+        headerPanel.add(Box.createHorizontalStrut(12));
+        headerPanel.add(adminModeCheckbox);
+
+        GridBagConstraints sc = gbc(0, r, 3, 1);
+        sc.anchor = GridBagConstraints.LINE_START;
+        sc.insets = new Insets(0, 0, 6, 0);
+        card.add(headerPanel, sc);
+        r++;
+
+        r = addFormRow(card, r, "Full Troop Roster", adminRosterField, adminRosterBtn, false,
+                "Optional · Full troop admin export from advancements.scouting.org",
+                "<html><body style='font-family:SansSerif;font-size:11pt;margin:2px 4px'>" +
+                "<p><b>Full Troop Roster</b></p>" +
+                "<p>The full admin roster export from the BSA system — includes adult members, " +
+                "positions, email addresses, and training records.</p>" +
+                "<p>Used for Troop 600 Google Workspace data sync (troop600.com). " +
+                "File naming convention: <code>RosterReport_Troop0600B_Troop_600_Admin_&lt;date&gt;.csv</code></p>" +
+                "<p>Download from <b>advancements.scouting.org → Roster → Export</b>.</p>" +
+                "</body></html>", 120);
+
+        return card;
     }
 
     // ── Action bar ───────────────────────────────────────────────────────────
@@ -787,6 +871,11 @@ public class GuiMain extends JFrame {
 
         // Inject Apps Script URL so camp_scheduler.html is pre-connected for recipients
         org.troop600.scoutsight.html.HtmlGenerator.setSheetsUrl(sheetsUrlField.getText().trim());
+
+        // Inject admin roster path so admin.html is generated when admin mode is active
+        String adminPath = (adminModeCheckbox.isSelected() && !adminRosterField.getText().isBlank())
+                ? adminRosterField.getText().trim() : null;
+        org.troop600.scoutsight.html.HtmlGenerator.setAdminRosterPath(adminPath);
 
         String[] args = { advCsv, scoutsCsv, campStem, rosterCsv };
         org.troop600.scoutsight.cli.Main.run(args, Path.of(workDir), logStream);

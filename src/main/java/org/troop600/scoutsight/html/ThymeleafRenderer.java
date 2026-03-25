@@ -31,10 +31,12 @@ class ThymeleafRenderer {
     private static boolean hasPatrolPage           = false;
     private static boolean hasSchedulerPage        = false;
     private static boolean hasAdvancementPlansPage = false;
+    private static boolean hasAdminPage            = false;
 
     static void setHasPatrolPage(boolean v)           { hasPatrolPage = v; }
     static void setHasSchedulerPage(boolean v)        { hasSchedulerPage = v; }
     static void setHasAdvancementPlansPage(boolean v) { hasAdvancementPlansPage = v; }
+    static void setHasAdminPage(boolean v)            { hasAdminPage = v; }
 
     static String render(String templateName, Map<String, String> variables) {
         String content;
@@ -45,17 +47,20 @@ class ThymeleafRenderer {
         }
         Context ctx = new Context();
         variables.forEach(ctx::setVariable);
-        ctx.setVariable("siteHeader", loadHeader(hasPatrolPage, hasSchedulerPage, hasAdvancementPlansPage));
+        ctx.setVariable("siteHeader", loadHeader(
+                hasPatrolPage, hasSchedulerPage, hasAdvancementPlansPage, hasAdminPage));
         return ENGINE.process(content, ctx);
     }
 
-    private static String loadHeader(boolean patrolPage, boolean schedulerPage, boolean advancementPlansPage) {
+    private static String loadHeader(boolean patrolPage, boolean schedulerPage,
+                                     boolean advancementPlansPage, boolean adminPage) {
         try {
             String headerTemplate = ResourceIO.readString(Path.of("templates", "_header.html")).trim();
             Context ctx = new Context();
             ctx.setVariable("hasPatrolPage",           patrolPage);
             ctx.setVariable("hasSchedulerPage",        schedulerPage);
             ctx.setVariable("hasAdvancementPlansPage", advancementPlansPage);
+            ctx.setVariable("hasAdminPage",            adminPage);
             return ENGINE.process(headerTemplate, ctx);
         } catch (IOException e) {
             return "";

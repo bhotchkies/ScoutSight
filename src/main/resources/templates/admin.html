@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Console &mdash; ScoutSight</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Nunito:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ebe0; --surface: #faf7f2; --surface-2: #f5f0e6;
+      --border: #d6ccb8; --border-lt: #e8e1d4;
+      --text: #28200f; --text-muted: #7a6e58;
+      --green: #1a4d2e; --green-mid: #256937; --green-lt: #3a8a50;
+      --amber: #c47a0e; --amber-lt: #fde8b8;
+      --red: #b03030; --red-lt: #fce8e8;
+      --stripe: #2d6a4f;
+      --navy: #1a2744; --navy-mid: #2e4470; --blue: #3a5bb8;
+      --nav-green: #fff; --nav-green-hv: rgba(255,255,255,0.75);
+      --font-h: 'Oswald', sans-serif; --font-b: 'Nunito', sans-serif;
+      --r: 6px; --r-lg: 10px;
+      --sh-sm: 0 1px 3px rgba(0,0,0,.10); --sh-md: 0 3px 12px rgba(0,0,0,.14);
+      --t: .15s ease;
+      --sidebar-w: 240px;
+      --sidebar-bg: #f8f5ef;
+      --sidebar-border: #ddd6c8;
+      --sidebar-item-hv: #ede8df;
+      --sidebar-item-active-bg: #dff0e5;
+      --sidebar-item-active-fg: #1a4d2e;
+      --sidebar-cap: #9a8f7e;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-b); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    a { color: var(--green-mid); text-decoration: none; }
+    a:hover { color: var(--green); text-decoration: underline; }
+
+    /* ── Site header ── */
+    .site-header { background: #1b4332; border-bottom: 3px solid var(--stripe); display: flex; align-items: center; justify-content: space-between; padding: .5rem 1.5rem; position: sticky; top: 0; z-index: 300; flex-shrink: 0; }
+    .site-logo-img { height: 2.8rem; display: block; }
+    .site-nav { display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .site-nav a { color: var(--nav-green); text-decoration: none; font-family: var(--font-b); font-size: .9rem; font-weight: 700; letter-spacing: .02em; }
+    .site-nav a:hover { color: var(--nav-green-hv); text-decoration: underline; }
+
+    /* ── Shell ── */
+    .admin-shell { display: flex; flex: 1; min-height: 0; }
+
+    /* ── Left sidebar ── */
+    .admin-sidebar {
+      width: var(--sidebar-w); min-width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      display: flex; flex-direction: column;
+      padding: 1rem 0 2rem;
+      overflow-y: auto;
+      position: sticky; top: 51px; /* below sticky header */
+      height: calc(100vh - 51px);
+    }
+    .sidebar-section { margin-bottom: .25rem; }
+    .sidebar-cap { font-family: var(--font-b); font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--sidebar-cap); padding: .9rem 1.1rem .3rem; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: .65rem;
+      padding: .5rem 1.1rem .5rem 1.3rem;
+      font-size: .88rem; font-weight: 600; color: var(--text);
+      cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+      transition: background var(--t), color var(--t);
+      position: relative;
+    }
+    .sidebar-item:hover { background: var(--sidebar-item-hv); color: var(--green); }
+    .sidebar-item.active { background: var(--sidebar-item-active-bg); color: var(--sidebar-item-active-fg); font-weight: 700; }
+    .sidebar-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--green); border-radius: 0 2px 2px 0; }
+    .sidebar-item .si-icon { font-size: .95rem; flex-shrink: 0; width: 1.1rem; text-align: center; opacity: .7; }
+    .sidebar-item.active .si-icon { opacity: 1; }
+    .sidebar-item .si-label { flex: 1; }
+    .sidebar-badge { font-size: .62rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--amber); background: var(--amber-lt); border: 1px solid var(--amber); border-radius: 999px; padding: .1rem .4rem; white-space: nowrap; }
+    .sidebar-sub { padding-left: 2.2rem; }
+    .sidebar-divider { border: none; border-top: 1px solid var(--sidebar-border); margin: .5rem 1rem; }
+
+    /* ── Main content area ── */
+    .admin-content { flex: 1; overflow-y: auto; padding: 2rem 2.5rem 3rem; min-width: 0; }
+
+    /* ── Content panels ── */
+    .content-panel { display: none; }
+    .content-panel.active { display: block; }
+
+    /* Page heading */
+    .cp-header { margin-bottom: 1.8rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border); }
+    .cp-title { font-family: var(--font-h); font-size: 1.7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--green); line-height: 1; margin-bottom: .3rem; }
+    .cp-sub { color: var(--text-muted); font-size: .9rem; font-weight: 500; }
+
+    /* Info / warning banners */
+    .info-banner { background: var(--navy); color: #c8d4e8; border-radius: var(--r-lg); padding: .9rem 1.2rem; margin-bottom: 1.6rem; font-size: .88rem; line-height: 1.55; display: flex; gap: .65rem; align-items: flex-start; }
+    .info-banner-icon { font-size: 1rem; flex-shrink: 0; margin-top: .1rem; }
+    .info-banner strong { color: #fff; }
+
+    /* Workflow shell */
+    .wf-shell { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--sh-sm); overflow: hidden; max-width: 680px; }
+    .wf-shell-header { background: var(--navy); padding: 1rem 1.3rem; display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+    .wf-shell-title { font-family: var(--font-h); font-size: 1.1rem; font-weight: 600; letter-spacing: .04em; color: #fff; }
+    .wf-badge-dev { font-family: var(--font-b); font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--amber); background: rgba(196,122,14,.15); border: 1px solid rgba(196,122,14,.5); border-radius: 999px; padding: .15rem .6rem; white-space: nowrap; }
+    .wf-shell-body { padding: 1.3rem; display: flex; flex-direction: column; gap: 1rem; }
+    .wf-desc { font-size: .92rem; color: var(--text-muted); line-height: 1.55; }
+    .wf-placeholder { background: var(--surface-2); border: 1px dashed var(--border); border-radius: var(--r); padding: 1.6rem; display: flex; flex-direction: column; align-items: center; gap: .5rem; text-align: center; }
+    .wf-placeholder-icon { font-size: 1.8rem; opacity: .4; }
+    .wf-placeholder-msg { font-size: .82rem; color: var(--text-muted); line-height: 1.5; }
+    .wf-notes { font-size: .8rem; color: var(--text-muted); font-style: italic; line-height: 1.45; padding: .6rem .8rem; background: var(--amber-lt); border-left: 3px solid var(--amber); border-radius: 0 var(--r) var(--r) 0; }
+    .wf-btn-disabled { font-family: var(--font-b); font-size: .88rem; font-weight: 700; padding: .55rem 1.1rem; border-radius: var(--r); border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text-muted); cursor: not-allowed; opacity: .6; }
+
+    /* Overview cards */
+    .overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+    .ov-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 1.1rem 1.2rem; cursor: pointer; transition: box-shadow var(--t), border-color var(--t); display: flex; flex-direction: column; gap: .5rem; }
+    .ov-card:hover { box-shadow: var(--sh-md); border-color: var(--green-lt); }
+    .ov-card-icon { font-size: 1.5rem; }
+    .ov-card-title { font-family: var(--font-h); font-size: 1rem; font-weight: 600; letter-spacing: .03em; color: var(--green); }
+    .ov-card-desc { font-size: .8rem; color: var(--text-muted); line-height: 1.45; }
+    .ov-card-badge { align-self: flex-start; font-size: .65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--amber); background: var(--amber-lt); border: 1px solid var(--amber); border-radius: 999px; padding: .1rem .45rem; }
+
+    /* ── Unmatched Users panel ── */
+    .uu-layout { display: flex; flex-direction: column; gap: 1.6rem; max-width: 860px; }
+    .um-load-row { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+    .btn-link { font-family: var(--font-b); font-size: .82rem; font-weight: 700; color: var(--green-mid); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
+    .btn-link:hover { color: var(--green); }
+
+    /* Setup accordion */
+    .setup-accordion { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+    .setup-accordion-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .75rem; background: none; border: none; padding: 1rem 1.3rem; cursor: pointer; font-family: var(--font-h); font-size: 1rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--navy); text-align: left; transition: background var(--t); }
+    .setup-accordion-toggle:hover { background: var(--surface-2); }
+    .setup-accordion-toggle .sa-arrow { font-size: .8rem; transition: transform var(--t); }
+    .setup-accordion-toggle.open .sa-arrow { transform: rotate(180deg); }
+    .setup-accordion-body { display: none; padding: 0 1.3rem 1.3rem; border-top: 1px solid var(--border-lt); }
+    .setup-accordion-body.open { display: block; }
+
+    .setup-steps { display: flex; flex-direction: column; gap: 1.2rem; padding-top: 1.2rem; }
+    .setup-step { display: flex; gap: .9rem; }
+    .step-num { flex-shrink: 0; width: 1.7rem; height: 1.7rem; background: var(--navy); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 700; margin-top: .1rem; }
+    .step-body { flex: 1; }
+    .step-title { font-weight: 700; font-size: .9rem; color: var(--text); margin-bottom: .25rem; }
+    .step-desc { font-size: .84rem; color: var(--text-muted); line-height: 1.55; }
+    .step-desc code { background: var(--surface-2); border: 1px solid var(--border); border-radius: 3px; padding: .05rem .35rem; font-family: 'Courier New', monospace; font-size: .82rem; color: var(--navy); }
+    .step-desc ul { margin: .4rem 0 0 1.1rem; }
+    .step-desc ul li { margin-bottom: .2rem; }
+
+    .script-block { margin-top: .7rem; background: #1e2a3a; border-radius: var(--r); overflow: hidden; }
+    .script-block-header { display: flex; align-items: center; justify-content: space-between; padding: .45rem .8rem; background: rgba(255,255,255,.05); }
+    .script-block-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #8ab4d4; font-family: monospace; }
+    .script-copy-btn { font-family: var(--font-b); font-size: .75rem; font-weight: 700; color: #8ab4d4; background: none; border: 1px solid rgba(138,180,212,.3); border-radius: 4px; padding: .2rem .55rem; cursor: pointer; transition: all var(--t); }
+    .script-copy-btn:hover { background: rgba(138,180,212,.1); color: #c8dcea; border-color: rgba(138,180,212,.6); }
+    .script-copy-btn.copied { color: #6fcf97; border-color: rgba(111,207,151,.5); }
+    .script-pre { margin: 0; padding: .8rem 1rem 1rem; overflow-x: auto; font-family: 'Courier New', monospace; font-size: .78rem; line-height: 1.6; color: #cdd8e8; white-space: pre; }
+
+    /* Connection row */
+    .connect-row { display: flex; gap: .6rem; align-items: flex-start; flex-wrap: wrap; }
+    .connect-label { font-size: .82rem; font-weight: 700; color: var(--text); margin-bottom: .35rem; }
+    .connect-hint { font-size: .78rem; color: var(--text-muted); margin-bottom: .55rem; line-height: 1.45; }
+    .connect-url-input { flex: 1; min-width: 260px; font-family: var(--font-b); font-size: .85rem; padding: .5rem .75rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; transition: border-color var(--t); }
+    .connect-url-input:focus { border-color: var(--green-mid); }
+    .connect-url-input.err { border-color: var(--red); }
+    .btn-primary { font-family: var(--font-b); font-size: .88rem; font-weight: 700; padding: .52rem 1.2rem; border-radius: var(--r); border: none; background: var(--green); color: #fff; cursor: pointer; white-space: nowrap; transition: background var(--t); }
+    .btn-primary:hover { background: var(--green-mid); }
+    .btn-primary:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+    .btn-secondary { font-family: var(--font-b); font-size: .85rem; font-weight: 700; padding: .5rem 1rem; border-radius: var(--r); border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: all var(--t); }
+    .btn-secondary:hover { border-color: var(--green-lt); color: var(--green); background: var(--surface); }
+    .connect-status { font-size: .8rem; margin-top: .4rem; font-weight: 600; }
+    .connect-status.ok  { color: var(--green-mid); }
+    .connect-status.err { color: var(--red); }
+
+    /* Users table */
+    .uu-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+    .uu-table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .8rem 1.1rem; border-bottom: 1px solid var(--border-lt); flex-wrap: wrap; }
+    .uu-table-title { font-family: var(--font-h); font-size: .95rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--navy); }
+    .uu-count-badge { font-size: .78rem; font-weight: 700; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: .15rem .6rem; }
+    .uu-search { font-family: var(--font-b); font-size: .82rem; padding: .38rem .65rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; width: 200px; transition: border-color var(--t); }
+    .uu-search:focus { border-color: var(--green-mid); }
+    table.uu-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    table.uu-table th { background: var(--surface-2); font-family: var(--font-h); font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: .55rem .9rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+    table.uu-table th:hover { color: var(--text); }
+    table.uu-table th .sort-arrow { opacity: .4; font-size: .7rem; margin-left: .25rem; }
+    table.uu-table th.sorted .sort-arrow { opacity: 1; color: var(--green-mid); }
+    table.uu-table td { padding: .55rem .9rem; border-bottom: 1px solid var(--border-lt); vertical-align: middle; }
+    table.uu-table tr:last-child td { border-bottom: none; }
+    table.uu-table tr:hover td { background: var(--surface-2); }
+    .td-name  { font-weight: 700; color: var(--text); white-space: nowrap; }
+    .td-email { color: var(--text-muted); font-size: .82rem; }
+    .td-ou    { font-size: .78rem; color: var(--text-muted); font-family: monospace; white-space: nowrap; }
+    .td-mono  { font-family: monospace; font-size: .82rem; color: var(--text); }
+    .td-text  { font-size: .85rem; color: var(--text); }
+    .td-status { white-space: nowrap; }
+    /* Horizontally scrollable table for wide column sets */
+    #table-body-wrap { overflow-x: auto; }
+    .pill { display: inline-flex; align-items: center; gap: .3rem; font-size: .72rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; border-radius: 999px; padding: .15rem .55rem; border: 1px solid; white-space: nowrap; }
+    .pill-suspended { color: var(--red); background: var(--red-lt); border-color: var(--red); }
+    .pill-active    { color: var(--green-mid); background: #e6f4ec; border-color: var(--green-lt); }
+    .uu-empty { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: .88rem; }
+    .uu-empty-icon { font-size: 2rem; opacity: .35; margin-bottom: .5rem; }
+    .uu-loading { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: .88rem; }
+    .uu-spinner { display: inline-block; width: 1.4rem; height: 1.4rem; border: 3px solid var(--border); border-top-color: var(--green-mid); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .5rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .uu-error { background: var(--red-lt); border-top: 1px solid var(--red); padding: .8rem 1.1rem; font-size: .84rem; color: var(--red); display: flex; gap: .5rem; align-items: flex-start; }
+  </style>
+</head>
+<body>
+
+[(${siteHeader})]
+
+<div class="admin-shell">
+
+  <!-- ── Left navigation ── -->
+  <nav class="admin-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-cap">Overview</div>
+      <button class="sidebar-item active" onclick="showPanel('overview', this)">
+        <span class="si-icon">&#9741;</span>
+        <span class="si-label">Dashboard</span>
+      </button>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-section">
+      <div class="sidebar-cap">Users &amp; Groups</div>
+      <button class="sidebar-item" onclick="showPanel('update-users', this)">
+        <span class="si-icon">&#128100;</span>
+        <span class="si-label">Update Users</span>
+        <span class="sidebar-badge">Soon</span>
+      </button>
+      <button class="sidebar-item sidebar-sub" onclick="showPanel('unmatched-users', this)">
+        <span class="si-icon">&#9888;</span>
+        <span class="si-label">Unmatched Users</span>
+      </button>
+      <button class="sidebar-item" onclick="showPanel('update-patrols', this)">
+        <span class="si-icon">&#9872;</span>
+        <span class="si-label">Update Patrols</span>
+        <span class="sidebar-badge">Soon</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Content area ── -->
+  <main class="admin-content">
+
+    <!-- ── Overview / Dashboard ── -->
+    <div id="panel-overview" class="content-panel active">
+      <div class="cp-header">
+        <div class="cp-title">Admin Console</div>
+        <div class="cp-sub">Troop 600 &middot; Google Workspace Integration</div>
+      </div>
+      <div class="info-banner">
+        <span class="info-banner-icon">&#8505;</span>
+        <span>
+          <strong>Admin workflows synchronize roster data with troop600.com.</strong>
+          Select a workflow from the left navigation to upload changes to the Troop 600 Google Workspace.
+          Workflows marked <em>Under Development</em> are coming in a future release.
+        </span>
+      </div>
+      <div class="overview-grid">
+        <div class="ov-card" onclick="showPanelById('panel-unmatched-users')">
+          <div class="ov-card-icon">&#9888;</div>
+          <div class="ov-card-title">Unmatched Users</div>
+          <div class="ov-card-desc">Load Google Workspace accounts and identify users not in the BSA roster.</div>
+        </div>
+        <div class="ov-card" onclick="showPanelById('panel-update-users')">
+          <div class="ov-card-icon">&#128100;</div>
+          <div class="ov-card-title">Update Users</div>
+          <div class="ov-card-desc">Provision and update Google Workspace accounts from the BSA roster CSV.</div>
+          <span class="ov-card-badge">Under Development</span>
+        </div>
+        <div class="ov-card" onclick="showPanelById('panel-update-patrols')">
+          <div class="ov-card-icon">&#9872;</div>
+          <div class="ov-card-title">Update Patrols</div>
+          <div class="ov-card-desc">Sync patrol assignments and Google Group memberships from advancement data.</div>
+          <span class="ov-card-badge">Under Development</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Unmatched Users ── -->
+    <div id="panel-unmatched-users" class="content-panel">
+      <div class="cp-header">
+        <div class="cp-title">Unmatched Users</div>
+        <div class="cp-sub">Google Workspace accounts &middot; troop600.com domain</div>
+      </div>
+
+      <div class="uu-layout">
+
+        <!-- Setup + URL (hidden once URL is saved) -->
+        <div id="um-setup-wrap">
+
+        <!-- Setup accordion -->
+        <div class="setup-accordion">
+          <button class="setup-accordion-toggle" id="setup-toggle-um" onclick="toggleSetup('um')">
+            <span>&#9881; Google Workspace Setup &mdash; One-Time Configuration</span>
+            <span class="sa-arrow">&#9660;</span>
+          </button>
+          <div class="setup-accordion-body" id="setup-body-um">
+            <div class="setup-steps">
+
+              <div class="setup-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Open Google Apps Script</div>
+                  <div class="step-desc">
+                    Go to <code>script.google.com</code> and click <strong>New project</strong>.
+                    Name it something like <em>ScoutSight Admin API</em>.
+                    <strong>Sign in as a troop600.com super admin account</strong> — the script will run
+                    with this account's permissions to read and write Workspace users.
+                  </div>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Enable the Admin SDK service</div>
+                  <div class="step-desc">
+                    In the Apps Script editor, click <strong>Services (+)</strong> in the left panel.
+                    Find <strong>Admin SDK API</strong>, select it, and click <strong>Add</strong>.
+                    This enables <code>AdminDirectory</code> — the API used to list and manage Workspace users.
+                  </div>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Paste the script below</div>
+                  <div class="step-desc">
+                    Replace all contents of <code>Code.gs</code> with the following script, then save
+                    (<code>Ctrl+S</code>).
+                  </div>
+                  <div class="script-block">
+                    <div class="script-block-header">
+                      <span class="script-block-label">Code.gs</span>
+                      <button class="script-copy-btn" onclick="copyScript(this,'script-code-um')">Copy</button>
+                    </div>
+                    <pre class="script-pre" id="script-code-um">var DOMAIN = 'troop600.com';
+
+function doGet(e) {
+  var action = (e.parameter || {}).action || '';
+  try {
+    switch (action) {
+      case 'listUsers': return respond(listUsers());
+      case 'dumpFirst': return respond(dumpFirst());
+      default:          return respond({ error: 'Unknown action: ' + action });
+    }
+  } catch (err) {
+    return respond({ error: err.message });
+  }
+}
+
+function respond(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Returns all users in the domain with primary + secondary emails,
+ * org unit, status, and all custom schema attributes.
+ */
+function listUsers() {
+  var users = [];
+  var pageToken;
+  do {
+    var page = AdminDirectory.Users.list({
+      domain:     DOMAIN,
+      maxResults: 500,
+      orderBy:    'familyName',
+      projection: 'full',        // required to include customSchemas
+      pageToken:  pageToken
+    });
+    (page.users || []).forEach(function(u) {
+
+      // Secondary emails (all non-primary entries in the emails array)
+      var secondaryEmails = (u.emails || [])
+        .filter(function(e) { return !e.primary; })
+        .map(function(e) { return e.address || ''; })
+        .filter(Boolean);
+
+      // Flatten all custom schema fields into a single map keyed by field name.
+      // Schema name is intentionally ignored so field names work regardless of
+      // what the schema was named in the Workspace admin console.
+      var custom = {};
+      if (u.customSchemas) {
+        Object.keys(u.customSchemas).forEach(function(schema) {
+          var fields = u.customSchemas[schema];
+          Object.keys(fields).forEach(function(field) {
+            custom[field] = fields[field];
+          });
+        });
+      }
+
+      // Multi-value fields are arrays of {type, value} objects — extract the values.
+      function mvValues(field) {
+        var arr = custom[field];
+        if (!arr) return '';
+        if (!Array.isArray(arr)) return String(arr);
+        return arr.map(function(item) { return item.value || ''; }).filter(Boolean).join(', ');
+      }
+
+      users.push({
+        id:              u.id,
+        email:           u.primaryEmail,
+        firstName:       u.name.givenName  || '',
+        lastName:        u.name.familyName || '',
+        orgUnit:         u.orgUnitPath,
+        suspended:       u.suspended || false,
+        lastLogin:       u.lastLoginTime || null,
+        secondaryEmails: secondaryEmails,
+        // Custom schema fields (schema names: Scout_Attributes, Troop_Attributes, Parent_Attributes)
+        rank:     custom['Rank']     || '',
+        patrol:   custom['Patrol']   || '',
+        scoutId:  custom['Scout_ID'] != null ? String(custom['Scout_ID']) : '',
+        isYouth:  custom['Is_Youth'] != null ? custom['Is_Youth'] : '',
+        parents:  mvValues('Parents'),
+        scouts:   mvValues('Scouts')
+      });
+    });
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+
+  return { users: users };
+}
+
+/** Debug: returns the raw Admin SDK object for the first user — use to verify field names. */
+function dumpFirst() {
+  var page = AdminDirectory.Users.list({
+    domain: DOMAIN, maxResults: 1, projection: 'full'
+  });
+  var u = (page.users || [])[0];
+  if (!u) return { error: 'No users found' };
+  return {
+    primaryEmail:  u.primaryEmail,
+    name:          u.name,
+    emails:        u.emails,
+    customSchemas: u.customSchemas,
+    orgUnitPath:   u.orgUnitPath,
+    suspended:     u.suspended
+  };
+}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                  <div class="step-title">Deploy as a Web App</div>
+                  <div class="step-desc">
+                    Click <strong>Deploy &rarr; New deployment</strong>.
+                    <ul>
+                      <li>Type: <strong>Web app</strong></li>
+                      <li>Execute as: <strong>Me</strong> (your admin account)</li>
+                      <li>Who has access: <strong>Anyone</strong></li>
+                    </ul>
+                    Click <strong>Deploy</strong>, authorize the requested permissions when prompted
+                    (Admin SDK directory access), then copy the <strong>Web app URL</strong>.
+                    <br><br>
+                    <strong>Note:</strong> "Anyone" access means anyone who obtains the URL can call it.
+                    Treat the URL like a password — do not share it or commit it to git.
+                  </div>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="step-num">5</div>
+                <div class="step-body">
+                  <div class="step-title">Paste the URL below and load</div>
+                  <div class="step-desc">
+                    Paste the web app URL into the connection field below.
+                    It will be saved in your browser for future use.
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /.setup-steps -->
+          </div><!-- /.setup-accordion-body -->
+        </div><!-- /.setup-accordion -->
+
+        <!-- URL input -->
+        <div id="um-url-section">
+          <div class="connect-label">Apps Script Web App URL</div>
+          <div class="connect-hint">
+            Paste the deployed web app URL from step&nbsp;4 above.
+            Saved locally in your browser — not sent anywhere except directly to the Apps Script endpoint.
+          </div>
+          <div class="connect-row">
+            <input type="url" class="connect-url-input" id="gws-url-um"
+                   placeholder="https://script.google.com/macros/s/.../exec"
+                   oninput="syncUrl('um', this.value)" />
+            <button class="btn-secondary" id="clear-btn-um" onclick="clearUrl()" style="display:none">
+              Disconnect
+            </button>
+          </div>
+        </div>
+
+        </div><!-- /#um-setup-wrap -->
+
+        <!-- Load row — always visible -->
+        <div class="um-load-row">
+          <button class="btn-primary" id="load-btn" onclick="loadUsers()" disabled>
+            &#8635; Load Users
+          </button>
+          <button class="btn-secondary" id="debug-btn" onclick="dumpFirstUser()" disabled style="font-size:.78rem;padding:.38rem .8rem;">
+            &#128270; Debug Fields
+          </button>
+          <button class="btn-link" id="um-show-config" onclick="showUmConfig()" style="display:none">
+            &#9881; Change connection
+          </button>
+          <div class="connect-status" id="connect-status"></div>
+        </div>
+
+        <!-- Debug output -->
+        <div id="debug-out" style="display:none;background:#1e2a3a;border-radius:var(--r);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:.45rem .8rem;background:rgba(255,255,255,.05);">
+            <span style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8ab4d4;font-family:monospace;">Raw field dump — first user</span>
+            <button class="script-copy-btn" onclick="copyDebug(this)">Copy</button>
+          </div>
+          <pre id="debug-pre" style="margin:0;padding:.8rem 1rem 1rem;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.6;color:#cdd8e8;white-space:pre;overflow-x:auto;"></pre>
+        </div>
+
+        <!-- Users table -->
+        <div class="uu-table-wrap" id="users-table-wrap">
+          <div class="uu-table-toolbar">
+            <div style="display:flex;align-items:center;gap:.6rem;">
+              <span class="uu-table-title">Workspace Users</span>
+              <span class="uu-count-badge" id="user-count" style="display:none">0</span>
+            </div>
+            <input type="search" class="uu-search" id="uu-search" placeholder="Search name or email&hellip;"
+                   oninput="filterTable()" style="display:none" />
+          </div>
+          <div id="table-body-wrap">
+            <div class="uu-empty">
+              <div class="uu-empty-icon">&#128100;</div>
+              Enter the Apps Script URL above and click <strong>Load Users</strong> to fetch accounts
+              from the troop600.com Google Workspace.
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.uu-layout -->
+    </div><!-- /#panel-unmatched-users -->
+
+    <!-- ── Update Users ── -->
+    <div id="panel-update-users" class="content-panel">
+      <div class="cp-header">
+        <div class="cp-title">Update Users</div>
+        <div class="cp-sub">Provision and update Google Workspace accounts from the roster CSV</div>
+      </div>
+
+      <!-- Setup accordion (cloned from template by mountGwsSetup) -->
+      <div class="uu-layout" style="max-width:860px;margin-bottom:1.6rem;">
+        <div id="uu-setup-wrap"></div><!-- injected: accordion + URL input -->
+      </div>
+
+      <div class="wf-shell">
+        <div class="wf-shell-header">
+          <span class="wf-shell-title">Update Users</span>
+          <span class="wf-badge-dev">Under Development</span>
+        </div>
+        <div class="wf-shell-body">
+          <p class="wf-desc">
+            Synchronize Scout and adult member accounts with the Troop 600 Google Workspace.
+            Provisions new accounts and updates existing member details from the admin roster CSV.
+          </p>
+          <div class="wf-placeholder">
+            <span class="wf-placeholder-icon">&#128100;</span>
+            <span class="wf-placeholder-msg">No upload interface yet.<br>This workflow will be available in a future release.</span>
+          </div>
+          <div class="wf-notes">
+            Will read member records from the Full Troop Roster CSV and create or update
+            Google Workspace accounts accordingly.
+          </div>
+          <div><button class="wf-btn-disabled" disabled>Upload &mdash; coming soon</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Update Patrols ── -->
+    <div id="panel-update-patrols" class="content-panel">
+      <div class="cp-header">
+        <div class="cp-title">Update Patrols</div>
+        <div class="cp-sub">Sync patrol Google Groups from the current advancement data</div>
+      </div>
+      <div class="wf-shell">
+        <div class="wf-shell-header">
+          <span class="wf-shell-title">Update Patrols</span>
+          <span class="wf-badge-dev">Under Development</span>
+        </div>
+        <div class="wf-shell-body">
+          <p class="wf-desc">
+            Update patrol assignments and Google Group memberships in the Troop 600 Google Workspace.
+            Creates or updates patrol-based groups from the current advancement data.
+          </p>
+          <div class="wf-placeholder">
+            <span class="wf-placeholder-icon">&#9872;</span>
+            <span class="wf-placeholder-msg">No upload interface yet.<br>This workflow will be available in a future release.</span>
+          </div>
+          <div class="wf-notes">
+            Will read patrol assignments from the advancement data and sync Google Group
+            memberships for each patrol.
+          </div>
+          <div><button class="wf-btn-disabled" disabled>Upload &mdash; coming soon</button></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // ── Panel navigation ──────────────────────────────────────────────────────
+
+  function showPanel(key, btn) {
+    document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+    var panel = document.getElementById('panel-' + key);
+    if (panel) panel.classList.add('active');
+    if (btn)   btn.classList.add('active');
+  }
+
+  function showPanelById(panelId) {
+    var panel = document.getElementById(panelId);
+    if (!panel) return;
+    var key = panelId.replace('panel-', '');
+    var btn = document.querySelector('.sidebar-item[onclick*="' + key + '"]');
+    showPanel(key, btn);
+  }
+
+  // ── Setup accordion ───────────────────────────────────────────────────────
+
+  // suffix: 'um' (Unmatched Users) or 'uu' (Update Users)
+  function toggleSetup(suffix) {
+    var btn  = document.getElementById('setup-toggle-' + suffix);
+    var body = document.getElementById('setup-body-' + suffix);
+    if (!btn || !body) return;
+    var open = body.classList.toggle('open');
+    btn.classList.toggle('open', open);
+  }
+
+  // Inject the Update Users setup section by cloning the Unmatched Users one.
+  // This avoids duplicating the accordion HTML — the 'um' version is the source of truth.
+  function mountUuSetup() {
+    var src = document.getElementById('um-setup-wrap');
+    var dst = document.getElementById('uu-setup-wrap');
+    if (!src || !dst) return;
+
+    var clone = src.cloneNode(true);
+
+    // Re-ID every suffixed element so the two copies are independent
+    clone.querySelectorAll('[id]').forEach(function(el) {
+      el.id = el.id.replace(/-um$/, '-uu');
+    });
+
+    // Re-wire toggle button
+    var toggle = clone.querySelector('#setup-toggle-uu');
+    if (toggle) toggle.setAttribute('onclick', "toggleSetup('uu')");
+
+    // Re-wire copy button
+    var copyBtn = clone.querySelector('.script-copy-btn');
+    if (copyBtn) copyBtn.setAttribute('onclick', "copyScript(this,'script-code-uu')");
+
+    // Re-wire URL input
+    var urlInput = clone.querySelector('#gws-url-uu');
+    if (urlInput) urlInput.setAttribute('oninput', "syncUrl('uu', this.value)");
+
+    // Re-wire disconnect button
+    var clearBtn = clone.querySelector('#clear-btn-uu');
+    if (clearBtn) clearBtn.setAttribute('onclick', "clearUrl()");
+
+    // Remove the inner closing wrapper div (it's only needed on the um side)
+    // The uu version shows the URL section without a wrapping hide div
+    dst.appendChild(clone);
+
+    // Populate with saved URL
+    var saved = localStorage.getItem(GWS_URL_KEY);
+    if (saved && urlInput) {
+      urlInput.value = saved;
+      if (clearBtn) clearBtn.style.display = '';
+    }
+  }
+
+  // ── Script copy ───────────────────────────────────────────────────────────
+
+  function copyScript(btn, preId) {
+    var code = document.getElementById(preId).textContent;
+    navigator.clipboard.writeText(code).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // ── URL state — shared between both panels via localStorage ───────────────
+
+  var GWS_URL_KEY = 'scoutsight_gws_url';
+
+  // Called by either URL input; keeps both inputs + button states in sync.
+  function syncUrl(suffix, raw) {
+    var val = raw.trim();
+    if (val) {
+      localStorage.setItem(GWS_URL_KEY, val);
+    } else {
+      localStorage.removeItem(GWS_URL_KEY);
+    }
+    // Sync the other input
+    var other = suffix === 'um' ? 'uu' : 'um';
+    var otherInput = document.getElementById('gws-url-' + other);
+    if (otherInput && otherInput.value.trim() !== val) otherInput.value = val;
+    // Clear buttons
+    ['um', 'uu'].forEach(function(s) {
+      var cb = document.getElementById('clear-btn-' + s);
+      if (cb) cb.style.display = val ? '' : 'none';
+    });
+    // Load + debug buttons
+    document.getElementById('load-btn').disabled  = !val;
+    document.getElementById('debug-btn').disabled = !val;
+    document.getElementById('connect-status').textContent = '';
+    document.getElementById('gws-url-' + suffix).classList.remove('err');
+  }
+
+  function clearUrl() {
+    localStorage.removeItem(GWS_URL_KEY);
+    ['um', 'uu'].forEach(function(s) {
+      var inp = document.getElementById('gws-url-' + s);
+      var cb  = document.getElementById('clear-btn-' + s);
+      if (inp) inp.value = '';
+      if (cb)  cb.style.display = 'none';
+    });
+    document.getElementById('load-btn').disabled = true;
+    document.getElementById('connect-status').textContent = '';
+    allUsers = [];
+    renderTable([]);
+    // Re-show setup on Unmatched Users since URL is now gone
+    updateUmSetupVisibility();
+  }
+
+  // Show/hide the um setup section based on whether a URL is saved.
+  function updateUmSetupVisibility() {
+    var hasUrl   = !!localStorage.getItem(GWS_URL_KEY);
+    var wrap     = document.getElementById('um-setup-wrap');
+    var showLink = document.getElementById('um-show-config');
+    if (wrap)     wrap.style.display     = hasUrl ? 'none' : '';
+    if (showLink) showLink.style.display = hasUrl ? ''     : 'none';
+  }
+
+  // "Change connection" link forces the setup section back open.
+  function showUmConfig() {
+    var wrap = document.getElementById('um-setup-wrap');
+    if (wrap) wrap.style.display = '';
+    document.getElementById('um-show-config').style.display = 'none';
+  }
+
+  // ── Initialise on page load ───────────────────────────────────────────────
+
+  (function init() {
+    var saved = localStorage.getItem(GWS_URL_KEY);
+
+    // Populate Unmatched Users input
+    var umInput = document.getElementById('gws-url-um');
+    if (umInput && saved) {
+      umInput.value = saved;
+      var umClear = document.getElementById('clear-btn-um');
+      if (umClear) umClear.style.display = '';
+    }
+
+    // Inject Update Users setup from the um clone
+    mountUuSetup();
+
+    // Load + debug button state
+    document.getElementById('load-btn').disabled  = !saved;
+    document.getElementById('debug-btn').disabled = !saved;
+
+    // Show/hide um setup wrapper
+    updateUmSetupVisibility();
+  })();
+
+  // ── Fetch users ───────────────────────────────────────────────────────────
+
+  var allUsers = [];
+
+  function loadUsers() {
+    var url = localStorage.getItem(GWS_URL_KEY) || '';
+    if (!url) return;
+
+    document.getElementById('load-btn').disabled = true;
+    document.getElementById('connect-status').textContent = '';
+    ['um', 'uu'].forEach(function(s) {
+      var inp = document.getElementById('gws-url-' + s);
+      if (inp) inp.classList.remove('err');
+    });
+
+    setTableContent('<div class="uu-loading"><span class="uu-spinner"></span>Loading users from troop600.com&hellip;</div>');
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=listUsers';
+
+    fetch(fetchUrl)
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText);
+        return r.json();
+      })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        allUsers = data.users || [];
+        setStatus('ok', '&#10003; Connected &mdash; ' + allUsers.length + ' users loaded from troop600.com');
+        renderTable(allUsers);
+        document.getElementById('uu-search').style.display = allUsers.length ? '' : 'none';
+        document.getElementById('user-count').style.display = allUsers.length ? '' : 'none';
+      })
+      .catch(function(err) {
+        ['um', 'uu'].forEach(function(s) {
+          var inp = document.getElementById('gws-url-' + s);
+          if (inp) inp.classList.add('err');
+        });
+        setStatus('err', '&#9888; ' + err.message);
+        setTableContent('<div class="uu-error"><span>&#9888;</span><span>' +
+          'Could not reach the Apps Script endpoint. Make sure the URL is correct ' +
+          'and the script is deployed as a Web App with "Anyone" access.' +
+          '</span></div>');
+      })
+      .finally(function() {
+        document.getElementById('load-btn').disabled = false;
+      });
+  }
+
+  function setStatus(type, msg) {
+    var el = document.getElementById('connect-status');
+    el.className = 'connect-status ' + type;
+    el.innerHTML = msg;
+  }
+
+  // ── Debug field dump ──────────────────────────────────────────────────────
+
+  function dumpFirstUser() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var btn = document.getElementById('debug-btn');
+    btn.disabled = true;
+    btn.textContent = 'Loading\u2026';
+    var fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=dumpFirst';
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var pre = document.getElementById('debug-pre');
+        pre.textContent = JSON.stringify(data, null, 2);
+        document.getElementById('debug-out').style.display = '';
+      })
+      .catch(function(err) {
+        var pre = document.getElementById('debug-pre');
+        pre.textContent = 'Error: ' + err.message;
+        document.getElementById('debug-out').style.display = '';
+      })
+      .finally(function() {
+        btn.disabled = false;
+        btn.innerHTML = '&#128270; Debug Fields';
+      });
+  }
+
+  function copyDebug(btn) {
+    var text = document.getElementById('debug-pre').textContent;
+    navigator.clipboard.writeText(text).then(function() {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // ── Table rendering ───────────────────────────────────────────────────────
+
+  var sortCol   = 'lastName';
+  var sortAsc   = true;
+  var filterVal = '';
+
+  function setTableContent(html) {
+    document.getElementById('table-body-wrap').innerHTML = html;
+  }
+
+  function renderTable(users) {
+    document.getElementById('user-count').textContent = users.length + ' users';
+    document.getElementById('user-count').style.display = users.length ? '' : 'none';
+    document.getElementById('uu-search').style.display = users.length ? '' : 'none';
+
+    if (!users.length) {
+      setTableContent('<div class="uu-empty"><div class="uu-empty-icon">&#128100;</div>No users found.</div>');
+      return;
+    }
+
+    var sorted = users.slice().sort(function(a, b) {
+      var va = (a[sortCol] || '').toString().toLowerCase();
+      var vb = (b[sortCol] || '').toString().toLowerCase();
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    });
+
+    var cols = [
+      { key: 'lastName',       label: 'Last Name'       },
+      { key: 'firstName',      label: 'First Name'      },
+      { key: 'email',          label: 'Primary Email'   },
+      { key: 'secondaryEmail', label: 'Secondary Email', noSort: true },
+      { key: 'scoutId',        label: 'Scout ID'        },
+      { key: 'isYouth',        label: 'Youth'           },
+      { key: 'rank',           label: 'Rank'            },
+      { key: 'patrol',         label: 'Patrol'          },
+      { key: 'parents',        label: 'Parents',        noSort: true },
+      { key: 'orgUnit',        label: 'Org Unit'        },
+      { key: 'suspended',      label: 'Status'          }
+    ];
+
+    var arrow = sortAsc ? ' &#9650;' : ' &#9660;';
+    var thead = '<thead><tr>' + cols.map(function(c) {
+      if (c.noSort) return '<th>' + c.label + '</th>';
+      var isSorted = c.key === sortCol;
+      return '<th class="' + (isSorted ? 'sorted' : '') + '" onclick="sortBy(\'' + c.key + '\')">' +
+             c.label + '<span class="sort-arrow">' + (isSorted ? arrow : ' &#8597;') + '</span></th>';
+    }).join('') + '</tr></thead>';
+
+    var tbody = '<tbody>' + sorted.map(function(u) {
+      var pill = u.suspended
+        ? '<span class="pill pill-suspended">&#9679; Suspended</span>'
+        : '<span class="pill pill-active">&#9679; Active</span>';
+      var secondaryHtml = (u.secondaryEmails || []).map(function(e) {
+        return '<div class="td-email">' + esc(e) + '</div>';
+      }).join('') || '<span style="color:var(--border)">—</span>';
+      var youthHtml = u.isYouth === '' ? '<span style="color:var(--border)">—</span>'
+        : (String(u.isYouth).toLowerCase() === 'true' || u.isYouth === true)
+          ? '<span class="pill pill-active">Yes</span>'
+          : '<span style="color:var(--text-muted);font-size:.82rem">No</span>';
+      return '<tr>' +
+        '<td class="td-name">'   + esc(u.lastName)                                + '</td>' +
+        '<td class="td-name">'   + esc(u.firstName)                               + '</td>' +
+        '<td class="td-email">'  + esc(u.email)                                   + '</td>' +
+        '<td>'                   + secondaryHtml                                   + '</td>' +
+        '<td class="td-mono">'   + esc(u.scoutId)                                 + '</td>' +
+        '<td>'                   + youthHtml                                       + '</td>' +
+        '<td class="td-text">'   + esc(u.rank)                                    + '</td>' +
+        '<td class="td-text">'   + esc(u.patrol)                                  + '</td>' +
+        '<td class="td-email">'  + esc(u.parents)                                 + '</td>' +
+        '<td class="td-ou">'     + esc(u.orgUnit)                                 + '</td>' +
+        '<td class="td-status">' + pill                                            + '</td>' +
+        '</tr>';
+    }).join('') + '</tbody>';
+
+    setTableContent('<table class="uu-table">' + thead + tbody + '</table>');
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
+    var visible = getFilteredUsers();
+    renderTable(visible);
+  }
+
+  function filterTable() {
+    filterVal = document.getElementById('uu-search').value.toLowerCase();
+    renderTable(getFilteredUsers());
+  }
+
+  function getFilteredUsers() {
+    if (!filterVal) return allUsers;
+    return allUsers.filter(function(u) {
+      var haystack = [
+        u.firstName, u.lastName, u.email, u.scoutId,
+        u.rank, u.patrol, u.parents, u.orgUnit,
+        (u.secondaryEmails || []).join(' ')
+      ].join(' ').toLowerCase();
+      return haystack.includes(filterVal);
+    });
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+
+</body>
+</html>

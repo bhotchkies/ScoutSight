@@ -246,3 +246,7 @@ A subprocess looking for `java.exe` in `runtime/bin/` will fail silently in dist
 - `org.thymeleaf:thymeleaf:3.1.3.RELEASE` — HTML report generation
 - `org.slf4j:slf4j-nop:1.7.36` — silence Thymeleaf logging
 - `org.apache.pdfbox:pdfbox:3.0.3` — PDF text extraction for schedule importer
+
+## Documentation
+Create concise JavaDoc for any file that you touch. It should be to the point, and aimed at senior developers to understand the main point of the code.
+

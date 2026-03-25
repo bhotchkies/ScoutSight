@@ -26,6 +26,14 @@ public class HtmlGenerator {
         sheetsUrl = (url != null && !url.isBlank()) ? url.trim() : null;
     }
 
+    /** Full Troop Roster CSV path set by the GUI when admin mode is enabled. */
+    private static String adminRosterPath = null;
+
+    /** Sets the admin roster path. Pass {@code null} to disable admin page generation. Call before {@link #generate}. */
+    public static void setAdminRosterPath(String path) {
+        adminRosterPath = (path != null && !path.isBlank()) ? path.trim() : null;
+    }
+
     /** CLI entry point — resolves output relative to the current working directory. */
     public static void generate(List<Scout> scouts, Path csvPath, String campName) throws IOException {
         generate(scouts, csvPath, campName, Path.of("."));
@@ -46,6 +54,7 @@ public class HtmlGenerator {
                 .anyMatch(s -> s.patrol != null && !s.patrol.isBlank());
         ThymeleafRenderer.setHasPatrolPage(hasPatrolData);
         ThymeleafRenderer.setHasAdvancementPlansPage(true);
+        ThymeleafRenderer.setHasAdminPage(adminRosterPath != null);
 
         // Normalize campName for file path construction — strips leading "camp_" if present
         // so that GUI-sourced stems like "camp_parsons" and CLI-sourced "parsons" both work.
@@ -74,6 +83,7 @@ public class HtmlGenerator {
         HelpPageWriter.write(outputDir);
         AdvancementPlansPageWriter.write(scouts, rankDefsOrdered, categories, camps, eagleSlots, outputDir, stem);
         if (hasPatrolData) PatrolBalancingPageWriter.write(scouts, outputDir, stem);
+        if (adminRosterPath != null) AdminPageWriter.write(outputDir);
 
         // Camp scheduler: generated when a schedule JSON exists for the camp.
         if (campFileStem != null && !camps.isEmpty()) {

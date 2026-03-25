@@ -17,7 +17,8 @@
       "Bash(cd \"/c/Users/blair/IdeaProjects/ScoutSight/camp-scheduler\" && npm run build 2>&1)",
       "mcp__ide__getDiagnostics",
       "Skill(claude-md-management:revise-claude-md)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "mcp__plugin_playwright_playwright__browser_navigate"
     ]
   }
 }

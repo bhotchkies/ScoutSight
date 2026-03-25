@@ -1,5 +1,8 @@
 <header class="site-header">
-  <a href="index.html"><img src="images/logos/ScoutSightLogo_Large.png" alt="ScoutSight" class="site-logo-img" /></a>
+  <div style="display:flex;align-items:center;gap:.85rem;">
+    <a href="index.html"><img src="images/logos/ScoutSightLogo_Large.png" alt="ScoutSight" class="site-logo-img" /></a>
+    [# th:if="${hasAdminPage}"]<a href="admin.html" style="display:inline-block;color:#fff;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border:1.5px solid rgba(255,255,255,.5);border-radius:3px;padding:.2rem .65rem;text-decoration:none;white-space:nowrap;opacity:.85;transition:opacity .15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.85'">&#9881; Admin</a>[/]
+  </div>
   <nav class="site-nav">
     <a href="index.html">All Scouts</a>
     <a href="trail_to_first_class.html">Trail to First Class</a>
