@@ -208,8 +208,39 @@
     .change-empty { font-style: italic; color: var(--text-muted); }
     input.change-check { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
     input.check-all-changes { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
+
+    /* Small action buttons inside table rows */
+    .btn-action { font-family: var(--font-b); font-size: .72rem; font-weight: 700; padding: .25rem .6rem; border-radius: var(--r); cursor: pointer; white-space: nowrap; transition: all var(--t); border: 1.5px solid; }
+    .btn-action-primary { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-action-primary:hover { background: var(--green-mid); border-color: var(--green-mid); }
+    .btn-action-secondary { background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
+    .btn-action-secondary:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Match GWS account modal */
+    .match-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
+    .match-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: 0 8px 32px rgba(0,0,0,.22); width: 540px; max-width: 95vw; max-height: 82vh; display: flex; flex-direction: column; overflow: hidden; }
+    .match-modal-hd { background: var(--navy); padding: .9rem 1.1rem; display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; flex-shrink: 0; }
+    .match-modal-hd-text { flex: 1; }
+    .match-modal-title { font-family: var(--font-h); font-size: 1rem; font-weight: 600; letter-spacing: .04em; color: #fff; }
+    .match-modal-sub { font-size: .78rem; color: #8ab4d4; margin-top: .25rem; }
+    .match-modal-x { background: none; border: none; color: rgba(255,255,255,.55); font-size: 1.1rem; cursor: pointer; padding: .1rem .2rem; line-height: 1; flex-shrink: 0; }
+    .match-modal-x:hover { color: #fff; }
+    .match-modal-search { padding: .7rem .9rem; border-bottom: 1px solid var(--border-lt); flex-shrink: 0; }
+    .match-modal-search input { width: 100%; font-family: var(--font-b); font-size: .85rem; padding: .42rem .7rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; transition: border-color var(--t); }
+    .match-modal-search input:focus { border-color: var(--green-mid); }
+    .match-modal-list { overflow-y: auto; flex: 1; }
+    .match-modal-item { padding: .6rem .9rem; border-bottom: 1px solid var(--border-lt); cursor: pointer; transition: background var(--t); }
+    .match-modal-item:last-child { border-bottom: none; }
+    .match-modal-item:hover { background: var(--sidebar-item-hv); }
+    .match-modal-item-name { font-weight: 700; font-size: .88rem; color: var(--text); }
+    .match-modal-item-meta { font-size: .78rem; color: var(--text-muted); margin-top: .12rem; }
+    .match-modal-empty { padding: 2.2rem 1rem; text-align: center; color: var(--text-muted); font-size: .87rem; }
+    .match-modal-ft { padding: .65rem .9rem; border-top: 1px solid var(--border-lt); display: flex; justify-content: flex-end; flex-shrink: 0; }
   </style>
-  <script>window.ROSTER_CSV = `[(${rosterCsvData})]`;</script>
+  <script>
+    window.ROSTER_CSV      = `[(${rosterCsvData})]`;
+    window.BLOCKED_EMAILS  = [(${blockedEmailsJson})];
+  </script>
 </head>
 <body>
 
@@ -351,9 +382,10 @@ function doGet(e) {
   var action = (e.parameter || {}).action || '';
   try {
     switch (action) {
-      case 'listUsers': return respond(listUsers());
-      case 'dumpFirst': return respond(dumpFirst());
-      default:          return respond({ error: 'Unknown action: ' + action });
+      case 'listUsers':  return respond(listUsers());
+      case 'dumpFirst':  return respond(dumpFirst());
+      case 'updateUser': return respond(updateUser(e));
+      default:           return respond({ error: 'Unknown action: ' + action });
     }
   } catch (err) {
     return respond({ error: err.message });
@@ -434,6 +466,50 @@ function listUsers() {
   return { users: users };
 }
 
+/**
+ * Updates custom schema fields for a single Workspace user.
+ * Params: userId (Google user id), changes (URL-encoded JSON).
+ * Recognized change keys: Scout_ID (Number), Is_Youth (Boolean), Patrol (String), Rank (String).
+ */
+function updateUser(e) {
+  var userId      = (e.parameter || {}).userId;
+  var changesJson = (e.parameter || {}).changes;
+  if (!userId || !changesJson) return { error: 'Missing userId or changes' };
+
+  var changes;
+  try { changes = JSON.parse(changesJson); }
+  catch (ex) { return { error: 'Invalid changes JSON: ' + ex.message }; }
+
+  var schemas = {};
+
+  if ('Scout_ID' in changes) {
+    schemas['Troop_Attributes'] = schemas['Troop_Attributes'] || {};
+    var raw = changes['Scout_ID'];
+    schemas['Troop_Attributes']['Scout_ID'] = (raw === '' || raw == null) ? null : Number(raw);
+  }
+  if ('Is_Youth' in changes) {
+    schemas['Troop_Attributes'] = schemas['Troop_Attributes'] || {};
+    schemas['Troop_Attributes']['Is_Youth'] = (changes['Is_Youth'] === true || changes['Is_Youth'] === 'true');
+  }
+  if ('Patrol' in changes) {
+    schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
+    schemas['Scout_Attributes']['Patrol'] = changes['Patrol'];
+  }
+  if ('Rank' in changes) {
+    schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
+    schemas['Scout_Attributes']['Rank'] = changes['Rank'];
+  }
+
+  if (!Object.keys(schemas).length) return { error: 'No recognized fields to update' };
+
+  try {
+    AdminDirectory.Users.update({ customSchemas: schemas }, userId);
+    return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
 /** Debug: returns the raw Admin SDK object for the first user — use to verify field names. */
 function dumpFirst() {
   var page = AdminDirectory.Users.list({
@@ -457,6 +533,75 @@ function dumpFirst() {
               <div class="setup-step">
                 <div class="step-num">4</div>
                 <div class="step-body">
+                  <div class="step-title">Declare OAuth scopes in the manifest</div>
+                  <div class="step-desc">
+                    Apps Script only requests the scopes it detects automatically. To ensure the
+                    <strong>write</strong> scope is requested during authorization, you must declare
+                    it explicitly in <code>appsscript.json</code>.
+                    <ul>
+                      <li>Click the <strong>gear icon (Project Settings)</strong> in the left panel</li>
+                      <li>Check <strong>"Show &lsquo;appsscript.json&rsquo; manifest file in editor"</strong></li>
+                      <li>Open <code>appsscript.json</code> and replace its contents with the file below</li>
+                    </ul>
+                  </div>
+                  <div class="script-block">
+                    <div class="script-block-header">
+                      <span class="script-block-label">appsscript.json</span>
+                      <button class="script-copy-btn" onclick="copyScript(this,'script-manifest-um')">Copy</button>
+                    </div>
+                    <pre class="script-pre" id="script-manifest-um">{
+  "timeZone": "America/Los_Angeles",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "AdminDirectory",
+        "serviceId": "admin",
+        "version": "directory_v1"
+      }
+    ]
+  },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/admin.directory.user"
+  ],
+  "webapp": {
+    "executeAs": "USER_DEPLOYING",
+    "access": "ANYONE_ANONYMOUS"
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}</pre>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="step-num">5</div>
+                <div class="step-body">
+                  <div class="step-title">Force re-authorization (required when adding write scope)</div>
+                  <div class="step-desc">
+                    Changing <code>oauthScopes</code> in the manifest does <strong>not</strong> automatically
+                    update the token held by an existing deployment — the old read-only token is reused until
+                    you explicitly revoke it.
+                    <ul>
+                      <li>In the Apps Script editor, select any function (e.g. <code>listUsers</code>) from
+                          the function dropdown at the top and click <strong>Run</strong></li>
+                      <li>If new scopes are needed, an <strong>"Authorization required"</strong> dialog appears
+                          — click <strong>Review permissions</strong> and grant access</li>
+                      <li>If no dialog appears, go to
+                          <strong>myaccount.google.com &rarr; Security &rarr; Third-party apps with account access</strong>,
+                          find the Apps Script project, click <strong>Remove Access</strong>, then run a function
+                          again to re-authorize with the new scopes</li>
+                    </ul>
+                    After authorizing, verify the write scope is active: in the Apps Script editor go to
+                    <strong>Project Settings &rarr; OAuth Scopes</strong> and confirm
+                    <code>admin.directory.user</code> appears (without <code>.readonly</code>).
+                  </div>
+                </div>
+              </div>
+
+              <div class="setup-step">
+                <div class="step-num">6</div>
+                <div class="step-body">
                   <div class="step-title">Deploy as a Web App</div>
                   <div class="step-desc">
                     Click <strong>Deploy &rarr; New deployment</strong>.
@@ -465,8 +610,8 @@ function dumpFirst() {
                       <li>Execute as: <strong>Me</strong> (your admin account)</li>
                       <li>Who has access: <strong>Anyone</strong></li>
                     </ul>
-                    Click <strong>Deploy</strong>, authorize the requested permissions when prompted
-                    (Admin SDK directory access), then copy the <strong>Web app URL</strong>.
+                    Click <strong>Deploy</strong>, authorize the requested permissions when prompted,
+                    then copy the <strong>Web app URL</strong>.
                     <br><br>
                     <strong>Note:</strong> "Anyone" access means anyone who obtains the URL can call it.
                     Treat the URL like a password — do not share it or commit it to git.
@@ -475,7 +620,7 @@ function dumpFirst() {
               </div>
 
               <div class="setup-step">
-                <div class="step-num">5</div>
+                <div class="step-num">7</div>
                 <div class="step-body">
                   <div class="step-title">Paste the URL below and load</div>
                   <div class="step-desc">
@@ -629,6 +774,27 @@ function dumpFirst() {
   </main>
 </div>
 
+<!-- ── Match GWS Account modal ── -->
+<div id="match-overlay" class="match-overlay" style="display:none;" onclick="if(event.target===this)closeMatchModal()">
+  <div class="match-modal" role="dialog" aria-modal="true" aria-labelledby="match-modal-title-el">
+    <div class="match-modal-hd">
+      <div class="match-modal-hd-text">
+        <div class="match-modal-title" id="match-modal-title-el">Match to Google Workspace Account</div>
+        <div class="match-modal-sub" id="match-modal-sub"></div>
+      </div>
+      <button class="match-modal-x" onclick="closeMatchModal()" title="Cancel">&#x2715;</button>
+    </div>
+    <div class="match-modal-search">
+      <input type="search" id="match-search" placeholder="Search name or email&hellip;"
+             oninput="filterMatchList()" autocomplete="off">
+    </div>
+    <div class="match-modal-list" id="match-modal-list"></div>
+    <div class="match-modal-ft">
+      <button class="btn-secondary" onclick="closeMatchModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── Panel navigation ──────────────────────────────────────────────────────
 
@@ -677,9 +843,11 @@ function dumpFirst() {
     var toggle = clone.querySelector('#setup-toggle-uu');
     if (toggle) toggle.setAttribute('onclick', "toggleSetup('uu')");
 
-    // Re-wire copy button
-    var copyBtn = clone.querySelector('.script-copy-btn');
-    if (copyBtn) copyBtn.setAttribute('onclick', "copyScript(this,'script-code-uu')");
+    // Re-wire all copy buttons — replace the -um pre ID reference with -uu in each onclick
+    clone.querySelectorAll('.script-copy-btn').forEach(function(btn) {
+      var oc = btn.getAttribute('onclick') || '';
+      btn.setAttribute('onclick', oc.replace(/-um'/g, "-uu'"));
+    });
 
     // Re-wire URL input
     var urlInput = clone.querySelector('#gws-url-uu');
@@ -794,6 +962,9 @@ function dumpFirst() {
 
     // Show/hide um setup wrapper
     updateUmSetupVisibility();
+
+    // Auto-load if a URL is already configured
+    if (saved) loadUsers();
   })();
 
   // ── Fetch users ───────────────────────────────────────────────────────────
@@ -801,6 +972,17 @@ function dumpFirst() {
   var allUsers    = [];
   var rosterIndex = null;
   var parsedRoster = null;
+
+  // Blocked GWS accounts — sourced from config/admin-console/blocked_emails.json at build time.
+  // Stored as a lowercase Set for O(1) lookup. Never matched, never shown in any table.
+  var BLOCKED = new Set((window.BLOCKED_EMAILS || []).map(function(e) { return e.toLowerCase(); }));
+
+  /** Returns true if the GWS user's primary or any secondary email is on the block list. */
+  function isBlocked(user) {
+    if (!BLOCKED.size) return false;
+    if (user.email && BLOCKED.has(user.email.toLowerCase())) return true;
+    return (user.secondaryEmails || []).some(function(e) { return BLOCKED.has(e.toLowerCase()); });
+  }
 
   function loadUsers() {
     var url = localStorage.getItem(GWS_URL_KEY) || '';
@@ -824,7 +1006,7 @@ function dumpFirst() {
       })
       .then(function(data) {
         if (data.error) throw new Error(data.error);
-        allUsers = data.users || [];
+        allUsers = (data.users || []).filter(function(u) { return !isBlocked(u); });
         setStatus('ok', '&#10003; Connected &mdash; ' + allUsers.length + ' users loaded from troop600.com');
         renderTable(allUsers);
         document.getElementById('uu-search').style.display = allUsers.length ? '' : 'none';
@@ -1152,7 +1334,7 @@ function dumpFirst() {
 
   /**
    * Attempts to match a GWS user to a roster row.
-   * Match priority: Scout ID (BSA#) → primary email → secondary emails → first+last name.
+   * Match priority: Scout ID (BSA#) → first+last name → primary email → secondary emails.
    * Note: email matching only hits adult roster rows — youth rows are excluded from byEmail
    * because their "Email" column is the parent's email, not the scout's own address.
    * Youth scouts are matched via Scout_ID or name only.
@@ -1164,19 +1346,20 @@ function dumpFirst() {
     if (gwsUser.scoutId && rosterIndex.byScoutId[gwsUser.scoutId]) {
       return rosterIndex.byScoutId[gwsUser.scoutId];
     }
-    // 2. Primary email (adult GWS accounts only — youth have no personal email in roster)
+    // 2. First + Last name (works for both youth and adults)
+    var name = ((gwsUser.firstName || '') + ' ' + (gwsUser.lastName || '')).toLowerCase().trim();
+    if (name && rosterIndex.byName[name]) return rosterIndex.byName[name];
+
+    // 3. Primary email (adult GWS accounts only — youth have no personal email in roster)
     var email = (gwsUser.email || '').toLowerCase();
     if (email && rosterIndex.byEmail[email]) return rosterIndex.byEmail[email];
 
-    // 3. Secondary emails (e.g. parent's personal email on an adult GWS account)
+    // 4. Secondary emails (e.g. parent's personal email on an adult GWS account)
     var secEmails = gwsUser.secondaryEmails || [];
     for (var i = 0; i < secEmails.length; i++) {
       var se = (secEmails[i] || '').toLowerCase();
       if (se && rosterIndex.byEmail[se]) return rosterIndex.byEmail[se];
     }
-    // 4. First + Last name (works for both youth and adults)
-    var name = ((gwsUser.firstName || '') + ' ' + (gwsUser.lastName || '')).toLowerCase().trim();
-    if (name && rosterIndex.byName[name]) return rosterIndex.byName[name];
 
     return null;
   }
@@ -1254,7 +1437,10 @@ function dumpFirst() {
       '<div style="display:flex;align-items:center;gap:.6rem;">' +
         '<span class="uu-table-title">Proposed Updates</span>' + countBadge +
       '</div>' +
-      (pendingChanges.length ? '<button class="btn-primary" style="font-size:.82rem;padding:.45rem 1rem;" onclick="updateSelected()">Update Selected</button>' : '') +
+      '<div style="display:flex;gap:.5rem;align-items:center;">' +
+        '<button class="btn-secondary" style="font-size:.82rem;padding:.45rem .85rem;" onclick="loadUsers()" title="Refresh from Google Workspace">&#8635; Refresh</button>' +
+        (pendingChanges.length ? '<button class="btn-primary" style="font-size:.82rem;padding:.45rem 1rem;" onclick="updateSelected()">Update Selected</button>' : '') +
+      '</div>' +
     '</div>';
 
     if (!pendingChanges.length) {
@@ -1303,8 +1489,12 @@ function dumpFirst() {
     document.querySelectorAll('.change-check').forEach(function(cb) { cb.checked = checked; });
   }
 
-  /** Collects checked rows and logs them; Apps Script write call goes here later. */
-  function updateSelected() {
+  /**
+   * Writes selected pending changes to Google Workspace via the Apps Script endpoint.
+   * Fires one GET request per selected user (sequential), shows progress in the button,
+   * then re-fetches the full user list to confirm writes.
+   */
+  async function updateSelected() {
     var selected = [];
     document.querySelectorAll('.change-check:checked').forEach(function(cb) {
       selected.push(pendingChanges[parseInt(cb.getAttribute('data-idx'), 10)]);
@@ -1313,12 +1503,179 @@ function dumpFirst() {
       alert('No users selected. Check the boxes next to the users you want to update.');
       return;
     }
-    // TODO: call Apps Script ?action=updateUsers with selected changes
-    console.log('Update selected (' + selected.length + '):', JSON.stringify(selected, null, 2));
-    alert('Update not yet implemented.\n' + selected.length + ' user(s) selected — see browser console for details.');
+
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var btn    = document.querySelector('#changes-table-wrap .btn-primary');
+    var total  = selected.length;
+    var errors = [];
+
+    function setProgress(n) {
+      if (!btn) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="uu-spinner" style="width:.9rem;height:.9rem;border-width:2px;margin-right:.35rem;vertical-align:middle;"></span>'
+        + 'Updating\u00a0' + n + '\u202f/\u202f' + total + '\u2026';
+    }
+
+    setProgress(0);
+
+    try {
+      for (var i = 0; i < selected.length; i++) {
+        setProgress(i + 1);
+        var entry = selected[i];
+        try {
+          var changes = {};
+          entry.diffs.forEach(function(d) {
+            if      (d.field === 'BSA Number') changes['Scout_ID']  = d.newVal;
+            else if (d.field === 'Is_Youth')   changes['Is_Youth']  = d.newVal === 'true';
+            else if (d.field === 'Patrol')     changes['Patrol']    = d.newVal;
+            else if (d.field === 'Rank')       changes['Rank']      = d.newVal;
+          });
+
+          var fetchUrl = url + (url.includes('?') ? '&' : '?') +
+            'action=updateUser' +
+            '&userId='  + encodeURIComponent(entry.gwsUser.id) +
+            '&changes=' + encodeURIComponent(JSON.stringify(changes));
+
+          var r    = await fetch(fetchUrl);
+          var data = await r.json();
+          if (data.error) errors.push(entry.gwsUser.email + ': ' + data.error);
+        } catch (ex) {
+          errors.push((entry && entry.gwsUser ? entry.gwsUser.email : 'user ' + i) + ': ' + ex.message);
+        }
+      }
+
+      if (errors.length) {
+        alert('Completed with ' + errors.length + ' error(s):\n\n' + errors.join('\n'));
+      }
+    } finally {
+      // Re-fetch confirms the writes; resolved rows disappear from Proposed Updates automatically.
+      // try/finally guarantees this runs even if an unexpected exception occurs above.
+      loadUsers();
+    }
+  }
+
+  // ── Match GWS account modal ───────────────────────────────────────────────
+
+  var matchingRosterRow = null; // the roster row being matched in the modal
+  var matchCandidates   = [];   // GWS accounts eligible to be matched (computed at open time)
+
+  /**
+   * Returns GWS accounts eligible to be assigned to an unmatched roster row:
+   * those with no BSA ID or those not currently matched to any roster row.
+   */
+  function getMatchCandidates() {
+    return allUsers.filter(function(u) {
+      return !u.scoutId || !matchRoster(u);
+    });
+  }
+
+  /** Opens the modal for the unmatched roster row at the given index. */
+  function openMatchPopup(idx) {
+    matchingRosterRow = unmatchedRosterRows[idx];
+    if (!matchingRosterRow) return;
+    matchCandidates = getMatchCandidates();
+
+    var firstName = findField(matchingRosterRow, ['first name']) || '';
+    var lastName  = findField(matchingRosterRow, ['last name'])  || '';
+    var bsaNum    = findField(matchingRosterRow, ['bsa number']) || '';
+    document.getElementById('match-modal-sub').textContent =
+      'Matching: ' + firstName + ' ' + lastName + ' \u00b7 BSA #' + bsaNum;
+
+    // Pre-fill search with the person's name so likely matches surface immediately.
+    var searchEl = document.getElementById('match-search');
+    searchEl.value = (firstName + ' ' + lastName).trim();
+    renderMatchList(searchEl.value);
+
+    document.getElementById('match-overlay').style.display = 'flex';
+    setTimeout(function() { searchEl.focus(); searchEl.select(); }, 50);
+  }
+
+  /** Re-renders the candidate list filtered by the current search string. */
+  function renderMatchList(search) {
+    var s = search.toLowerCase().trim();
+    var filtered = s
+      ? matchCandidates.filter(function(u) {
+          return (u.firstName + ' ' + u.lastName + ' ' + u.email).toLowerCase().indexOf(s) !== -1;
+        })
+      : matchCandidates;
+
+    var list = document.getElementById('match-modal-list');
+    if (!filtered.length) {
+      list.innerHTML = '<div class="match-modal-empty">No unmatched accounts found' +
+        (s ? ' matching \u201c' + esc(search) + '\u201d' : '') + '.</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(function(u) {
+      var origIdx = matchCandidates.indexOf(u);
+      var meta = esc(u.email);
+      if (u.orgUnit && u.orgUnit !== '/') meta += ' &middot; ' + esc(u.orgUnit);
+      if (u.scoutId) meta += ' &middot; BSA&nbsp;#' + esc(u.scoutId);
+      return '<div class="match-modal-item" onclick="confirmMatch(' + origIdx + ')">' +
+        '<div class="match-modal-item-name">' + esc(u.lastName) + ', ' + esc(u.firstName) + '</div>' +
+        '<div class="match-modal-item-meta">' + meta + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function filterMatchList() {
+    renderMatchList(document.getElementById('match-search').value);
+  }
+
+  function closeMatchModal() {
+    document.getElementById('match-overlay').style.display = 'none';
+    matchingRosterRow = null;
+  }
+
+  /**
+   * Writes BSA ID, Is_Youth, Patrol, and Rank from the selected roster row
+   * to the chosen GWS account, then reloads the user list.
+   */
+  async function confirmMatch(idx) {
+    var gwsUser = matchCandidates[idx];
+    if (!gwsUser || !matchingRosterRow) return;
+
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var row     = matchingRosterRow;
+    var isYouth = row._section === 'YOUTH MEMBERS';
+    var changes = {
+      Scout_ID: findField(row, ['bsa number']) || '',
+      Is_Youth: isYouth
+    };
+    if (isYouth) {
+      var patrol = (findField(row, ['patrol']) || '').trim();
+      var rank   = (findField(row, ['rank'])   || '').trim();
+      if (patrol) changes.Patrol = patrol;
+      if (rank)   changes.Rank   = rank;
+    }
+
+    closeMatchModal();
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?') +
+      'action=updateUser' +
+      '&userId='  + encodeURIComponent(gwsUser.id) +
+      '&changes=' + encodeURIComponent(JSON.stringify(changes));
+
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) alert('Match failed: ' + data.error);
+    } catch (ex) {
+      alert('Match failed: ' + ex.message);
+    } finally {
+      loadUsers();
+    }
   }
 
   // ── Unmatched roster table ────────────────────────────────────────────────
+
+  // Roster rows not matched to any GWS account — populated by renderUnmatchedTable,
+  // used by openMatchPopup to retrieve the row being matched.
+  var unmatchedRosterRows = [];
 
   /** Renders (or hides) the "In Scoutbook, Not On Site" table below the GWS table. */
   function renderUnmatchedTable(matchedBsaNums) {
@@ -1327,13 +1684,18 @@ function dumpFirst() {
 
     if (!parsedRoster || !parsedRoster.length) {
       wrap.style.display = 'none';
+      unmatchedRosterRows = [];
       return;
     }
 
     var unmatched = parsedRoster.filter(function(row) {
-      var bn = findField(row, ['bsa number']);
-      return bn && !matchedBsaNums.has(bn);
+      var bn    = findField(row, ['bsa number']);
+      var email = (findField(row, ['email']) || '').toLowerCase().trim();
+      return bn && !matchedBsaNums.has(bn) && !BLOCKED.has(email);
     });
+
+    // Store for use by openMatchPopup — index must match the data-idx attributes below.
+    unmatchedRosterRows = unmatched;
 
     wrap.style.display = '';
 
@@ -1352,16 +1714,20 @@ function dumpFirst() {
 
     var thead = '<thead><tr>' +
       '<th>Last Name</th><th>First Name</th><th>Email</th>' +
-      '<th>BSA Number</th><th>Section</th>' +
+      '<th>BSA Number</th><th>Section</th><th>Actions</th>' +
       '</tr></thead>';
 
-    var tbody = '<tbody>' + unmatched.map(function(row) {
+    var tbody = '<tbody>' + unmatched.map(function(row, i) {
       return '<tr>' +
         '<td class="td-name">'  + esc(findField(row, ['last name'])  || '') + '</td>' +
         '<td class="td-name">'  + esc(findField(row, ['first name']) || '') + '</td>' +
         '<td class="td-email">' + esc(findField(row, ['email'])      || '') + '</td>' +
         '<td class="td-mono">'  + esc(findField(row, ['bsa number']) || '') + '</td>' +
         '<td class="td-text">'  + esc(row._section || '')                   + '</td>' +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn-action btn-action-primary" onclick="openMatchPopup(' + i + ')">Match</button> ' +
+          '<button class="btn-action btn-action-secondary" disabled title="Create new account — coming soon">New</button>' +
+        '</td>' +
         '</tr>';
     }).join('') + '</tbody>';
 
