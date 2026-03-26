@@ -172,6 +172,17 @@
     .uu-count-badge { font-size: .78rem; font-weight: 700; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: .15rem .6rem; }
     .uu-search { font-family: var(--font-b); font-size: .82rem; padding: .38rem .65rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; width: 200px; transition: border-color var(--t); }
     .uu-search:focus { border-color: var(--green-mid); }
+    .uu-filter-group { display: inline-flex; align-items: center; gap: .4rem; }
+    .uu-filter-label { font-size: .68rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+    .uu-seg { display: inline-flex; border: 1.5px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+    .uu-seg-btn { font-family: var(--font-b); font-size: .72rem; font-weight: 600; letter-spacing: .03em; padding: .22rem .7rem; border: none; border-right: 1px solid var(--border-lt); background: transparent; color: var(--text-muted); cursor: pointer; transition: all var(--t); white-space: nowrap; }
+    .uu-seg-btn:last-child { border-right: none; }
+    .uu-seg-btn:hover:not(.uu-seg-active) { color: var(--text); background: var(--surface); }
+    .uu-seg-btn.uu-seg-active[data-val="all"]       { background: var(--navy);     color: #fff;             font-weight: 700; }
+    .uu-seg-btn.uu-seg-active[data-val="active"],
+    .uu-seg-btn.uu-seg-active[data-val="yes"]       { background: #e6f4ec;         color: var(--green-mid); font-weight: 700; }
+    .uu-seg-btn.uu-seg-active[data-val="suspended"] { background: var(--red-lt);   color: var(--red);       font-weight: 700; }
+    .uu-seg-btn.uu-seg-active[data-val="no"]        { background: var(--amber-lt); color: var(--amber);     font-weight: 700; }
     table.uu-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     table.uu-table th { background: var(--surface-2); font-family: var(--font-h); font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); padding: .55rem .9rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
     table.uu-table th:hover { color: var(--text); }
@@ -337,6 +348,10 @@
         <span class="si-icon">&#128279;</span>
         <span class="si-label">Assign Relationships</span>
       </button>
+      <button class="sidebar-item sidebar-sub" onclick="showPanel('user-errors', this)">
+        <span class="si-icon">&#9888;</span>
+        <span class="si-label">User Errors</span>
+      </button>
       <button class="sidebar-item" onclick="showPanel('update-patrols', this)">
         <span class="si-icon">&#9872;</span>
         <span class="si-label">Update Patrols</span>
@@ -384,6 +399,11 @@
           <div class="ov-card-icon">&#128279;</div>
           <div class="ov-card-title">Assign Relationships</div>
           <div class="ov-card-desc">Draw parent&ndash;child links between adult and scout Google Workspace accounts.</div>
+        </div>
+        <div class="ov-card" onclick="showPanelById('panel-user-errors')">
+          <div class="ov-card-icon">&#9888;</div>
+          <div class="ov-card-title">User Errors</div>
+          <div class="ov-card-desc">Identify data integrity issues such as duplicate Scout IDs across Workspace accounts.</div>
         </div>
       </div>
     </div>
@@ -865,7 +885,23 @@ function dumpFirst() {
               <span class="uu-table-title">Workspace Users</span>
               <span class="uu-count-badge" id="user-count" style="display:none">0</span>
             </div>
-            <div style="display:flex;align-items:center;gap:.5rem;">
+            <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+              <div class="uu-filter-group" id="filter-status-group" style="display:none">
+                <span class="uu-filter-label">Status</span>
+                <div class="uu-seg" role="group" aria-label="Filter by status">
+                  <button class="uu-seg-btn uu-seg-active" data-val="all"       onclick="setStatusFilter('all')">All</button>
+                  <button class="uu-seg-btn"                data-val="active"    onclick="setStatusFilter('active')">Active</button>
+                  <button class="uu-seg-btn"                data-val="suspended" onclick="setStatusFilter('suspended')">Suspended</button>
+                </div>
+              </div>
+              <div class="uu-filter-group" id="filter-match-group" style="display:none">
+                <span class="uu-filter-label">Match</span>
+                <div class="uu-seg" role="group" aria-label="Filter by roster match">
+                  <button class="uu-seg-btn uu-seg-active" data-val="all" onclick="setMatchFilter('all')">All</button>
+                  <button class="uu-seg-btn"                data-val="yes" onclick="setMatchFilter('yes')">Yes</button>
+                  <button class="uu-seg-btn"                data-val="no"  onclick="setMatchFilter('no')">No</button>
+                </div>
+              </div>
               <button id="filter-needs-age-btn" class="pill" onclick="toggleNeedsAgeFilter()"
                       style="display:none;cursor:pointer;border:1.5px solid var(--amber);color:var(--amber);background:none;font-family:var(--font-b);font-size:.72rem;font-weight:700;letter-spacing:.05em;padding:.18rem .6rem;">
                 Needs Age
@@ -1007,6 +1043,28 @@ function dumpFirst() {
           </div>
         </div>
         <svg id="ar-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
+      </div>
+    </div>
+
+    <!-- ── User Errors ── -->
+    <div id="panel-user-errors" class="content-panel">
+      <div class="cp-header">
+        <div class="cp-title">User Errors</div>
+        <div class="cp-sub">Data integrity issues found in Google Workspace accounts</div>
+      </div>
+      <div class="uu-table-wrap" id="user-errors-table-wrap">
+        <div class="uu-table-toolbar">
+          <div style="display:flex;align-items:center;gap:.6rem;">
+            <span class="uu-table-title">Duplicate Scout IDs</span>
+            <span class="uu-count-badge" id="ue-dup-count" style="display:none">0</span>
+          </div>
+        </div>
+        <div id="ue-dup-body">
+          <div class="uu-empty">
+            <div class="uu-empty-icon">&#9888;</div>
+            Load users to check for errors.
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1179,6 +1237,8 @@ function dumpFirst() {
     document.getElementById('connect-status').textContent = '';
     allUsers = [];
     renderTable([]);
+    document.getElementById('filter-status-group').style.display = 'none';
+    document.getElementById('filter-match-group').style.display  = 'none';
     // Re-show setup on Unmatched Users since URL is now gone
     updateUmSetupVisibility();
   }
@@ -1275,6 +1335,9 @@ function dumpFirst() {
         document.getElementById('user-count').style.display = allUsers.length ? '' : 'none';
         var naBtn = document.getElementById('filter-needs-age-btn');
         if (naBtn) naBtn.style.display = allUsers.length ? '' : 'none';
+        var show = allUsers.length ? '' : 'none';
+        document.getElementById('filter-status-group').style.display = show;
+        document.getElementById('filter-match-group').style.display  = rosterIndex ? show : 'none';
         arRender();
       })
       .catch(function(err) {
@@ -1365,6 +1428,8 @@ function dumpFirst() {
   var sortAsc        = true;
   var filterVal      = '';
   var filterNeedsAge = false;
+  var filterStatus   = 'all';   // 'all' | 'active' | 'suspended'
+  var filterMatch    = 'all';   // 'all' | 'yes' | 'no'
 
   function setTableContent(html) {
     document.getElementById('table-body-wrap').innerHTML = html;
@@ -1450,6 +1515,69 @@ function dumpFirst() {
       renderUnmatchedTable(matchedBsaNums);
       renderChangesTable(matchedPairs);
     }
+    renderUserErrorsTable();
+  }
+
+  /**
+   * Scans allUsers for duplicate Scout IDs and renders the User Errors panel table.
+   * Groups by non-empty scoutId; any group with more than one user is a conflict.
+   */
+  function renderUserErrorsTable() {
+    var bodyEl = document.getElementById('ue-dup-body');
+    var countEl = document.getElementById('ue-dup-count');
+    if (!bodyEl) return;
+
+    // Group users by scoutId, ignoring blank/unset values
+    var groups = {};
+    allUsers.forEach(function(u) {
+      var id = u.scoutId != null && u.scoutId !== '' ? String(u.scoutId) : null;
+      if (!id) return;
+      if (!groups[id]) groups[id] = [];
+      groups[id].push(u);
+    });
+
+    // Flatten all users involved in a duplicate group, sorted by scoutId then name
+    var dupes = [];
+    Object.keys(groups).sort().forEach(function(id) {
+      if (groups[id].length > 1) {
+        groups[id].forEach(function(u) { dupes.push(u); });
+      }
+    });
+
+    if (countEl) {
+      countEl.textContent = dupes.length + ' user' + (dupes.length !== 1 ? 's' : '');
+      countEl.style.display = dupes.length ? '' : 'none';
+    }
+
+    if (!dupes.length) {
+      bodyEl.innerHTML = allUsers.length
+        ? '<div class="uu-empty"><div class="uu-empty-icon">&#10003;</div>No duplicate Scout IDs found.</div>'
+        : '<div class="uu-empty"><div class="uu-empty-icon">&#9888;</div>Load users to check for errors.</div>';
+      return;
+    }
+
+    var thead = '<thead><tr>'
+      + '<th>Last Name</th><th>First Name</th><th>Email</th>'
+      + '<th>Scout ID</th><th>Status</th><th></th>'
+      + '</tr></thead>';
+
+    var tbody = '<tbody>' + dupes.map(function(u) {
+      var pill = u.suspended
+        ? '<button class="pill pill-suspended" data-email="' + esc(u.email) + '" onclick="toggleSuspended(this.dataset.email)" style="cursor:pointer;background:var(--red-lt);border-color:var(--red);" title="Click to reactivate">&#9679; Suspended</button>'
+        : '<button class="pill pill-active"    data-email="' + esc(u.email) + '" onclick="toggleSuspended(this.dataset.email)" style="cursor:pointer;background:#e6f4ec;" title="Click to suspend">&#9679; Active</button>';
+      return '<tr>'
+        + '<td class="td-name">'   + esc(u.lastName)  + '</td>'
+        + '<td class="td-name">'   + esc(u.firstName) + '</td>'
+        + '<td class="td-email">'  + esc(u.email)     + '</td>'
+        + '<td style="font-family:monospace;font-weight:600;">' + esc(String(u.scoutId)) + '</td>'
+        + '<td class="td-status">' + pill             + '</td>'
+        + '<td style="white-space:nowrap;">'
+          + '<button class="btn-action btn-action-secondary" data-email="' + esc(u.email) + '" onclick="openEditModal(this.dataset.email)">&#9998; Edit</button>'
+        + '</td>'
+        + '</tr>';
+    }).join('') + '</tbody>';
+
+    bodyEl.innerHTML = '<table class="uu-table">' + thead + tbody + '</table>';
   }
 
   function sortBy(col) {
@@ -1466,6 +1594,13 @@ function dumpFirst() {
   function getFilteredUsers() {
     return allUsers.filter(function(u) {
       if (filterNeedsAge && u.isYouth !== '') return false;
+      if (filterStatus === 'active'    &&  u.suspended) return false;
+      if (filterStatus === 'suspended' && !u.suspended) return false;
+      if (filterMatch !== 'all') {
+        var matched = !!matchRoster(u);
+        if (filterMatch === 'yes' && !matched) return false;
+        if (filterMatch === 'no'  &&  matched) return false;
+      }
       if (!filterVal) return true;
       var haystack = [
         u.firstName, u.lastName, u.email, u.scoutId,
@@ -1483,6 +1618,22 @@ function dumpFirst() {
       btn.style.background   = filterNeedsAge ? 'var(--amber-lt)' : 'none';
       btn.style.borderColor  = 'var(--amber)';
     }
+    renderTable(getFilteredUsers());
+  }
+
+  function setStatusFilter(val) {
+    filterStatus = val;
+    document.querySelectorAll('#filter-status-group .uu-seg-btn').forEach(function(b) {
+      b.classList.toggle('uu-seg-active', b.getAttribute('data-val') === val);
+    });
+    renderTable(getFilteredUsers());
+  }
+
+  function setMatchFilter(val) {
+    filterMatch = val;
+    document.querySelectorAll('#filter-match-group .uu-seg-btn').forEach(function(b) {
+      b.classList.toggle('uu-seg-active', b.getAttribute('data-val') === val);
+    });
     renderTable(getFilteredUsers());
   }
 
