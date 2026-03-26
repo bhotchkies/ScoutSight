@@ -209,6 +209,48 @@
     input.change-check { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
     input.check-all-changes { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
 
+    /* ── Assign Relationships panel ── */
+    .ar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .55rem; flex-wrap: wrap; }
+    .ar-status-msg { font-size: .82rem; color: var(--text-muted); font-style: italic; flex: 1; }
+    .ar-status-msg.ar-selecting { color: var(--amber); font-weight: 700; font-style: normal; }
+    .ar-legend { display: flex; align-items: center; gap: .85rem; margin-bottom: .75rem; font-size: .75rem; color: var(--text-muted); flex-wrap: wrap; }
+    .ar-legend-item { display: flex; align-items: center; gap: .3rem; }
+    .ar-legend-swatch { display: inline-block; width: 22px; height: 3px; border-radius: 2px; }
+    .ar-swatch-saved   { background: var(--green-lt); }
+    .ar-swatch-add     { background: transparent; border-top: 2.5px dashed var(--amber); height: 0; }
+    .ar-swatch-remove  { background: transparent; border-top: 2px   dashed var(--red);  height: 0; }
+    .ar-layout { display: flex; position: relative; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); min-height: 400px; max-height: 66vh; }
+    .ar-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .ar-gutter { width: 68px; flex-shrink: 0; background: var(--bg); border-left: 1px solid var(--border-lt); border-right: 1px solid var(--border-lt); position: relative; }
+    .ar-gutter::before { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, var(--border) 1.5px, transparent 1.5px); background-size: 12px 12px; background-position: 6px 6px; opacity: .55; pointer-events: none; }
+    .ar-col-hd { display: flex; align-items: center; justify-content: space-between; gap: .55rem; padding: .65rem .85rem; border-bottom: 1px solid var(--border); background: var(--surface-2); flex-shrink: 0; position: sticky; top: 0; z-index: 2; }
+    .ar-col-right .ar-col-hd { flex-direction: row-reverse; }
+    .ar-col-title { font-family: var(--font-h); font-size: .82rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--navy); white-space: nowrap; }
+    .ar-search { font-family: var(--font-b); font-size: .77rem; padding: .3rem .55rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; width: 110px; transition: border-color var(--t); }
+    .ar-search:focus { border-color: var(--green-mid); }
+    .ar-suspended-pill { display: inline-block; font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #b45309; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: .05rem .45rem; vertical-align: middle; margin-left: .35rem; }
+    .ar-unlinked-btn { font-family: var(--font-b); font-size: .72rem; font-weight: 600; padding: .25rem .6rem; border: 1.5px solid var(--border); border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; transition: all var(--t); white-space: nowrap; }
+    .ar-unlinked-btn:hover { border-color: var(--amber); color: var(--amber); }
+    .ar-unlinked-btn-active { background: var(--amber-lt, #fff8e6); border-color: var(--amber) !important; color: var(--amber) !important; font-weight: 700; }
+    .ar-col-list { overflow-y: auto; flex: 1; }
+    .ar-person { display: flex; align-items: stretch; border-bottom: 1px solid var(--border-lt); transition: background var(--t); user-select: none; }
+    .ar-person:last-child { border-bottom: none; }
+    .ar-person:hover { background: var(--surface-2); }
+    .ar-person.ar-active { background: var(--amber-lt); }
+    .ar-col-right .ar-person { flex-direction: row-reverse; }
+    .ar-person-info { flex: 1; padding: .5rem .7rem; min-width: 0; }
+    .ar-col-right .ar-person-info { text-align: right; }
+    .ar-person-name { font-weight: 700; font-size: .83rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ar-person-email { font-size: .71rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .04rem; }
+    .ar-person-chips { display: flex; flex-wrap: wrap; gap: .2rem; margin-top: .27rem; }
+    .ar-col-right .ar-person-chips { justify-content: flex-end; }
+    .ar-chip { font-size: .63rem; font-weight: 700; background: #e6f4ec; color: var(--green-mid); border: 1px solid var(--green-lt); border-radius: 999px; padding: .07rem .38rem; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ar-chip-pending { background: var(--amber-lt) !important; color: var(--amber) !important; border-color: var(--amber) !important; }
+    .ar-port { width: 1.9rem; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .ar-port-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--border); border: 2.5px solid var(--surface); transition: all .15s; display: block; }
+    .ar-person:hover .ar-port-dot { background: var(--green-mid); border-color: var(--surface-2); }
+    .ar-person.ar-active .ar-port-dot { background: var(--amber); border-color: var(--amber-lt); box-shadow: 0 0 0 3px rgba(196,122,14,.22); }
+
     /* Small action buttons inside table rows */
     .btn-action { font-family: var(--font-b); font-size: .72rem; font-weight: 700; padding: .25rem .6rem; border-radius: var(--r); cursor: pointer; white-space: nowrap; transition: all var(--t); border: 1.5px solid; }
     .btn-action-primary { background: var(--green); color: #fff; border-color: var(--green); }
@@ -235,7 +277,27 @@
     .match-modal-item-name { font-weight: 700; font-size: .88rem; color: var(--text); }
     .match-modal-item-meta { font-size: .78rem; color: var(--text-muted); margin-top: .12rem; }
     .match-modal-empty { padding: 2.2rem 1rem; text-align: center; color: var(--text-muted); font-size: .87rem; }
-    .match-modal-ft { padding: .65rem .9rem; border-top: 1px solid var(--border-lt); display: flex; justify-content: flex-end; flex-shrink: 0; }
+    .match-modal-ft { padding: .65rem .9rem; border-top: 1px solid var(--border-lt); display: flex; justify-content: flex-end; flex-shrink: 0; gap: .5rem; }
+
+    /* ── Edit User modal ── */
+    .edit-user-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: 0 8px 32px rgba(0,0,0,.22); width: 640px; max-width: 96vw; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+    .edit-modal-body { overflow-y: auto; flex: 1; }
+    .edit-section { padding: .85rem 1.1rem; border-bottom: 1px solid var(--border-lt); }
+    .edit-section:last-child { border-bottom: none; }
+    .edit-section-title { font-family: var(--font-h); font-size: .7rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: .6rem; }
+    .edit-field-row { display: flex; align-items: center; gap: .75rem; margin-bottom: .45rem; }
+    .edit-field-row:last-child { margin-bottom: 0; }
+    .edit-field-label { font-size: .82rem; font-weight: 600; color: var(--text); width: 120px; flex-shrink: 0; }
+    .edit-input { flex: 1; font-family: var(--font-b); font-size: .85rem; padding: .4rem .7rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; transition: border-color var(--t); }
+    .edit-input:focus { border-color: var(--green-mid); }
+    .edit-checkbox { width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--green); }
+    .edit-mv-row { align-items: flex-start; }
+    .edit-mv-wrap { flex: 1; display: flex; flex-direction: column; gap: .35rem; }
+    .edit-mv-list { display: flex; flex-wrap: wrap; gap: .3rem; min-height: 1.5rem; padding: .25rem 0; }
+    .edit-mv-item { display: inline-flex; align-items: center; gap: .2rem; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: .15rem .35rem .15rem .65rem; font-size: .78rem; color: var(--text); white-space: nowrap; }
+    .edit-mv-remove { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: .85rem; line-height: 1; padding: 0 .15rem; }
+    .edit-mv-remove:hover { color: var(--red); }
+    .edit-mv-add-row { display: flex; gap: .4rem; }
   </style>
   <script>
     window.ROSTER_CSV      = `[(${rosterCsvData})]`;
@@ -270,6 +332,10 @@
       <button class="sidebar-item sidebar-sub" onclick="showPanel('unmatched-users', this)">
         <span class="si-icon">&#9888;</span>
         <span class="si-label">Unmatched Users</span>
+      </button>
+      <button class="sidebar-item sidebar-sub" onclick="showPanel('assign-relationships', this)">
+        <span class="si-icon">&#128279;</span>
+        <span class="si-label">Assign Relationships</span>
       </button>
       <button class="sidebar-item" onclick="showPanel('update-patrols', this)">
         <span class="si-icon">&#9872;</span>
@@ -313,6 +379,11 @@
           <div class="ov-card-title">Update Patrols</div>
           <div class="ov-card-desc">Sync patrol assignments and Google Group memberships from advancement data.</div>
           <span class="ov-card-badge">Under Development</span>
+        </div>
+        <div class="ov-card" onclick="showPanelById('panel-assign-relationships')">
+          <div class="ov-card-icon">&#128279;</div>
+          <div class="ov-card-title">Assign Relationships</div>
+          <div class="ov-card-desc">Draw parent&ndash;child links between adult and scout Google Workspace accounts.</div>
         </div>
       </div>
     </div>
@@ -384,8 +455,10 @@ function doGet(e) {
     switch (action) {
       case 'listUsers':  return respond(listUsers());
       case 'dumpFirst':  return respond(dumpFirst());
-      case 'updateUser': return respond(updateUser(e));
-      default:           return respond({ error: 'Unknown action: ' + action });
+      case 'updateUser':         return respond(updateUser(e));
+      case 'addRelationship':    return respond(addRelationship(e));
+      case 'removeRelationship': return respond(removeRelationship(e));
+      default:                   return respond({ error: 'Unknown action: ' + action });
     }
   } catch (err) {
     return respond({ error: err.message });
@@ -467,9 +540,11 @@ function listUsers() {
 }
 
 /**
- * Updates custom schema fields for a single Workspace user.
+ * Updates fields for a single Workspace user.
  * Params: userId (Google user id), changes (URL-encoded JSON).
- * Recognized change keys: Scout_ID (Number), Is_Youth (Boolean), Patrol (String), Rank (String).
+ * Recognized keys: givenName, familyName, orgUnitPath, suspended,
+ *   Scout_ID (Number), Is_Youth (Boolean), Patrol, Rank,
+ *   Parents (email string array), Scouts (email string array).
  */
 function updateUser(e) {
   var userId      = (e.parameter || {}).userId;
@@ -480,8 +555,28 @@ function updateUser(e) {
   try { changes = JSON.parse(changesJson); }
   catch (ex) { return { error: 'Invalid changes JSON: ' + ex.message }; }
 
-  var schemas = {};
+  var userUpdate = {};
+  var schemas    = {};
 
+  // ── Top-level user resource fields ──────────────────────────────────────
+  if ('givenName' in changes || 'familyName' in changes) {
+    var given  = String(changes['givenName']  || '').trim();
+    var family = String(changes['familyName'] || '').trim();
+    userUpdate.name = {
+      givenName:  given,
+      familyName: family,
+      fullName:   (given + ' ' + family).trim()
+    };
+  }
+  if ('orgUnitPath' in changes) {
+    var ou = String(changes['orgUnitPath'] || '').trim();
+    userUpdate.orgUnitPath = (ou.charAt(0) === '/') ? ou : '/' + ou;
+  }
+  if ('suspended' in changes) {
+    userUpdate.suspended = (changes['suspended'] === true || changes['suspended'] === 'true');
+  }
+
+  // ── Troop_Attributes schema ──────────────────────────────────────────────
   if ('Scout_ID' in changes) {
     schemas['Troop_Attributes'] = schemas['Troop_Attributes'] || {};
     var raw = changes['Scout_ID'];
@@ -491,6 +586,8 @@ function updateUser(e) {
     schemas['Troop_Attributes'] = schemas['Troop_Attributes'] || {};
     schemas['Troop_Attributes']['Is_Youth'] = (changes['Is_Youth'] === true || changes['Is_Youth'] === 'true');
   }
+
+  // ── Scout_Attributes schema ──────────────────────────────────────────────
   if ('Patrol' in changes) {
     schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
     schemas['Scout_Attributes']['Patrol'] = changes['Patrol'];
@@ -499,11 +596,92 @@ function updateUser(e) {
     schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
     schemas['Scout_Attributes']['Rank'] = changes['Rank'];
   }
+  if ('Parents' in changes) {
+    schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
+    schemas['Scout_Attributes']['Parents'] = (changes['Parents'] || []).map(function(addr) {
+      return { type: 'work', value: addr };
+    });
+  }
 
-  if (!Object.keys(schemas).length) return { error: 'No recognized fields to update' };
+  // ── Parent_Attributes schema ─────────────────────────────────────────────
+  if ('Scouts' in changes) {
+    schemas['Parent_Attributes'] = schemas['Parent_Attributes'] || {};
+    schemas['Parent_Attributes']['Scouts'] = (changes['Scouts'] || []).map(function(addr) {
+      return { type: 'work', value: addr };
+    });
+  }
+
+  if (Object.keys(schemas).length) userUpdate.customSchemas = schemas;
+  if (!Object.keys(userUpdate).length) return { error: 'No recognized fields to update' };
 
   try {
-    AdminDirectory.Users.update({ customSchemas: schemas }, userId);
+    AdminDirectory.Users.update(userUpdate, userId);
+    return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Adds a parent–scout relationship to both users' custom schema multi-value arrays.
+ * Params: parentEmail, scoutEmail.
+ * Idempotent — does not add duplicate entries.
+ */
+function addRelationship(e) {
+  var parentEmail = (e.parameter || {}).parentEmail;
+  var scoutEmail  = (e.parameter || {}).scoutEmail;
+  if (!parentEmail || !scoutEmail) return { error: 'Missing parentEmail or scoutEmail' };
+  try {
+    // Append scoutEmail to parent's Parent_Attributes.Scouts
+    var parent = AdminDirectory.Users.get(parentEmail, { projection: 'full', viewType: 'admin_view' });
+    var parentScouts = ((parent.customSchemas || {}).Parent_Attributes || {}).Scouts || [];
+    if (!parentScouts.some(function(s) { return s.value === scoutEmail; })) {
+      AdminDirectory.Users.update(
+        { customSchemas: { Parent_Attributes: { Scouts: parentScouts.concat([{ type: 'work', value: scoutEmail }]) } } },
+        parentEmail);
+    }
+    // Append parentEmail to scout's Scout_Attributes.Parents
+    var scout = AdminDirectory.Users.get(scoutEmail, { projection: 'full', viewType: 'admin_view' });
+    var scoutParents = ((scout.customSchemas || {}).Scout_Attributes || {}).Parents || [];
+    if (!scoutParents.some(function(p) { return p.value === parentEmail; })) {
+      AdminDirectory.Users.update(
+        { customSchemas: { Scout_Attributes: { Parents: scoutParents.concat([{ type: 'work', value: parentEmail }]) } } },
+        scoutEmail);
+    }
+    return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Removes a parent–scout relationship from both users' custom schema arrays.
+ * Params: parentEmail, scoutEmail.
+ * Idempotent — no-op if the link does not exist.
+ */
+function removeRelationship(e) {
+  var parentEmail = (e.parameter || {}).parentEmail;
+  var scoutEmail  = (e.parameter || {}).scoutEmail;
+  if (!parentEmail || !scoutEmail) return { error: 'Missing parentEmail or scoutEmail' };
+  try {
+    // Remove scoutEmail from parent's Parent_Attributes.Scouts
+    var parent = AdminDirectory.Users.get(parentEmail, { projection: 'full', viewType: 'admin_view' });
+    var parentScouts = ((parent.customSchemas || {}).Parent_Attributes || {}).Scouts || [];
+    var newParentScouts = parentScouts.filter(function(s) { return s.value !== scoutEmail; });
+    if (newParentScouts.length !== parentScouts.length) {
+      AdminDirectory.Users.update(
+        { customSchemas: { Parent_Attributes: { Scouts: newParentScouts } } },
+        parentEmail);
+    }
+    // Remove parentEmail from scout's Scout_Attributes.Parents
+    var scout = AdminDirectory.Users.get(scoutEmail, { projection: 'full', viewType: 'admin_view' });
+    var scoutParents = ((scout.customSchemas || {}).Scout_Attributes || {}).Parents || [];
+    var newScoutParents = scoutParents.filter(function(p) { return p.value !== parentEmail; });
+    if (newScoutParents.length !== scoutParents.length) {
+      AdminDirectory.Users.update(
+        { customSchemas: { Scout_Attributes: { Parents: newScoutParents } } },
+        scoutEmail);
+    }
     return { ok: true };
   } catch (err) {
     return { error: err.message };
@@ -686,8 +864,14 @@ function dumpFirst() {
               <span class="uu-table-title">Workspace Users</span>
               <span class="uu-count-badge" id="user-count" style="display:none">0</span>
             </div>
-            <input type="search" class="uu-search" id="uu-search" placeholder="Search name or email&hellip;"
-                   oninput="filterTable()" style="display:none" />
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <button id="filter-needs-age-btn" class="pill" onclick="toggleNeedsAgeFilter()"
+                      style="display:none;cursor:pointer;border:1.5px solid var(--amber);color:var(--amber);background:none;font-family:var(--font-b);font-size:.72rem;font-weight:700;letter-spacing:.05em;padding:.18rem .6rem;">
+                Needs Age
+              </button>
+              <input type="search" class="uu-search" id="uu-search" placeholder="Search name or email&hellip;"
+                     oninput="filterTable()" style="display:none" />
+            </div>
           </div>
           <div id="table-body-wrap">
             <div class="uu-empty">
@@ -771,6 +955,60 @@ function dumpFirst() {
       </div>
     </div>
 
+    <!-- ── Assign Relationships ── -->
+    <div id="panel-assign-relationships" class="content-panel">
+      <div class="cp-header">
+        <div class="cp-title">Assign Relationships</div>
+        <div class="cp-sub">Link parent and scout Google Workspace accounts &middot; troop600.com</div>
+      </div>
+
+      <div class="ar-toolbar">
+        <div class="ar-status-msg" id="ar-status">Load users to view relationships.</div>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <button class="btn-secondary" onclick="loadUsers()">&#8635; Reload Users</button>
+          <button class="btn-secondary" onclick="arCheckFromScoutbook()">&#128196; Check From Scoutbook</button>
+          <button class="btn-secondary" id="ar-discard-btn" onclick="arDiscardChanges()" style="display:none">Discard</button>
+          <button class="btn-primary"   id="ar-save-btn"    onclick="arSaveChanges()"    style="display:none">Save Changes</button>
+        </div>
+      </div>
+
+      <div class="ar-legend">
+        <div class="ar-legend-item"><span class="ar-legend-swatch ar-swatch-saved"></span> Saved</div>
+        <div class="ar-legend-item"><span class="ar-legend-swatch ar-swatch-add"></span> Pending add</div>
+        <div class="ar-legend-item"><span class="ar-legend-swatch ar-swatch-remove"></span> Pending remove</div>
+        <span>Click a port dot to select, then click a port on the other side to connect. Click a line to toggle removal.</span>
+      </div>
+
+      <div class="ar-layout" id="ar-layout">
+        <div class="ar-col" id="ar-col-adults">
+          <div class="ar-col-hd">
+            <span class="ar-col-title">Adults</span>
+            <button class="ar-unlinked-btn" id="ar-unlinked-btn-adults"
+                    onclick="arToggleUnlinked('adults')" title="Show only adults with no linked scouts">Unlinked only</button>
+            <input type="search" class="ar-search" id="ar-search-adults"
+                   placeholder="Filter&hellip;" oninput="arFilter('adults', this.value)">
+          </div>
+          <div class="ar-col-list" id="ar-list-adults">
+            <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.82rem;">Load users to view adults.</div>
+          </div>
+        </div>
+        <div class="ar-gutter"></div>
+        <div class="ar-col ar-col-right" id="ar-col-scouts">
+          <div class="ar-col-hd">
+            <span class="ar-col-title">Scouts</span>
+            <input type="search" class="ar-search" id="ar-search-scouts"
+                   placeholder="Filter&hellip;" oninput="arFilter('scouts', this.value)">
+            <button class="ar-unlinked-btn" id="ar-unlinked-btn-scouts"
+                    onclick="arToggleUnlinked('scouts')" title="Show only scouts with no linked adults">Unlinked only</button>
+          </div>
+          <div class="ar-col-list" id="ar-list-scouts">
+            <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.82rem;">Load users to view scouts.</div>
+          </div>
+        </div>
+        <svg id="ar-svg" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -795,6 +1033,24 @@ function dumpFirst() {
   </div>
 </div>
 
+<!-- ── Edit User modal ── -->
+<div id="edit-user-overlay" class="match-overlay" style="display:none;" onclick="if(event.target===this)closeEditModal()">
+  <div class="edit-user-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <div class="match-modal-hd">
+      <div class="match-modal-hd-text">
+        <div class="match-modal-title" id="edit-modal-title">Edit User</div>
+        <div class="match-modal-sub"   id="edit-modal-sub"></div>
+      </div>
+      <button class="match-modal-x" onclick="closeEditModal()" title="Close">&#x2715;</button>
+    </div>
+    <div class="edit-modal-body" id="edit-modal-body"></div>
+    <div class="match-modal-ft">
+      <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
+      <button class="btn-primary"   id="edit-save-btn" onclick="saveEditModal()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // ── Panel navigation ──────────────────────────────────────────────────────
 
@@ -804,6 +1060,8 @@ function dumpFirst() {
     var panel = document.getElementById('panel-' + key);
     if (panel) panel.classList.add('active');
     if (btn)   btn.classList.add('active');
+    // SVG line positions depend on layout geometry — redraw when panel becomes visible.
+    if (key === 'assign-relationships') setTimeout(arDrawLines, 0);
   }
 
   function showPanelById(panelId) {
@@ -996,6 +1254,9 @@ function dumpFirst() {
     });
 
     setTableContent('<div class="uu-loading"><span class="uu-spinner"></span>Loading users from troop600.com&hellip;</div>');
+    // Also show loading state on the AR panel so the button feels responsive from any page
+    var arStatusEl = document.getElementById('ar-status');
+    if (arStatusEl) { arStatusEl.textContent = 'Loading\u2026'; arStatusEl.className = 'ar-status-msg'; }
 
     var fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=listUsers';
 
@@ -1008,9 +1269,12 @@ function dumpFirst() {
         if (data.error) throw new Error(data.error);
         allUsers = (data.users || []).filter(function(u) { return !isBlocked(u); });
         setStatus('ok', '&#10003; Connected &mdash; ' + allUsers.length + ' users loaded from troop600.com');
-        renderTable(allUsers);
+        renderTable(getFilteredUsers());
         document.getElementById('uu-search').style.display = allUsers.length ? '' : 'none';
         document.getElementById('user-count').style.display = allUsers.length ? '' : 'none';
+        var naBtn = document.getElementById('filter-needs-age-btn');
+        if (naBtn) naBtn.style.display = allUsers.length ? '' : 'none';
+        arRender();
       })
       .catch(function(err) {
         ['um', 'uu'].forEach(function(s) {
@@ -1096,9 +1360,10 @@ function dumpFirst() {
 
   // ── Table rendering ───────────────────────────────────────────────────────
 
-  var sortCol   = 'lastName';
-  var sortAsc   = true;
-  var filterVal = '';
+  var sortCol        = 'lastName';
+  var sortAsc        = true;
+  var filterVal      = '';
+  var filterNeedsAge = false;
 
   function setTableContent(html) {
     document.getElementById('table-body-wrap').innerHTML = html;
@@ -1134,6 +1399,7 @@ function dumpFirst() {
       { key: 'suspended',      label: 'Status'          }
     ];
     if (hasRoster) cols.push({ key: 'match', label: 'Match', noSort: true });
+    cols.push({ key: 'actions', label: '', noSort: true });
 
     var arrow = sortAsc ? ' &#9650;' : ' &#9660;';
     var thead = '<thead><tr>' + cols.map(function(c) {
@@ -1153,8 +1419,8 @@ function dumpFirst() {
         }
       }
       var pill = u.suspended
-        ? '<span class="pill pill-suspended">&#9679; Suspended</span>'
-        : '<span class="pill pill-active">&#9679; Active</span>';
+        ? '<button class="pill pill-suspended" data-email="' + esc(u.email) + '" onclick="toggleSuspended(this.dataset.email)" style="cursor:pointer;background:var(--red-lt);border-color:var(--red);" title="Click to reactivate">&#9679; Suspended</button>'
+        : '<button class="pill pill-active"    data-email="' + esc(u.email) + '" onclick="toggleSuspended(this.dataset.email)" style="cursor:pointer;background:#e6f4ec;" title="Click to suspend">&#9679; Active</button>';
       var secondaryHtml = (u.secondaryEmails || []).map(function(e) {
         return '<div class="td-email">' + esc(e) + '</div>';
       }).join('') || '<span style="color:var(--border)">—</span>';
@@ -1170,6 +1436,11 @@ function dumpFirst() {
         '<td>'                   + secondaryHtml    + '</td>' +
         '<td class="td-status">' + pill             + '</td>' +
         matchCell +
+        '<td style="white-space:nowrap;">' +
+          '<button class="btn-action btn-action-secondary" ' +
+            'data-email="' + esc(u.email) + '" ' +
+            'onclick="openEditModal(this.dataset.email)">&#9998; Edit</button>' +
+        '</td>' +
         '</tr>';
     }).join('') + '</tbody>';
 
@@ -1192,8 +1463,9 @@ function dumpFirst() {
   }
 
   function getFilteredUsers() {
-    if (!filterVal) return allUsers;
     return allUsers.filter(function(u) {
+      if (filterNeedsAge && u.isYouth !== '') return false;
+      if (!filterVal) return true;
       var haystack = [
         u.firstName, u.lastName, u.email, u.scoutId,
         u.rank, u.patrol, u.parents, u.orgUnit,
@@ -1201,6 +1473,16 @@ function dumpFirst() {
       ].join(' ').toLowerCase();
       return haystack.includes(filterVal);
     });
+  }
+
+  function toggleNeedsAgeFilter() {
+    filterNeedsAge = !filterNeedsAge;
+    var btn = document.getElementById('filter-needs-age-btn');
+    if (btn) {
+      btn.style.background   = filterNeedsAge ? 'var(--amber-lt)' : 'none';
+      btn.style.borderColor  = 'var(--amber)';
+    }
+    renderTable(getFilteredUsers());
   }
 
   function esc(s) {
@@ -1403,12 +1685,16 @@ function dumpFirst() {
       // BSA Number — all members
       diff('BSA Number', u.scoutId, findField(r, ['bsa number']));
 
-      // Is_Youth — all members (adults always false, youth always true)
-      var gwsIsYouth  = u.isYouth === true || u.isYouth === 'true';
-      var expIsYouth  = isYouth;
-      if (gwsIsYouth !== expIsYouth) {
+      // Is_Youth — all members (adults always false, youth always true).
+      // Blank/unset ('') is treated as distinct from explicit false so that accounts with
+      // no Is_Youth value are proposed for update rather than silently treated as false.
+      var gwsIsYouthRaw = u.isYouth;
+      var gwsIsYouthSet = gwsIsYouthRaw !== '' && gwsIsYouthRaw != null;
+      var gwsIsYouth    = gwsIsYouthRaw === true || gwsIsYouthRaw === 'true';
+      var expIsYouth    = isYouth;
+      if (!gwsIsYouthSet || gwsIsYouth !== expIsYouth) {
         diffs.push({ field: 'Is_Youth',
-          oldVal: gwsIsYouth ? 'true' : 'false',
+          oldVal: gwsIsYouthSet ? (gwsIsYouth ? 'true' : 'false') : '',
           newVal: expIsYouth ? 'true' : 'false' });
       }
 
@@ -1556,6 +1842,232 @@ function dumpFirst() {
     }
   }
 
+  // ── Edit User modal ───────────────────────────────────────────────────────
+
+  var editUser    = null;  // GWS user currently open in the editor
+  var editMvState = {};    // mutable copy of multi-value arrays: { Parents: [...], Scouts: [...] }
+
+  /** Opens the edit modal pre-populated with the given user's current field values. */
+  function openEditModal(email) {
+    var user = allUsers.filter(function(u) { return u.email === email; })[0];
+    if (!user) return;
+    editUser    = user;
+    editMvState = {
+      Parents: (user.parents || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+      Scouts:  (user.scouts  || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean)
+    };
+
+    document.getElementById('edit-modal-sub').textContent =
+      user.email + (user.orgUnit && user.orgUnit !== '/' ? '  \u00b7  ' + user.orgUnit : '');
+    document.getElementById('edit-modal-body').innerHTML = buildEditForm(user);
+
+    var saveBtn = document.getElementById('edit-save-btn');
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+
+    document.getElementById('edit-user-overlay').style.display = 'flex';
+  }
+
+  function closeEditModal() {
+    document.getElementById('edit-user-overlay').style.display = 'none';
+    editUser    = null;
+    editMvState = {};
+  }
+
+  /** Builds the inner HTML for the edit form from the user object. */
+  function buildEditForm(user) {
+    function textRow(label, key, val, type) {
+      return '<div class="edit-field-row">'
+        + '<label class="edit-field-label">' + label + '</label>'
+        + '<input type="' + (type || 'text') + '" class="edit-input" data-key="' + key + '" value="' + esc(val || '') + '">'
+        + '</div>';
+    }
+    function checkRow(label, key, checked) {
+      return '<div class="edit-field-row">'
+        + '<label class="edit-field-label">' + label + '</label>'
+        + '<input type="checkbox" class="edit-checkbox" data-key="' + key + '"' + (checked ? ' checked' : '') + '>'
+        + '</div>';
+    }
+    function selectRow(label, key, currentVal, options) {
+      var optHtml = options.map(function(o) {
+        return '<option value="' + esc(o.value) + '"' + (currentVal === o.value ? ' selected' : '') + '>'
+          + esc(o.label) + '</option>';
+      }).join('');
+      return '<div class="edit-field-row">'
+        + '<label class="edit-field-label">' + label + '</label>'
+        + '<select class="edit-input edit-select" data-key="' + key + '">' + optHtml + '</select>'
+        + '</div>';
+    }
+    function mvRow(label, key) {
+      return '<div class="edit-field-row edit-mv-row">'
+        + '<label class="edit-field-label">' + label + '</label>'
+        + '<div class="edit-mv-wrap">'
+          + '<div class="edit-mv-list" id="edit-mv-' + key + '">' + renderMvItems(key) + '</div>'
+          + '<div class="edit-mv-add-row">'
+            + '<input type="email" class="edit-input" id="edit-mv-input-' + key + '" '
+              + 'placeholder="user@troop600.com" '
+              + 'onkeydown="if(event.key===\'Enter\'){event.preventDefault();editMvAdd(\'' + key + '\')}">'
+            + '<button type="button" class="btn-action btn-action-primary" '
+              + 'onclick="editMvAdd(\'' + key + '\')" style="flex-shrink:0;">+ Add</button>'
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }
+
+    var isYouthVal = (user.isYouth === true)  ? 'true'
+                   : (user.isYouth === false) ? 'false'
+                   : '';  // blank = not set
+
+    return '<div class="edit-section">'
+        + '<div class="edit-section-title">Name</div>'
+        + textRow('First Name', 'givenName',  user.firstName)
+        + textRow('Last Name',  'familyName', user.lastName)
+      + '</div>'
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Account</div>'
+        + '<div class="edit-field-row"><label class="edit-field-label">Status</label>'
+          + '<span style="font-size:.82rem;color:var(--text-muted);">Use the status pill in the user table to suspend or reactivate.</span>'
+        + '</div>'
+      + '</div>'
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Troop Attributes</div>'
+        + textRow('BSA Member ID', 'Scout_ID', user.scoutId)
+        + selectRow('Is Youth', 'Is_Youth', isYouthVal, [
+            { value: '',      label: '(not set)'     },
+            { value: 'true',  label: 'Yes \u2014 Youth' },
+            { value: 'false', label: 'No \u2014 Adult'  }
+          ])
+      + '</div>'
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Scout Attributes</div>'
+        + textRow('Rank',   'Rank',   user.rank)
+        + textRow('Patrol', 'Patrol', user.patrol)
+        + mvRow('Parents', 'Parents')
+      + '</div>'
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Parent Attributes</div>'
+        + mvRow('Scouts', 'Scouts')
+      + '</div>';
+  }
+
+  function renderMvItems(key) {
+    var vals = editMvState[key] || [];
+    if (!vals.length) return '<span style="color:var(--text-muted);font-size:.8rem;padding:.15rem 0;">None</span>';
+    return vals.map(function(v, i) {
+      return '<div class="edit-mv-item">'
+        + '<span>' + esc(v) + '</span>'
+        + '<button type="button" class="edit-mv-remove" '
+          + 'data-mvkey="' + key + '" data-idx="' + i + '" '
+          + 'onclick="editMvRemove(this)" title="Remove">&times;</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function reRenderMvList(key) {
+    var el = document.getElementById('edit-mv-' + key);
+    if (el) el.innerHTML = renderMvItems(key);
+  }
+
+  function editMvRemove(btn) {
+    var key = btn.getAttribute('data-mvkey');
+    var idx = parseInt(btn.getAttribute('data-idx'), 10);
+    if (editMvState[key]) {
+      editMvState[key].splice(idx, 1);
+      reRenderMvList(key);
+    }
+  }
+
+  function editMvAdd(key) {
+    var inp = document.getElementById('edit-mv-input-' + key);
+    if (!inp) return;
+    var val = inp.value.trim().toLowerCase();
+    if (!val) return;
+    if (val.indexOf('@') === -1) { alert('Enter a valid email address.'); return; }
+    if (!editMvState[key]) editMvState[key] = [];
+    if (editMvState[key].indexOf(val) === -1) {
+      editMvState[key].push(val);
+      reRenderMvList(key);
+    }
+    inp.value = '';
+  }
+
+  /**
+   * Collects all form values from the edit modal, sends them to the Apps Script
+   * updateUser endpoint, then reloads users on success.
+   */
+  async function saveEditModal() {
+    if (!editUser) return;
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) { alert('Apps Script URL not configured.'); return; }
+
+    var changes = {};
+
+    // Text inputs (exclude <select> which also carries edit-input)
+    document.querySelectorAll('#edit-modal-body input.edit-input[data-key]').forEach(function(inp) {
+      changes[inp.getAttribute('data-key')] = inp.value.trim();
+    });
+
+    // Checkboxes
+    document.querySelectorAll('#edit-modal-body .edit-checkbox[data-key]').forEach(function(cb) {
+      changes[cb.getAttribute('data-key')] = cb.checked;
+    });
+
+    // Select dropdowns — empty value means "(not set)", omit so the field is left unchanged
+    document.querySelectorAll('#edit-modal-body select.edit-select[data-key]').forEach(function(sel) {
+      if (sel.value !== '') changes[sel.getAttribute('data-key')] = sel.value;
+    });
+
+    // Multi-value arrays
+    changes['Parents'] = (editMvState['Parents'] || []).slice();
+    changes['Scouts']  = (editMvState['Scouts']  || []).slice();
+
+    var saveBtn = document.getElementById('edit-save-btn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving\u2026'; }
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=updateUser'
+      + '&userId='  + encodeURIComponent(editUser.id)
+      + '&changes=' + encodeURIComponent(JSON.stringify(changes));
+
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      closeEditModal();
+      loadUsers();
+    } catch (ex) {
+      alert('Save failed: ' + ex.message);
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+    }
+  }
+
+  /** Confirms and toggles the suspended state of a Workspace user via the Apps Script endpoint. */
+  async function toggleSuspended(email) {
+    var user = allUsers.filter(function(u) { return u.email === email; })[0];
+    if (!user) return;
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var action = user.suspended ? 'reactivate' : 'suspend';
+    var msg    = user.suspended
+      ? 'Reactivate ' + user.firstName + ' ' + user.lastName + ' (' + email + ')?'
+      : 'Suspend ' + user.firstName + ' ' + user.lastName + ' (' + email + ')?\n\nThe user will lose access to all Google Workspace services.';
+    if (!confirm(msg)) return;
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=updateUser'
+      + '&userId='  + encodeURIComponent(user.id)
+      + '&changes=' + encodeURIComponent(JSON.stringify({ suspended: !user.suspended }));
+
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      loadUsers();
+    } catch (ex) {
+      alert('Failed to ' + action + ' user: ' + ex.message);
+    }
+  }
+
   // ── Match GWS account modal ───────────────────────────────────────────────
 
   var matchingRosterRow = null; // the roster row being matched in the modal
@@ -1670,6 +2182,516 @@ function dumpFirst() {
       loadUsers();
     }
   }
+
+  // ── Assign Relationships panel ───────────────────────────────────────────
+
+  var arAdults          = [];
+  var arScouts          = [];
+  var arFilterAdults    = '';
+  var arFilterScouts    = '';
+  var arUnlinkedAdults  = false;
+  var arUnlinkedScouts  = false;
+  var arPendingAdd    = [];  // [{parentEmail, scoutEmail}]
+  var arPendingRemove = [];  // [{parentEmail, scoutEmail}]
+  var arActiveEmail   = null;
+  var arActiveType    = null;  // 'adult' | 'scout'
+
+  /**
+   * Returns the list of related email addresses for a user.
+   * role 'parent' → reads user.scouts; role 'scout' → reads user.parents.
+   * Both are comma-separated strings from the mvValues() flattener in listUsers.
+   */
+  function arGetRelEmails(user, role) {
+    if (!user) return [];
+    var raw = (role === 'parent') ? (user.scouts || '') : (user.parents || '');
+    if (!raw) return [];
+    return raw.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+  }
+
+  /**
+   * Called after loadUsers() fetches fresh data.
+   * Splits allUsers into adults/scouts, resets pending state, and re-renders.
+   */
+  function arRender() {
+    // isYouth is a boolean from the Admin SDK (true/false) or '' if unset.
+    arAdults = allUsers.filter(function(u) { return u.isYouth === false; });
+    arScouts = allUsers.filter(function(u) { return u.isYouth === true;  });
+    arAdults.sort(function(a, b) {
+      return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
+    });
+    arScouts.sort(function(a, b) {
+      return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
+    });
+    // Fresh data — discard any unsaved pending state
+    arPendingAdd    = [];
+    arPendingRemove = [];
+    arActiveEmail   = null;
+    arActiveType    = null;
+    arRenderLists();
+    arUpdateToolbar();
+    // Lines require layout to be visible; showPanel calls arDrawLines via setTimeout.
+    // Also draw now in case the panel is already active (e.g. auto-load on page open).
+    setTimeout(arDrawLines, 0);
+  }
+
+  function arFilter(side, val) {
+    if (side === 'adults') arFilterAdults = val.toLowerCase();
+    else                   arFilterScouts = val.toLowerCase();
+    arRenderLists();
+    setTimeout(arDrawLines, 0);
+  }
+
+  function arToggleUnlinked(side) {
+    if (side === 'adults') arUnlinkedAdults = !arUnlinkedAdults;
+    else                   arUnlinkedScouts = !arUnlinkedScouts;
+    var btn = document.getElementById('ar-unlinked-btn-' + side);
+    if (btn) btn.classList.toggle('ar-unlinked-btn-active', side === 'adults' ? arUnlinkedAdults : arUnlinkedScouts);
+    arRenderLists();
+    setTimeout(arDrawLines, 0);
+  }
+
+  function arRenderLists() {
+    arRenderList('adults', arAdults, arFilterAdults);
+    arRenderList('scouts', arScouts, arFilterScouts);
+  }
+
+  function arRenderList(side, people, filter) {
+    var listEl = document.getElementById('ar-list-' + side);
+    if (!listEl) return;
+    var isRight = (side === 'scouts');
+    var role = isRight ? 'scout' : 'parent';
+
+    var showUnlinkedOnly = isRight ? arUnlinkedScouts : arUnlinkedAdults;
+
+    var filtered = people.filter(function(p) {
+      if (filter && (p.firstName + ' ' + p.lastName + ' ' + p.email).toLowerCase().indexOf(filter) === -1) return false;
+      if (showUnlinkedOnly) {
+        var hasSaved = arGetRelEmails(p, role).length > 0;
+        var hasPendingAdd = arPendingAdd.some(function(pa) {
+          return isRight ? pa.scoutEmail === p.email : pa.parentEmail === p.email;
+        });
+        if (hasSaved || hasPendingAdd) return false;
+      }
+      return true;
+    });
+
+    var hasActiveFilters = filter || showUnlinkedOnly;
+    if (!filtered.length) {
+      listEl.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.82rem;">'
+        + (hasActiveFilters ? 'No matches.' : 'No ' + side + ' found.')
+        + '</div>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(function(p) {
+      var isActive = arActiveEmail === p.email;
+      var rels = arGetRelEmails(p, role);
+
+      // Build chip list: saved rels (green or amber-strike if pending-remove) + pending-add (amber+)
+      var chips = rels.map(function(relEmail) {
+        var isPR = arPendingRemove.some(function(pr) {
+          return isRight
+            ? pr.scoutEmail === p.email  && pr.parentEmail === relEmail
+            : pr.parentEmail === p.email && pr.scoutEmail  === relEmail;
+        });
+        var cls = 'ar-chip' + (isPR ? ' ar-chip-pending' : '');
+        var label = relEmail.split('@')[0];
+        return '<span class="' + cls + '" title="' + esc(relEmail) + '">'
+          + esc(label) + (isPR ? ' \u2715' : '') + '</span>';
+      });
+
+      arPendingAdd.filter(function(pa) {
+        return isRight ? pa.scoutEmail === p.email : pa.parentEmail === p.email;
+      }).forEach(function(pa) {
+        var relEmail = isRight ? pa.parentEmail : pa.scoutEmail;
+        chips.push('<span class="ar-chip ar-chip-pending" title="' + esc(relEmail) + '">'
+          + esc(relEmail.split('@')[0]) + ' +</span>');
+      });
+
+      var portHtml = '<div class="ar-port" onclick="arHandlePortClick(this)"><span class="ar-port-dot"></span></div>';
+
+      return '<div class="ar-person' + (isActive ? ' ar-active' : '') + '" data-ar-email="' + esc(p.email) + '">'
+        + (isRight ? '' : portHtml)
+        + '<div class="ar-person-info">'
+          + '<div class="ar-person-name">' + esc(p.lastName) + ', ' + esc(p.firstName)
+            + (p.suspended ? ' <span class="ar-suspended-pill">Suspended</span>' : '') + '</div>'
+          + '<div class="ar-person-email">' + esc(p.email) + '</div>'
+          + (chips.length ? '<div class="ar-person-chips">' + chips.join('') + '</div>' : '')
+        + '</div>'
+        + (isRight ? portHtml : '')
+      + '</div>';
+    }).join('');
+  }
+
+  /**
+   * Handles a click on a port dot.
+   * - No active: sets this person as active.
+   * - Same person active: deselects.
+   * - Same side active: switches selection to this person.
+   * - Opposite side active: toggles a relationship line.
+   */
+  function arHandlePortClick(portEl) {
+    var personEl = portEl.closest('.ar-person');
+    var email    = personEl.getAttribute('data-ar-email');
+    var colEl    = personEl.closest('.ar-col');
+    var type     = (colEl && colEl.id === 'ar-col-adults') ? 'adult' : 'scout';
+
+    if (!arActiveEmail) {
+      arSetActive(email, type);
+      return;
+    }
+    if (arActiveEmail === email) {
+      arClearActive();
+      return;
+    }
+    if (arActiveType === type) {
+      // Same side — switch selection
+      arSetActive(email, type);
+      return;
+    }
+    // Opposite sides — create or toggle relationship
+    var parentEmail = (type === 'adult') ? email : arActiveEmail;
+    var scoutEmail  = (type === 'scout') ? email : arActiveEmail;
+    arToggleLine(parentEmail, scoutEmail);
+    arClearActive();
+  }
+
+  function arSetActive(email, type) {
+    arActiveEmail = email;
+    arActiveType  = type;
+    arRenderLists();
+    arDrawLines();
+    var statusEl = document.getElementById('ar-status');
+    if (statusEl) {
+      statusEl.textContent = 'Selected: ' + email
+        + ' \u2014 now click a ' + (type === 'adult' ? 'scout' : 'adult') + ' to connect.';
+      statusEl.className = 'ar-status-msg ar-selecting';
+    }
+  }
+
+  function arClearActive() {
+    arActiveEmail = null;
+    arActiveType  = null;
+    arRenderLists();
+    arDrawLines();
+    arUpdateToolbar();
+  }
+
+  /**
+   * Toggles a relationship between parentEmail and scoutEmail:
+   * - Saved + not pending-remove → mark for removal
+   * - Saved + pending-remove     → undo removal
+   * - Not saved + pending-add    → cancel add
+   * - Not saved + not pending    → stage as add
+   */
+  function arToggleLine(parentEmail, scoutEmail) {
+    var parentUser = allUsers.filter(function(u) { return u.email === parentEmail; })[0];
+    var rels    = arGetRelEmails(parentUser, 'parent');
+    var isSaved = rels.indexOf(scoutEmail) !== -1;
+
+    var paIdx = -1, prIdx = -1;
+    for (var i = 0; i < arPendingAdd.length; i++) {
+      if (arPendingAdd[i].parentEmail === parentEmail && arPendingAdd[i].scoutEmail === scoutEmail) { paIdx = i; break; }
+    }
+    for (var j = 0; j < arPendingRemove.length; j++) {
+      if (arPendingRemove[j].parentEmail === parentEmail && arPendingRemove[j].scoutEmail === scoutEmail) { prIdx = j; break; }
+    }
+
+    if (isSaved) {
+      if (prIdx !== -1) arPendingRemove.splice(prIdx, 1); // undo remove
+      else arPendingRemove.push({ parentEmail: parentEmail, scoutEmail: scoutEmail });
+    } else {
+      if (paIdx !== -1) arPendingAdd.splice(paIdx, 1); // cancel add
+      else arPendingAdd.push({ parentEmail: parentEmail, scoutEmail: scoutEmail });
+    }
+  }
+
+  /**
+   * Returns the SVG-space coordinates of a person's port dot.
+   * Returns null if the person is not currently rendered (filtered out or scrolled out of view).
+   */
+  function arGetPortCoords(email, side) {
+    var layoutEl = document.getElementById('ar-layout');
+    if (!layoutEl) return null;
+    var listEl   = document.getElementById('ar-list-' + side);
+    if (!listEl) return null;
+    var personEl = listEl.querySelector('[data-ar-email="' + email + '"]');
+    if (!personEl) return null;
+    var portDot  = personEl.querySelector('.ar-port-dot');
+    if (!portDot) return null;
+    var pr = portDot.getBoundingClientRect();
+    var lr = layoutEl.getBoundingClientRect();
+    var x  = pr.left + pr.width  / 2 - lr.left;
+    var y  = pr.top  + pr.height / 2 - lr.top;
+    // Return null for ports scrolled outside the visible layout area
+    if (y < 0 || y > lr.height) return null;
+    return { x: x, y: y };
+  }
+
+  /**
+   * Clears and redraws all relationship lines on the SVG overlay.
+   * Three visual states: green solid (saved), amber dashed (pending-add), red dashed (pending-remove).
+   */
+  function arDrawLines() {
+    var svg = document.getElementById('ar-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    function drawPath(x1, y1, x2, y2, color, dasharray, width, onClickFn) {
+      var cx = (x1 + x2) / 2;
+      var d  = 'M'  + x1.toFixed(1) + ',' + y1.toFixed(1)
+             + ' C' + cx.toFixed(1) + ',' + y1.toFixed(1)
+             + ' '  + cx.toFixed(1) + ',' + y2.toFixed(1)
+             + ' '  + x2.toFixed(1) + ',' + y2.toFixed(1);
+      if (onClickFn) {
+        // Wide transparent hit area for easy clicking
+        var hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        hit.setAttribute('d', d);
+        hit.setAttribute('fill', 'none');
+        hit.setAttribute('stroke', 'transparent');
+        hit.setAttribute('stroke-width', '12');
+        hit.style.pointerEvents = 'stroke';
+        hit.style.cursor = 'pointer';
+        hit.addEventListener('click', onClickFn);
+        svg.appendChild(hit);
+      }
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', color);
+      path.setAttribute('stroke-width', String(width));
+      if (dasharray) path.setAttribute('stroke-dasharray', dasharray);
+      path.setAttribute('stroke-linecap', 'round');
+      if (onClickFn) {
+        path.style.pointerEvents = 'stroke';
+        path.style.cursor = 'pointer';
+        path.addEventListener('click', onClickFn);
+      }
+      svg.appendChild(path);
+    }
+
+    // Draw saved relationships (green solid, or red dashed if pending-remove)
+    allUsers.filter(function(u) { return u.isYouth === false; }).forEach(function(adult) {
+      arGetRelEmails(adult, 'parent').forEach(function(scoutEmail) {
+        var isPR = arPendingRemove.some(function(pr) {
+          return pr.parentEmail === adult.email && pr.scoutEmail === scoutEmail;
+        });
+        var p1 = arGetPortCoords(adult.email, 'adults');
+        var p2 = arGetPortCoords(scoutEmail,  'scouts');
+        if (!p1 || !p2) return;
+        var pE = adult.email, sE = scoutEmail;
+        drawPath(p1.x, p1.y, p2.x, p2.y,
+          isPR ? '#b03030' : '#3a8a50',
+          isPR ? '4 4'     : null,
+          2,
+          function() { arToggleLine(pE, sE); arClearActive(); }
+        );
+      });
+    });
+
+    // Draw pending-add relationships (amber dashed)
+    arPendingAdd.forEach(function(pa) {
+      var p1 = arGetPortCoords(pa.parentEmail, 'adults');
+      var p2 = arGetPortCoords(pa.scoutEmail,  'scouts');
+      if (!p1 || !p2) return;
+      var pE = pa.parentEmail, sE = pa.scoutEmail;
+      drawPath(p1.x, p1.y, p2.x, p2.y,
+        '#c47a0e', '6 4', 2.5,
+        function() { arToggleLine(pE, sE); arClearActive(); }
+      );
+    });
+  }
+
+  function arUpdateToolbar() {
+    var n          = arPendingAdd.length + arPendingRemove.length;
+    var saveBtn    = document.getElementById('ar-save-btn');
+    var discardBtn = document.getElementById('ar-discard-btn');
+    if (saveBtn)    saveBtn.style.display    = n ? '' : 'none';
+    if (discardBtn) discardBtn.style.display = n ? '' : 'none';
+    if (!arActiveEmail) {
+      var statusEl = document.getElementById('ar-status');
+      if (statusEl) {
+        statusEl.textContent = n
+          ? n + ' pending change' + (n !== 1 ? 's' : '') + ' \u2014 click Save to apply.'
+          : (arAdults.length || arScouts.length)
+              ? 'Click a port dot to start drawing a relationship.'
+              : 'Load users to view relationships.';
+        statusEl.className = 'ar-status-msg' + (n ? ' ar-selecting' : '');
+      }
+    }
+  }
+
+  function arDiscardChanges() {
+    arPendingAdd    = [];
+    arPendingRemove = [];
+    arActiveEmail   = null;
+    arActiveType    = null;
+    arRenderLists();
+    arDrawLines();
+    arUpdateToolbar();
+  }
+
+  /**
+   * Sends all pending add/remove calls to the Apps Script endpoint sequentially,
+   * then re-fetches the full user list to confirm writes.
+   */
+  async function arSaveChanges() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var saveBtn    = document.getElementById('ar-save-btn');
+    var discardBtn = document.getElementById('ar-discard-btn');
+    var total      = arPendingAdd.length + arPendingRemove.length;
+    if (!total) return;
+
+    var done   = 0;
+    var errors = [];
+
+    function setProgress() {
+      done++;
+      if (saveBtn) saveBtn.textContent = 'Saving\u00a0' + done + '\u202f/\u202f' + total + '\u2026';
+    }
+
+    if (saveBtn)    { saveBtn.disabled = true; saveBtn.textContent = 'Saving\u2026'; }
+    if (discardBtn)   discardBtn.disabled = true;
+
+    try {
+      var addSnapshot    = arPendingAdd.slice();
+      var removeSnapshot = arPendingRemove.slice();
+
+      for (var i = 0; i < addSnapshot.length; i++) {
+        setProgress();
+        var pa       = addSnapshot[i];
+        var addUrl   = url + (url.includes('?') ? '&' : '?')
+          + 'action=addRelationship'
+          + '&parentEmail=' + encodeURIComponent(pa.parentEmail)
+          + '&scoutEmail='  + encodeURIComponent(pa.scoutEmail);
+        try {
+          var ra = await fetch(addUrl);
+          var da = await ra.json();
+          if (da.error) errors.push('Add ' + pa.parentEmail + ' \u2194 ' + pa.scoutEmail + ': ' + da.error);
+        } catch (exA) {
+          errors.push('Add ' + pa.parentEmail + ' \u2194 ' + pa.scoutEmail + ': ' + exA.message);
+        }
+      }
+
+      for (var j = 0; j < removeSnapshot.length; j++) {
+        setProgress();
+        var pr       = removeSnapshot[j];
+        var rmUrl    = url + (url.includes('?') ? '&' : '?')
+          + 'action=removeRelationship'
+          + '&parentEmail=' + encodeURIComponent(pr.parentEmail)
+          + '&scoutEmail='  + encodeURIComponent(pr.scoutEmail);
+        try {
+          var rr = await fetch(rmUrl);
+          var dr = await rr.json();
+          if (dr.error) errors.push('Remove ' + pr.parentEmail + ' \u2194 ' + pr.scoutEmail + ': ' + dr.error);
+        } catch (exR) {
+          errors.push('Remove ' + pr.parentEmail + ' \u2194 ' + pr.scoutEmail + ': ' + exR.message);
+        }
+      }
+
+      if (errors.length) alert('Completed with ' + errors.length + ' error(s):\n\n' + errors.join('\n'));
+    } finally {
+      if (saveBtn)    { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+      if (discardBtn)   discardBtn.disabled = false;
+      loadUsers(); // re-fetches + calls arRender() → resets pending state with confirmed data
+    }
+  }
+
+  /**
+   * Reads the Scoutbook roster CSV (already parsed into parsedRoster) and stages
+   * parent–scout relationships derived from the "Relationship" column.
+   *
+   * The Relationship cell format is: <label> (<BSA-ID>)  e.g. "Father (12345678)"
+   * Multiple parents may appear as separate parenthesised numbers in the same cell.
+   * Only additions are proposed — existing saved relationships are skipped.
+   */
+  function arCheckFromScoutbook() {
+    if (!parsedRoster || !parsedRoster.length) {
+      alert('No roster data is available.\nRegenerate the report with a Full Troop Roster CSV selected.');
+      return;
+    }
+    if (!allUsers.length) {
+      alert('Load users from Google Workspace first, then click Check From Scoutbook.');
+      return;
+    }
+
+    // Fast O(1) lookup: BSA ID string → GWS user object
+    var byBsaId = {};
+    allUsers.forEach(function(u) { if (u.scoutId) byBsaId[u.scoutId] = u; });
+
+    var added = 0, alreadySaved = 0, alreadyPending = 0, noRelField = 0, notInGws = 0;
+
+    parsedRoster.filter(function(row) {
+      return row._section === 'YOUTH MEMBERS';
+    }).forEach(function(row) {
+      var youthBsaId    = findField(row, ['bsa number']);
+      var relField      = findField(row, ['relationship', 'relationships']);
+      if (!youthBsaId) return;
+      if (!relField)   { noRelField++; return; }
+
+      var scoutUser = byBsaId[youthBsaId];
+      if (!scoutUser)  { notInGws++; return; }
+
+      // Extract every (digits) group — each is a parent's BSA Member ID
+      var re = /\((\d+)\)/g, m;
+      while ((m = re.exec(relField)) !== null) {
+        var parentBsaId = m[1];
+        var parentUser  = byBsaId[parentBsaId];
+        if (!parentUser) { notInGws++; continue; }
+
+        // Skip if the relationship is already saved on either side
+        var savedRels = arGetRelEmails(parentUser, 'parent');
+        if (savedRels.indexOf(scoutUser.email) !== -1) { alreadySaved++; continue; }
+
+        // Skip if already staged
+        var staged = arPendingAdd.some(function(pa) {
+          return pa.parentEmail === parentUser.email && pa.scoutEmail === scoutUser.email;
+        });
+        if (staged) { alreadyPending++; continue; }
+
+        arPendingAdd.push({ parentEmail: parentUser.email, scoutEmail: scoutUser.email });
+        added++;
+      }
+    });
+
+    arRenderLists();
+    setTimeout(arDrawLines, 0);
+
+    // Update status bar with a human-readable summary
+    var parts = [];
+    if (added)          parts.push(added + ' relationship' + (added !== 1 ? 's' : '') + ' proposed');
+    if (alreadySaved)   parts.push(alreadySaved + ' already saved');
+    if (alreadyPending) parts.push(alreadyPending + ' already staged');
+    if (notInGws)       parts.push(notInGws + ' BSA ID(s) not found in Workspace');
+    if (noRelField)     parts.push(noRelField + ' youth row(s) had no Relationship column');
+
+    var statusEl = document.getElementById('ar-status');
+    if (statusEl) {
+      if (!parts.length) {
+        statusEl.textContent = 'No Relationship data found. Check that the roster CSV includes a Relationship column.';
+        statusEl.className = 'ar-status-msg';
+      } else {
+        statusEl.textContent = parts.join(' \u00b7 ') + '.';
+        statusEl.className = 'ar-status-msg' + (added ? ' ar-selecting' : '');
+      }
+    }
+    arUpdateToolbar();
+  }
+
+  // Redraw lines whenever either column scrolls or the window resizes.
+  (function initArListeners() {
+    var adultsEl = document.getElementById('ar-list-adults');
+    var scoutsEl = document.getElementById('ar-list-scouts');
+    if (adultsEl) adultsEl.addEventListener('scroll', arDrawLines);
+    if (scoutsEl) scoutsEl.addEventListener('scroll', arDrawLines);
+    var arResizeTimer = null;
+    window.addEventListener('resize', function() {
+      clearTimeout(arResizeTimer);
+      arResizeTimer = setTimeout(arDrawLines, 60);
+    });
+  })();
 
   // ── Unmatched roster table ────────────────────────────────────────────────
 
