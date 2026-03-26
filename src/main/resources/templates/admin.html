@@ -821,6 +821,7 @@ function dumpFirst() {
           </div>
           <div class="connect-row">
             <input type="url" class="connect-url-input" id="gws-url-um"
+                   aria-label="Apps Script web app URL"
                    placeholder="https://script.google.com/macros/s/.../exec"
                    oninput="syncUrl('um', this.value)" />
             <button class="btn-secondary" id="clear-btn-um" onclick="clearUrl()" style="display:none">
@@ -869,8 +870,8 @@ function dumpFirst() {
                       style="display:none;cursor:pointer;border:1.5px solid var(--amber);color:var(--amber);background:none;font-family:var(--font-b);font-size:.72rem;font-weight:700;letter-spacing:.05em;padding:.18rem .6rem;">
                 Needs Age
               </button>
-              <input type="search" class="uu-search" id="uu-search" placeholder="Search name or email&hellip;"
-                     oninput="filterTable()" style="display:none" />
+              <input type="search" class="uu-search" id="uu-search" aria-label="Search workspace users"
+                     placeholder="Search name or email&hellip;" oninput="filterTable()" style="display:none" />
             </div>
           </div>
           <div id="table-body-wrap">
@@ -986,7 +987,7 @@ function dumpFirst() {
             <button class="ar-unlinked-btn" id="ar-unlinked-btn-adults"
                     onclick="arToggleUnlinked('adults')" title="Show only adults with no linked scouts">Unlinked only</button>
             <input type="search" class="ar-search" id="ar-search-adults"
-                   placeholder="Filter&hellip;" oninput="arFilter('adults', this.value)">
+                   aria-label="Filter adults" placeholder="Filter&hellip;" oninput="arFilter('adults', this.value)">
           </div>
           <div class="ar-col-list" id="ar-list-adults">
             <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.82rem;">Load users to view adults.</div>
@@ -997,7 +998,7 @@ function dumpFirst() {
           <div class="ar-col-hd">
             <span class="ar-col-title">Scouts</span>
             <input type="search" class="ar-search" id="ar-search-scouts"
-                   placeholder="Filter&hellip;" oninput="arFilter('scouts', this.value)">
+                   aria-label="Filter scouts" placeholder="Filter&hellip;" oninput="arFilter('scouts', this.value)">
             <button class="ar-unlinked-btn" id="ar-unlinked-btn-scouts"
                     onclick="arToggleUnlinked('scouts')" title="Show only scouts with no linked adults">Unlinked only</button>
           </div>
@@ -1023,8 +1024,8 @@ function dumpFirst() {
       <button class="match-modal-x" onclick="closeMatchModal()" title="Cancel">&#x2715;</button>
     </div>
     <div class="match-modal-search">
-      <input type="search" id="match-search" placeholder="Search name or email&hellip;"
-             oninput="filterMatchList()" autocomplete="off">
+      <input type="search" id="match-search" aria-label="Search for a match"
+             placeholder="Search name or email&hellip;" oninput="filterMatchList()" autocomplete="off">
     </div>
     <div class="match-modal-list" id="match-modal-list"></div>
     <div class="match-modal-ft">
