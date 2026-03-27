@@ -239,6 +239,15 @@
     .ar-col-title { font-family: var(--font-h); font-size: .82rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--navy); white-space: nowrap; }
     .ar-search { font-family: var(--font-b); font-size: .77rem; padding: .3rem .55rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; width: 110px; transition: border-color var(--t); }
     .ar-search:focus { border-color: var(--green-mid); }
+    /* ── Update Patrols panel ── */
+    .patrol-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; margin-bottom: 1.4rem; }
+    .patrol-card-header { display: flex; align-items: center; justify-content: space-between; padding: .85rem 1.1rem; border-bottom: 1px solid var(--border-lt); background: var(--surface-2); gap: 1rem; flex-wrap: wrap; }
+    .patrol-card-info { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .patrol-card-name { font-family: var(--font-h); font-size: 1rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--navy); }
+    .patrol-card-count { font-size: .75rem; font-weight: 700; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: .15rem .6rem; }
+    .patrol-group-email { font-size: .77rem; color: var(--text-muted); font-family: monospace; }
+    .patrol-card-actions { display: flex; gap: .5rem; }
+    .patrol-card-actions .btn-secondary:disabled { opacity: .45; cursor: not-allowed; }
     .ar-suspended-pill { display: inline-block; font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #b45309; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: .05rem .45rem; vertical-align: middle; margin-left: .35rem; }
     .ar-unlinked-btn { font-family: var(--font-b); font-size: .72rem; font-weight: 600; padding: .25rem .6rem; border: 1.5px solid var(--border); border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; transition: all var(--t); white-space: nowrap; }
     .ar-unlinked-btn:hover { border-color: var(--amber); color: var(--amber); }
@@ -355,7 +364,6 @@
       <button class="sidebar-item" onclick="showPanel('update-patrols', this)">
         <span class="si-icon">&#9872;</span>
         <span class="si-label">Update Patrols</span>
-        <span class="sidebar-badge">Soon</span>
       </button>
     </div>
   </nav>
@@ -392,8 +400,7 @@
         <div class="ov-card" onclick="showPanelById('panel-update-patrols')">
           <div class="ov-card-icon">&#9872;</div>
           <div class="ov-card-title">Update Patrols</div>
-          <div class="ov-card-desc">Sync patrol assignments and Google Group memberships from advancement data.</div>
-          <span class="ov-card-badge">Under Development</span>
+          <div class="ov-card-desc">View patrol memberships from Google Workspace and manage Google Group sync.</div>
         </div>
         <div class="ov-card" onclick="showPanelById('panel-assign-relationships')">
           <div class="ov-card-icon">&#128279;</div>
@@ -546,7 +553,7 @@ function listUsers() {
         secondaryEmails: secondaryEmails,
         // Custom schema fields (schema names: Scout_Attributes, Troop_Attributes, Parent_Attributes)
         rank:     custom['Rank']     || '',
-        patrol:   custom['Patrol']   || '',
+        patrol:   mvValues('Patrol'),
         scoutId:  custom['Scout_ID'] != null ? String(custom['Scout_ID']) : '',
         isYouth:  custom['Is_Youth'] != null ? custom['Is_Youth'] : '',
         parents:  mvValues('Parents'),
@@ -610,7 +617,9 @@ function updateUser(e) {
   // ── Scout_Attributes schema ──────────────────────────────────────────────
   if ('Patrol' in changes) {
     schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
-    schemas['Scout_Attributes']['Patrol'] = changes['Patrol'];
+    schemas['Scout_Attributes']['Patrol'] = (changes['Patrol'] || []).map(function(name) {
+      return { type: 'work', value: name };
+    });
   }
   if ('Rank' in changes) {
     schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
@@ -866,6 +875,8 @@ function dumpFirst() {
           <button class="btn-link" id="um-show-config" onclick="showUmConfig()" style="display:none">
             &#9881; Change connection
           </button>
+          <button class="script-copy-btn" id="um-copy-code-btn" onclick="copyScript(this,'script-code-um')"
+                  style="display:none;font-size:.75rem;">&#128203; Copy Code.gs</button>
           <div class="connect-status" id="connect-status"></div>
         </div>
 
@@ -967,27 +978,12 @@ function dumpFirst() {
     <div id="panel-update-patrols" class="content-panel">
       <div class="cp-header">
         <div class="cp-title">Update Patrols</div>
-        <div class="cp-sub">Sync patrol Google Groups from the current advancement data</div>
+        <div class="cp-sub">View patrol memberships and manage Google Group sync &middot; troop600.com</div>
       </div>
-      <div class="wf-shell">
-        <div class="wf-shell-header">
-          <span class="wf-shell-title">Update Patrols</span>
-          <span class="wf-badge-dev">Under Development</span>
-        </div>
-        <div class="wf-shell-body">
-          <p class="wf-desc">
-            Update patrol assignments and Google Group memberships in the Troop 600 Google Workspace.
-            Creates or updates patrol-based groups from the current advancement data.
-          </p>
-          <div class="wf-placeholder">
-            <span class="wf-placeholder-icon">&#9872;</span>
-            <span class="wf-placeholder-msg">No upload interface yet.<br>This workflow will be available in a future release.</span>
-          </div>
-          <div class="wf-notes">
-            Will read patrol assignments from the advancement data and sync Google Group
-            memberships for each patrol.
-          </div>
-          <div><button class="wf-btn-disabled" disabled>Upload &mdash; coming soon</button></div>
+      <div id="patrol-tables-wrap">
+        <div class="uu-empty">
+          <div class="uu-empty-icon">&#9872;</div>
+          Load users to view patrol assignments.
         </div>
       </div>
     </div>
@@ -1121,6 +1117,7 @@ function dumpFirst() {
     if (btn)   btn.classList.add('active');
     // SVG line positions depend on layout geometry — redraw when panel becomes visible.
     if (key === 'assign-relationships') setTimeout(arDrawLines, 0);
+    if (key === 'update-patrols') renderPatrolsPage();
   }
 
   function showPanelById(panelId) {
@@ -1248,8 +1245,10 @@ function dumpFirst() {
     var hasUrl   = !!localStorage.getItem(GWS_URL_KEY);
     var wrap     = document.getElementById('um-setup-wrap');
     var showLink = document.getElementById('um-show-config');
+    var copyBtn  = document.getElementById('um-copy-code-btn');
     if (wrap)     wrap.style.display     = hasUrl ? 'none' : '';
     if (showLink) showLink.style.display = hasUrl ? ''     : 'none';
+    if (copyBtn)  copyBtn.style.display  = hasUrl ? ''     : 'none';
   }
 
   // "Change connection" link forces the setup section back open.
@@ -1339,6 +1338,7 @@ function dumpFirst() {
         document.getElementById('filter-status-group').style.display = show;
         document.getElementById('filter-match-group').style.display  = rosterIndex ? show : 'none';
         arRender();
+        renderPatrolsPage();
       })
       .catch(function(err) {
         ['um', 'uu'].forEach(function(s) {
@@ -1580,6 +1580,72 @@ function dumpFirst() {
     bodyEl.innerHTML = '<table class="uu-table">' + thead + tbody + '</table>';
   }
 
+  /**
+   * Renders the Update Patrols panel: one card per patrol derived from GWS user Patrol fields.
+   * Each card shows the patrol name, slugified group email, member count, member table,
+   * and mocked (disabled) Add to Group / Sync Group buttons.
+   */
+  function renderPatrolsPage() {
+    var wrap = document.getElementById('patrol-tables-wrap');
+    if (!wrap) return;
+
+    if (!allUsers.length) {
+      wrap.innerHTML = '<div class="uu-empty"><div class="uu-empty-icon">&#9872;</div>Load users to view patrol assignments.</div>';
+      return;
+    }
+
+    // Collect all unique patrol names and their members from GWS multi-value Patrol field
+    var patrols = {};
+    allUsers.forEach(function(u) {
+      if (!u.patrol) return;
+      u.patrol.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(name) {
+        if (!patrols[name]) patrols[name] = [];
+        patrols[name].push(u);
+      });
+    });
+
+    var sortedNames = Object.keys(patrols).sort();
+    if (!sortedNames.length) {
+      wrap.innerHTML = '<div class="uu-empty"><div class="uu-empty-icon">&#9872;</div>No patrol assignments found in Google Workspace.</div>';
+      return;
+    }
+
+    wrap.innerHTML = sortedNames.map(function(patrolName) {
+      var members = patrols[patrolName].slice().sort(function(a, b) {
+        return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
+      });
+      var slug       = patrolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      var groupEmail = slug + '@troop600.com';
+      var count      = members.length;
+
+      var tbody = members.map(function(u) {
+        return '<tr>'
+          + '<td class="td-name">'  + esc(u.lastName)  + '</td>'
+          + '<td class="td-name">'  + esc(u.firstName) + '</td>'
+          + '<td class="td-email">' + esc(u.email)     + '</td>'
+          + '</tr>';
+      }).join('');
+
+      return '<div class="patrol-card">'
+        + '<div class="patrol-card-header">'
+          + '<div class="patrol-card-info">'
+            + '<span class="patrol-card-name">' + esc(patrolName) + '</span>'
+            + '<span class="patrol-card-count">' + count + '\u00a0member' + (count !== 1 ? 's' : '') + '</span>'
+            + '<span class="patrol-group-email">&#9993;\u00a0' + esc(groupEmail) + '</span>'
+          + '</div>'
+          + '<div class="patrol-card-actions">'
+            + '<button class="btn-secondary" disabled title="Coming soon">Add to Group</button>'
+            + '<button class="btn-secondary" disabled title="Coming soon">Sync Group</button>'
+          + '</div>'
+        + '</div>'
+        + '<table class="uu-table">'
+          + '<thead><tr><th>Last Name</th><th>First Name</th><th>Email</th></tr></thead>'
+          + '<tbody>' + tbody + '</tbody>'
+        + '</table>'
+      + '</div>';
+    }).join('');
+  }
+
   function sortBy(col) {
     if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
     var visible = getFilteredUsers();
@@ -1683,7 +1749,6 @@ function dumpFirst() {
     var section      = '';
     var headers      = null;
     var rows         = [];
-    var seenBsa      = {};
     var skipSection  = false;
 
     for (var i = 0; i < lines.length; i++) {
@@ -1722,11 +1787,7 @@ function dumpFirst() {
         headers.forEach(function(h, idx) {
           obj[h] = (dataCells[idx] || '').trim();
         });
-        var bsaNum = findField(obj, ['bsa number']);
-        if (bsaNum && !seenBsa[bsaNum]) {
-          seenBsa[bsaNum] = true;
-          rows.push(obj);
-        }
+        rows.push(obj);
       }
     }
 
@@ -1745,14 +1806,27 @@ function dumpFirst() {
   }
 
   /** Builds lookup maps from parsed roster rows for fast matching. */
+  /**
+   * Builds lookup maps from parsed roster rows for fast matching.
+   * A scout may have multiple rows (one per patrol); byScoutId/byName keep the first row
+   * for all fields, while byPatrols aggregates all patrol values per BSA number into a
+   * sorted, comma-joined string for set-based comparison against GWS multi-value Patrol.
+   */
   function buildRosterIndex(rows) {
-    var byScoutId = {}, byEmail = {}, byName = {};
+    var byScoutId = {}, byEmail = {}, byName = {}, patrolSets = {};
     rows.forEach(function(row) {
       var bsaNum = findField(row, ['bsa number']) || '';
       var first  = (findField(row, ['first name'])|| '').toLowerCase().trim();
       var last   = (findField(row, ['last name']) || '').toLowerCase().trim();
-      if (bsaNum) byScoutId[bsaNum] = row;
-      if (first && last) byName[first + ' ' + last] = row;
+      if (bsaNum) {
+        if (!byScoutId[bsaNum]) byScoutId[bsaNum] = row;  // first row wins for all non-patrol fields
+        var patrol = (findField(row, ['patrol']) || '').trim();
+        if (patrol) {
+          if (!patrolSets[bsaNum]) patrolSets[bsaNum] = [];
+          if (patrolSets[bsaNum].indexOf(patrol) === -1) patrolSets[bsaNum].push(patrol);
+        }
+      }
+      if (first && last && !byName[first + ' ' + last]) byName[first + ' ' + last] = row;
 
       // In the YOUTH MEMBERS section the "Email" column holds the parent/guardian's
       // email address, not the scout's own email.  Indexing it would cause parent GWS
@@ -1760,10 +1834,15 @@ function dumpFirst() {
       // Adult section rows use their own email, so those are safe to index.
       if (row._section !== 'YOUTH MEMBERS') {
         var email = (findField(row, ['email']) || '').toLowerCase();
-        if (email) byEmail[email] = row;
+        if (email && !byEmail[email]) byEmail[email] = row;
       }
     });
-    return { byScoutId: byScoutId, byEmail: byEmail, byName: byName };
+    // Normalize patrol sets to sorted, comma-joined strings for equality comparison
+    var byPatrols = {};
+    Object.keys(patrolSets).forEach(function(id) {
+      byPatrols[id] = patrolSets[id].slice().sort().join(', ');
+    });
+    return { byScoutId: byScoutId, byEmail: byEmail, byName: byName, byPatrols: byPatrols };
   }
 
   /**
@@ -1850,8 +1929,17 @@ function dumpFirst() {
           newVal: expIsYouth ? 'true' : 'false' });
       }
 
-      // Patrol — youth only
-      if (isYouth) diff('Patrol', u.patrol, findField(r, ['patrol']));
+      // Patrol — youth only; multi-value set comparison (order-independent)
+      if (isYouth) {
+        var bsaNum = findField(r, ['bsa number']) || '';
+        var gwsPatrolStr = (u.patrol || '').split(',').map(function(s) { return s.trim(); })
+          .filter(Boolean).sort().join(', ');
+        var rosterPatrolStr = (rosterIndex && rosterIndex.byPatrols && rosterIndex.byPatrols[bsaNum])
+          || (findField(r, ['patrol']) || '').trim();
+        if (gwsPatrolStr !== rosterPatrolStr) {
+          diffs.push({ field: 'Patrol', oldVal: gwsPatrolStr, newVal: rosterPatrolStr });
+        }
+      }
 
       // Rank — youth only
       if (isYouth) diff('Rank', u.rank, findField(r, ['rank']));
@@ -1967,7 +2055,7 @@ function dumpFirst() {
           entry.diffs.forEach(function(d) {
             if      (d.field === 'BSA Number') changes['Scout_ID']  = d.newVal;
             else if (d.field === 'Is_Youth')   changes['Is_Youth']  = d.newVal === 'true';
-            else if (d.field === 'Patrol')     changes['Patrol']    = d.newVal;
+            else if (d.field === 'Patrol')     changes['Patrol']    = d.newVal ? d.newVal.split(', ').filter(Boolean) : [];
             else if (d.field === 'Rank')       changes['Rank']      = d.newVal;
           });
 
@@ -2005,6 +2093,7 @@ function dumpFirst() {
     if (!user) return;
     editUser    = user;
     editMvState = {
+      Patrol:  (user.patrol  || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean),
       Parents: (user.parents || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean),
       Scouts:  (user.scouts  || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean)
     };
@@ -2049,14 +2138,16 @@ function dumpFirst() {
         + '<select class="edit-input edit-select" data-key="' + key + '">' + optHtml + '</select>'
         + '</div>';
     }
-    function mvRow(label, key) {
+    function mvRow(label, key, inputType, placeholder) {
+      var iType = inputType  || 'email';
+      var ph    = placeholder || 'user@troop600.com';
       return '<div class="edit-field-row edit-mv-row">'
         + '<label class="edit-field-label">' + label + '</label>'
         + '<div class="edit-mv-wrap">'
           + '<div class="edit-mv-list" id="edit-mv-' + key + '">' + renderMvItems(key) + '</div>'
           + '<div class="edit-mv-add-row">'
-            + '<input type="email" class="edit-input" id="edit-mv-input-' + key + '" '
-              + 'placeholder="user@troop600.com" '
+            + '<input type="' + iType + '" class="edit-input" id="edit-mv-input-' + key + '" '
+              + 'placeholder="' + ph + '" '
               + 'onkeydown="if(event.key===\'Enter\'){event.preventDefault();editMvAdd(\'' + key + '\')}">'
             + '<button type="button" class="btn-action btn-action-primary" '
               + 'onclick="editMvAdd(\'' + key + '\')" style="flex-shrink:0;">+ Add</button>'
@@ -2092,7 +2183,7 @@ function dumpFirst() {
       + '<div class="edit-section">'
         + '<div class="edit-section-title">Scout Attributes</div>'
         + textRow('Rank',   'Rank',   user.rank)
-        + textRow('Patrol', 'Patrol', user.patrol)
+        + mvRow('Patrol', 'Patrol', 'text', 'Patrol name')
         + mvRow('Parents', 'Parents')
       + '</div>'
       + '<div class="edit-section">'
@@ -2131,9 +2222,10 @@ function dumpFirst() {
   function editMvAdd(key) {
     var inp = document.getElementById('edit-mv-input-' + key);
     if (!inp) return;
-    var val = inp.value.trim().toLowerCase();
+    var isEmail = inp.type === 'email';
+    var val = isEmail ? inp.value.trim().toLowerCase() : inp.value.trim();
     if (!val) return;
-    if (val.indexOf('@') === -1) { alert('Enter a valid email address.'); return; }
+    if (isEmail && val.indexOf('@') === -1) { alert('Enter a valid email address.'); return; }
     if (!editMvState[key]) editMvState[key] = [];
     if (editMvState[key].indexOf(val) === -1) {
       editMvState[key].push(val);
@@ -2169,6 +2261,7 @@ function dumpFirst() {
     });
 
     // Multi-value arrays
+    changes['Patrol']  = (editMvState['Patrol']  || []).slice();
     changes['Parents'] = (editMvState['Parents'] || []).slice();
     changes['Scouts']  = (editMvState['Scouts']  || []).slice();
 
@@ -2311,10 +2404,12 @@ function dumpFirst() {
       Is_Youth: isYouth
     };
     if (isYouth) {
-      var patrol = (findField(row, ['patrol']) || '').trim();
-      var rank   = (findField(row, ['rank'])   || '').trim();
-      if (patrol) changes.Patrol = patrol;
-      if (rank)   changes.Rank   = rank;
+      var bsaNum     = findField(row, ['bsa number']) || '';
+      var patrolStr  = (rosterIndex && rosterIndex.byPatrols && rosterIndex.byPatrols[bsaNum])
+                       || (findField(row, ['patrol']) || '').trim();
+      var rank       = (findField(row, ['rank']) || '').trim();
+      if (patrolStr) changes.Patrol = patrolStr.split(', ').filter(Boolean);
+      if (rank)      changes.Rank   = rank;
     }
 
     closeMatchModal();
