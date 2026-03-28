@@ -147,7 +147,7 @@
     .script-copy-btn { font-family: var(--font-b); font-size: .75rem; font-weight: 700; color: #8ab4d4; background: none; border: 1px solid rgba(138,180,212,.3); border-radius: 4px; padding: .2rem .55rem; cursor: pointer; transition: all var(--t); }
     .script-copy-btn:hover { background: rgba(138,180,212,.1); color: #c8dcea; border-color: rgba(138,180,212,.6); }
     .script-copy-btn.copied { color: #6fcf97; border-color: rgba(111,207,151,.5); }
-    .script-pre { margin: 0; padding: .8rem 1rem 1rem; overflow-x: auto; font-family: 'Courier New', monospace; font-size: .78rem; line-height: 1.6; color: #cdd8e8; white-space: pre; }
+    .script-pre { margin: 0; padding: .8rem 1rem 1rem; font-family: 'Courier New', monospace; font-size: .78rem; line-height: 1.6; color: #cdd8e8; white-space: pre-wrap; word-break: break-all; }
 
     /* Connection row */
     .connect-row { display: flex; gap: .6rem; align-items: flex-start; flex-wrap: wrap; }
@@ -248,6 +248,15 @@
     .patrol-group-email { font-size: .77rem; color: var(--text-muted); font-family: monospace; }
     .patrol-card-actions { display: flex; gap: .5rem; }
     .patrol-card-actions .btn-secondary:disabled { opacity: .45; cursor: not-allowed; }
+    .patrol-sync-wrap { padding: .85rem 1.1rem; border-top: 1px solid var(--border-lt); }
+    .patrol-sync-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .55rem; gap: .75rem; }
+    .patrol-sync-title { font-family: var(--font-b); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); }
+    .sync-up-to-date { font-size: .83rem; color: var(--green-mid); font-weight: 600; }
+    .sync-change-row { display: flex; align-items: center; gap: .55rem; padding: .28rem 0; font-size: .83rem; cursor: pointer; user-select: none; }
+    .sync-change-row:hover { color: var(--green); }
+    .sync-badge { font-size: .64rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; border-radius: 999px; padding: .1rem .45rem; white-space: nowrap; }
+    .sync-badge.add    { background: #e6f4ec; color: var(--green-mid); border: 1px solid #a3d4b5; }
+    .sync-badge.remove { background: var(--red-lt); color: var(--red); border: 1px solid #f0b8b8; }
     .ar-suspended-pill { display: inline-block; font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #b45309; background: #fef3c7; border: 1px solid #fcd34d; border-radius: 999px; padding: .05rem .45rem; vertical-align: middle; margin-left: .35rem; }
     .ar-unlinked-btn { font-family: var(--font-b); font-size: .72rem; font-weight: 600; padding: .25rem .6rem; border: 1.5px solid var(--border); border-radius: 999px; background: none; color: var(--text-muted); cursor: pointer; transition: all var(--t); white-space: nowrap; }
     .ar-unlinked-btn:hover { border-color: var(--amber); color: var(--amber); }
@@ -485,6 +494,12 @@ function doGet(e) {
       case 'updateUser':         return respond(updateUser(e));
       case 'addRelationship':    return respond(addRelationship(e));
       case 'removeRelationship': return respond(removeRelationship(e));
+      case 'checkGroup':         return respond(checkGroup(e));
+      case 'createGroup':        return respond(createGroup(e));
+      case 'listGroups':          return respond(listGroups(e));
+      case 'deleteGroup':         return respond(deleteGroup(e));
+      case 'getGroupMembers':     return respond(getGroupMembers(e));
+      case 'updateGroupMembers':  return respond(updateGroupMembers(e));
       default:                   return respond({ error: 'Unknown action: ' + action });
     }
   } catch (err) {
@@ -732,6 +747,193 @@ function dumpFirst() {
     orgUnitPath:   u.orgUnitPath,
     suspended:     u.suspended
   };
+}
+
+/**
+ * Checks whether a Google Group with the given email address exists.
+ * Params: email — the group email to check.
+ * Returns: { exists: true } or { exists: false }. Errors surface as { error: '...' }.
+ */
+function checkGroup(e) {
+  var email = (e.parameter || {}).email;
+  if (!email) return { error: 'Missing email' };
+  try {
+    AdminDirectory.Groups.get(email);
+    return { exists: true };
+  } catch (err) {
+    // GAS throws on any non-2xx response. "not found" variants mean the group doesn't exist.
+    var msg = (err.message || '').toLowerCase();
+    if (msg.indexOf('not found') !== -1 || msg.indexOf('404') !== -1) {
+      return { exists: false };
+    }
+    return { error: err.message };
+  }
+}
+
+/**
+ * Creates a new Google Group for a patrol, copies settings from the template group
+ * (rangers2025@troop600.com), then adds the provided member emails.
+ * Params: email (new group address), name (display name), members (JSON array of emails).
+ * Note: subject prefix ([PATROL NAME]) is not settable via the GroupsSettings API and must
+ * be configured manually in the Google Groups admin console after creation.
+ */
+function createGroup(e) {
+  var params      = e.parameter || {};
+  var email       = params.email;
+  var name        = params.name;
+  var membersJson = params.members || '[]';
+  if (!email || !name) return { error: 'Missing email or name' };
+
+  var TEMPLATE = 'rangers2025@troop600.com';
+
+  try {
+    // Create the group resource
+    AdminDirectory.Groups.insert({
+      email:       email,
+      name:        name,
+      description: name + ' patrol mailing list'
+    });
+
+    // Copy settings from the template group (non-fatal if it fails)
+    try {
+      var tpl = GroupsSettings.Groups.get(TEMPLATE);
+      GroupsSettings.Groups.update({
+        whoCanPostMessage:               tpl.whoCanPostMessage,
+        whoCanViewMembership:            tpl.whoCanViewMembership,
+        whoCanViewGroup:                 tpl.whoCanViewGroup,
+        whoCanJoin:                      tpl.whoCanJoin,
+        isArchived:                      tpl.isArchived,
+        messageModerationLevel:          tpl.messageModerationLevel,
+        spamModerationLevel:             tpl.spamModerationLevel,
+        replyTo:                         tpl.replyTo,
+        includeInGlobalAddressList:      tpl.includeInGlobalAddressList,
+        sendMessageDenyNotification:     tpl.sendMessageDenyNotification,
+        defaultMessageDenyNotificationText: tpl.defaultMessageDenyNotificationText,
+        membersCanPostAsTheGroup:        tpl.membersCanPostAsTheGroup,
+        includeStandardFooter:           true,
+        includeCustomFooter:             tpl.includeCustomFooter,
+        customFooterText:                tpl.customFooterText,
+        whoCanLeaveGroup:                tpl.whoCanLeaveGroup,
+        whoCanContactOwner:              tpl.whoCanContactOwner,
+        favoriteRepliesOnTop:            tpl.favoriteRepliesOnTop
+      }, email);
+    } catch (settingsErr) {
+      Logger.log('Warning: could not copy group settings from ' + TEMPLATE + ': ' + settingsErr.message);
+    }
+
+    // Add members (scouts + parents); non-fatal per member
+    var members;
+    try { members = JSON.parse(membersJson); } catch (ex) { members = []; }
+    members.forEach(function(memberEmail) {
+      if (!memberEmail) return;
+      try {
+        AdminDirectory.Members.insert({ email: memberEmail, role: 'MEMBER' }, email);
+      } catch (memberErr) {
+        Logger.log('Warning: could not add ' + memberEmail + ' to ' + email + ': ' + memberErr.message);
+      }
+    });
+
+    return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Lists all Google Groups in the domain whose email ends with the given suffix.
+ * Params: suffix (e.g. "-patrol@troop600.com").
+ * Returns: { groups: [ { email, name } ] }
+ */
+function listGroups(e) {
+  var suffix = (e.parameter || {}).suffix || '';
+  var groups = [];
+  var pageToken;
+  do {
+    var page = AdminDirectory.Groups.list({
+      domain:     DOMAIN,
+      maxResults: 200,
+      pageToken:  pageToken
+    });
+    (page.groups || []).forEach(function(g) {
+      if (!suffix || (g.email || '').toLowerCase().endsWith(suffix.toLowerCase())) {
+        groups.push({ email: g.email, name: g.name || g.email });
+      }
+    });
+    pageToken = page.nextPageToken;
+  } while (pageToken);
+  return { groups: groups };
+}
+
+/**
+ * Permanently deletes a Google Group by email address.
+ * Params: email — the group address to delete.
+ */
+function deleteGroup(e) {
+  var email = (e.parameter || {}).email;
+  if (!email) return { error: 'Missing email' };
+  try {
+    AdminDirectory.Groups.remove(email);
+    return { ok: true };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Returns the list of member email addresses for a Google Group.
+ * Params: email — the group address.
+ * Returns: { members: [email, ...] }
+ */
+function getGroupMembers(e) {
+  var email = (e.parameter || {}).email;
+  if (!email) return { error: 'Missing email' };
+  try {
+    var members = [];
+    var pageToken;
+    do {
+      var page = AdminDirectory.Members.list(email, { maxResults: 200, pageToken: pageToken });
+      (page.members || []).forEach(function(m) {
+        if (m.email) members.push(m.email.toLowerCase());
+      });
+      pageToken = page.nextPageToken;
+    } while (pageToken);
+    return { members: members };
+  } catch (err) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Adds and removes members from a Google Group in one call.
+ * Params: groupEmail, toAdd (JSON array of emails), toRemove (JSON array of emails).
+ * Non-fatal per member — collects errors and returns them alongside ok:true.
+ */
+function updateGroupMembers(e) {
+  var groupEmail   = (e.parameter || {}).groupEmail;
+  var toAddJson    = (e.parameter || {}).toAdd    || '[]';
+  var toRemoveJson = (e.parameter || {}).toRemove || '[]';
+  if (!groupEmail) return { error: 'Missing groupEmail' };
+
+  var toAdd, toRemove;
+  try { toAdd    = JSON.parse(toAddJson);    } catch (ex) { toAdd    = []; }
+  try { toRemove = JSON.parse(toRemoveJson); } catch (ex) { toRemove = []; }
+
+  var errors = [];
+  toAdd.forEach(function(memberEmail) {
+    try {
+      AdminDirectory.Members.insert({ email: memberEmail, role: 'MEMBER' }, groupEmail);
+    } catch (err) {
+      errors.push('ADD ' + memberEmail + ': ' + err.message);
+    }
+  });
+  toRemove.forEach(function(memberEmail) {
+    try {
+      AdminDirectory.Members.remove(groupEmail, memberEmail);
+    } catch (err) {
+      errors.push('REMOVE ' + memberEmail + ': ' + err.message);
+    }
+  });
+  return { ok: true, errors: errors };
 }</pre>
                   </div>
                 </div>
@@ -764,11 +966,19 @@ function dumpFirst() {
         "userSymbol": "AdminDirectory",
         "serviceId": "admin",
         "version": "directory_v1"
+      },
+      {
+        "userSymbol": "GroupsSettings",
+        "serviceId": "groupssettings",
+        "version": "v1"
       }
     ]
   },
   "oauthScopes": [
-    "https://www.googleapis.com/auth/admin.directory.user"
+    "https://www.googleapis.com/auth/admin.directory.user",
+    "https://www.googleapis.com/auth/admin.directory.group",
+    "https://www.googleapis.com/auth/admin.directory.group.member",
+    "https://www.googleapis.com/auth/apps.groups.settings"
   ],
   "webapp": {
     "executeAs": "USER_DEPLOYING",
@@ -875,8 +1085,6 @@ function dumpFirst() {
           <button class="btn-link" id="um-show-config" onclick="showUmConfig()" style="display:none">
             &#9881; Change connection
           </button>
-          <button class="script-copy-btn" id="um-copy-code-btn" onclick="copyScript(this,'script-code-um')"
-                  style="display:none;font-size:.75rem;">&#128203; Copy Code.gs</button>
           <div class="connect-status" id="connect-status"></div>
         </div>
 
@@ -985,6 +1193,10 @@ function dumpFirst() {
           <div class="uu-empty-icon">&#9872;</div>
           Load users to view patrol assignments.
         </div>
+      </div>
+      <div id="old-patrols-wrap" style="display:none;margin-top:2rem;">
+        <h3 style="font-family:var(--font-h);font-size:1.1rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--red);margin-bottom:.75rem;">&#9888; Old Patrol Groups</h3>
+        <div id="old-patrols-body"></div>
       </div>
     </div>
 
@@ -1245,10 +1457,8 @@ function dumpFirst() {
     var hasUrl   = !!localStorage.getItem(GWS_URL_KEY);
     var wrap     = document.getElementById('um-setup-wrap');
     var showLink = document.getElementById('um-show-config');
-    var copyBtn  = document.getElementById('um-copy-code-btn');
     if (wrap)     wrap.style.display     = hasUrl ? 'none' : '';
     if (showLink) showLink.style.display = hasUrl ? ''     : 'none';
-    if (copyBtn)  copyBtn.style.display  = hasUrl ? ''     : 'none';
   }
 
   // "Change connection" link forces the setup section back open.
@@ -1610,12 +1820,16 @@ function dumpFirst() {
       return;
     }
 
+    // Reset group-status cache so stale state from a previous load doesn't linger
+    patrolGroupStatus = {};
+    patrolGroupErrors = {};
+
     wrap.innerHTML = sortedNames.map(function(patrolName) {
       var members = patrols[patrolName].slice().sort(function(a, b) {
         return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
       });
       var slug       = patrolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      var groupEmail = slug + '@troop600.com';
+      var groupEmail = slug + '-patrol@troop600.com';
       var count      = members.length;
 
       var tbody = members.map(function(u) {
@@ -1633,17 +1847,363 @@ function dumpFirst() {
             + '<span class="patrol-card-count">' + count + '\u00a0member' + (count !== 1 ? 's' : '') + '</span>'
             + '<span class="patrol-group-email">&#9993;\u00a0' + esc(groupEmail) + '</span>'
           + '</div>'
-          + '<div class="patrol-card-actions">'
-            + '<button class="btn-secondary" disabled title="Coming soon">Add to Group</button>'
-            + '<button class="btn-secondary" disabled title="Coming soon">Sync Group</button>'
+          + '<div class="patrol-card-actions" data-group="' + esc(groupEmail) + '" data-patrol="' + esc(patrolName) + '">'
+            + '<button class="btn-secondary" disabled>'
+              + '<span class="uu-spinner" style="width:.8rem;height:.8rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>'
+              + 'Checking\u2026'
+            + '</button>'
           + '</div>'
         + '</div>'
         + '<table class="uu-table">'
           + '<thead><tr><th>Last Name</th><th>First Name</th><th>Email</th></tr></thead>'
           + '<tbody>' + tbody + '</tbody>'
         + '</table>'
+        + '<div class="patrol-sync-wrap" data-group="' + esc(groupEmail) + '" data-patrol="' + esc(patrolName) + '" style="display:none"></div>'
       + '</div>';
     }).join('');
+
+    // Asynchronously check whether each patrol's Google Group exists
+    checkAllPatrolGroups(patrols);
+  }
+
+  /**
+   * Fires parallel checkGroup requests for every patrol, then calls
+   * updatePatrolGroupBtn() for each result to swap in the correct button.
+   */
+  function checkAllPatrolGroups(patrolMap) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    // Build the set of active patrol group emails for old-patrol detection
+    var activeGroupEmails = new Set();
+    Object.keys(patrolMap).forEach(function(patrolName) {
+      var slug       = patrolName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      var groupEmail = slug + '-patrol@troop600.com';
+      activeGroupEmails.add(groupEmail.toLowerCase());
+      patrolGroupStatus[groupEmail] = 'checking';
+      var fetchUrl = url + (url.includes('?') ? '&' : '?')
+        + 'action=checkGroup&email=' + encodeURIComponent(groupEmail);
+      fetch(fetchUrl)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.error) { patrolGroupStatus[groupEmail] = 'error'; patrolGroupErrors[groupEmail] = data.error; }
+          else            { patrolGroupStatus[groupEmail] = data.exists ? 'exists' : 'missing'; }
+          updatePatrolGroupBtn(groupEmail);
+        })
+        .catch(function(ex) {
+          patrolGroupStatus[groupEmail] = 'error';
+          patrolGroupErrors[groupEmail] = ex.message;
+          updatePatrolGroupBtn(groupEmail);
+        });
+    });
+
+    // Separately fetch all -patrol groups and surface orphans
+    loadOldPatrolGroups(activeGroupEmails);
+  }
+
+  /**
+   * Updates the action button(s) inside a patrol card based on the current
+   * patrolGroupStatus entry for that group email.
+   */
+  function updatePatrolGroupBtn(groupEmail) {
+    var container = document.querySelector('.patrol-card-actions[data-group="' + groupEmail.replace(/"/g, '\\"') + '"]');
+    if (!container) return;
+    var status     = patrolGroupStatus[groupEmail] || 'checking';
+    var patrolName = container.getAttribute('data-patrol');
+    var btnHtml;
+    if (status === 'checking') {
+      btnHtml = '<button class="btn-secondary" disabled>'
+        + '<span class="uu-spinner" style="width:.8rem;height:.8rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>'
+        + 'Checking\u2026</button>';
+    } else if (status === 'missing') {
+      var qPatrol = JSON.stringify(patrolName).replace(/"/g, '&quot;');
+      var qEmail  = JSON.stringify(groupEmail).replace(/"/g, '&quot;');
+      btnHtml = '<button class="btn-primary" onclick="createPatrolGroup(' + qPatrol + ',' + qEmail + ')">'
+        + '&#43; Create Group</button>';
+    } else if (status === 'exists') {
+      var qEmail2 = JSON.stringify(groupEmail).replace(/"/g, '&quot;');
+      btnHtml = '<button class="btn-secondary" onclick="syncPatrolGroup(' + qEmail2 + ',this)">'
+        + '&#8635; Sync Group</button>';
+      loadPatrolGroupSync(patrolName, groupEmail);
+    } else {
+      var errMsg = patrolGroupErrors[groupEmail] || 'Could not check group status';
+      btnHtml = '<button class="btn-secondary" disabled title="' + esc(errMsg) + '">&#9888; Error</button>';
+    }
+    container.innerHTML = btnHtml;
+  }
+
+  /**
+   * Creates the patrol Google Group, copies settings from rangers2025@troop600.com,
+   * and adds scouts + their parents as members.
+   */
+  /**
+   * Returns a map of lowercase email addresses that should be members of a patrol group:
+   * all scouts assigned to the patrol plus their parents, including secondary emails for both.
+   */
+  function getExpectedPatrolMembers(patrolName) {
+    // Index all users by primary email for parent secondary-email lookup
+    var userByEmail = {};
+    allUsers.forEach(function(u) { userByEmail[u.email.toLowerCase()] = u; });
+
+    var members = {};
+
+    function addUserEmails(u) {
+      if (!u) return;
+      members[u.email.toLowerCase()] = true;
+      (u.secondaryEmails || []).forEach(function(e) { if (e) members[e.toLowerCase()] = true; });
+    }
+
+    allUsers.forEach(function(u) {
+      var patrols = (u.patrol || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+      if (patrols.indexOf(patrolName) === -1) return;
+      addUserEmails(u);
+      (u.parents || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(parentEmail) {
+        // Always add the stored parent email, then look up their secondary emails if the account exists
+        members[parentEmail.toLowerCase()] = true;
+        addUserEmails(userByEmail[parentEmail.toLowerCase()]);
+      });
+    });
+
+    return members;
+  }
+
+  async function createPatrolGroup(patrolName, groupEmail) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    // Show progress immediately
+    patrolGroupStatus[groupEmail] = 'checking';
+    var container = document.querySelector('.patrol-card-actions[data-group="' + groupEmail.replace(/"/g, '\\"') + '"]');
+    if (container) {
+      container.innerHTML = '<button class="btn-primary" disabled>'
+        + '<span class="uu-spinner" style="width:.8rem;height:.8rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>'
+        + 'Creating\u2026</button>';
+    }
+
+    var members = Object.keys(getExpectedPatrolMembers(patrolName));
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=createGroup'
+      + '&email='   + encodeURIComponent(groupEmail)
+      + '&name='    + encodeURIComponent(patrolName)
+      + '&members=' + encodeURIComponent(JSON.stringify(members));
+
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      patrolGroupStatus[groupEmail] = 'exists';
+      updatePatrolGroupBtn(groupEmail);
+    } catch (ex) {
+      alert('Failed to create group ' + groupEmail + ':\n' + ex.message);
+      patrolGroupStatus[groupEmail] = 'missing';
+      updatePatrolGroupBtn(groupEmail);
+    }
+  }
+
+  /**
+   * Fetches current group members, diffs against expected members,
+   * and renders the sync section below the patrol table.
+   */
+  function loadPatrolGroupSync(patrolName, groupEmail) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var syncWrap = document.querySelector('.patrol-sync-wrap[data-group="' + groupEmail.replace(/"/g, '\\"') + '"]');
+    if (!syncWrap) return;
+
+    // Show loading state
+    syncWrap.style.display = '';
+    syncWrap.innerHTML = '<div class="patrol-sync-header">'
+      + '<span class="patrol-sync-title">Group Sync</span>'
+      + '<span style="font-size:.78rem;color:var(--text-muted);">'
+        + '<span class="uu-spinner" style="width:.75rem;height:.75rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>'
+        + 'Checking members\u2026</span>'
+      + '</div>';
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=getGroupMembers&email=' + encodeURIComponent(groupEmail);
+
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          syncWrap.innerHTML = '<div class="patrol-sync-header"><span class="patrol-sync-title">Group Sync</span>'
+            + '<span style="font-size:.78rem;color:var(--red);">&#9888; ' + esc(data.error) + '</span></div>';
+          return;
+        }
+        var currentSet  = new Set(data.members);
+        var expectedSet = getExpectedPatrolMembers(patrolName);
+        var toAdd    = Object.keys(expectedSet).filter(function(e) { return !currentSet.has(e); }).sort();
+        var toRemove = Array.from(currentSet).filter(function(e) { return !expectedSet[e]; }).sort();
+        renderPatrolSyncSection(syncWrap, groupEmail, toAdd, toRemove);
+      })
+      .catch(function(ex) {
+        syncWrap.innerHTML = '<div class="patrol-sync-header"><span class="patrol-sync-title">Group Sync</span>'
+          + '<span style="font-size:.78rem;color:var(--red);">&#9888; ' + esc(ex.message) + '</span></div>';
+      });
+  }
+
+  /** Renders the diff checkboxes (or an "up to date" message) into the sync wrap element. */
+  function renderPatrolSyncSection(syncWrap, groupEmail, toAdd, toRemove) {
+    if (!toAdd.length && !toRemove.length) {
+      syncWrap.innerHTML = '<div class="patrol-sync-header">'
+        + '<span class="patrol-sync-title">Group Sync</span>'
+        + '<span class="sync-up-to-date">&#10003; Group is up to date</span>'
+        + '</div>';
+      return;
+    }
+
+    var qEmail = JSON.stringify(groupEmail).replace(/"/g, '&quot;');
+    var rows = toAdd.map(function(email) {
+      return '<label class="sync-change-row">'
+        + '<input type="checkbox" checked data-action="add" data-email="' + esc(email) + '">'
+        + '<span class="sync-badge add">+ Add</span>'
+        + '<span>' + esc(email) + '</span>'
+        + '</label>';
+    }).concat(toRemove.map(function(email) {
+      return '<label class="sync-change-row">'
+        + '<input type="checkbox" checked data-action="remove" data-email="' + esc(email) + '">'
+        + '<span class="sync-badge remove">&minus; Remove</span>'
+        + '<span>' + esc(email) + '</span>'
+        + '</label>';
+    })).join('');
+
+    syncWrap.innerHTML = '<div class="patrol-sync-header">'
+        + '<span class="patrol-sync-title">Group Sync &mdash; '
+          + (toAdd.length ? toAdd.length + ' to add' : '')
+          + (toAdd.length && toRemove.length ? ', ' : '')
+          + (toRemove.length ? toRemove.length + ' to remove' : '')
+        + '</span>'
+        + '<button class="btn-primary" style="font-size:.78rem;padding:.35rem .8rem;" onclick="syncPatrolGroup(' + qEmail + ',this)">&#8635; Apply Sync</button>'
+      + '</div>'
+      + rows;
+  }
+
+  /**
+   * Reads checked sync changes for the group, calls updateGroupMembers,
+   * then reloads the sync section to confirm the result.
+   */
+  async function syncPatrolGroup(groupEmail, btn) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var syncWrap = document.querySelector('.patrol-sync-wrap[data-group="' + groupEmail.replace(/"/g, '\\"') + '"]');
+    if (!syncWrap) return;
+
+    var toAdd    = [];
+    var toRemove = [];
+    syncWrap.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+      if (cb.getAttribute('data-action') === 'add')    toAdd.push(cb.getAttribute('data-email'));
+      if (cb.getAttribute('data-action') === 'remove') toRemove.push(cb.getAttribute('data-email'));
+    });
+
+    if (!toAdd.length && !toRemove.length) {
+      alert('No changes selected.');
+      return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying\u2026'; }
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=updateGroupMembers'
+      + '&groupEmail=' + encodeURIComponent(groupEmail)
+      + '&toAdd='      + encodeURIComponent(JSON.stringify(toAdd))
+      + '&toRemove='   + encodeURIComponent(JSON.stringify(toRemove));
+
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.errors && data.errors.length) {
+        alert('Completed with ' + data.errors.length + ' error(s):\n\n' + data.errors.join('\n'));
+      }
+      // Re-fetch member list to confirm changes and refresh the diff
+      var patrolName = syncWrap.getAttribute('data-patrol');
+      loadPatrolGroupSync(patrolName, groupEmail);
+    } catch (ex) {
+      alert('Sync failed: ' + ex.message);
+      if (btn) { btn.disabled = false; btn.textContent = '\u21BB Apply Sync'; }
+    }
+  }
+
+  /**
+   * Fetches all groups ending in -patrol@troop600.com, then renders the Old Patrols
+   * table for any whose email doesn't match a current active patrol slug.
+   */
+  function loadOldPatrolGroups(activeGroupEmails) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=listGroups&suffix=' + encodeURIComponent('-patrol@troop600.com');
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) { console.warn('listGroups error:', data.error); return; }
+        var orphans = (data.groups || []).filter(function(g) {
+          return !activeGroupEmails.has(g.email.toLowerCase());
+        });
+        renderOldPatrolsTable(orphans);
+      })
+      .catch(function(ex) { console.warn('listGroups fetch failed:', ex.message); });
+  }
+
+  /** Renders or hides the Old Patrol Groups section. */
+  function renderOldPatrolsTable(orphans) {
+    var wrap = document.getElementById('old-patrols-wrap');
+    var body = document.getElementById('old-patrols-body');
+    if (!wrap || !body) return;
+    if (!orphans.length) { wrap.style.display = 'none'; return; }
+
+    var rows = orphans.map(function(g) {
+      var qEmail = JSON.stringify(g.email).replace(/"/g, '&quot;');
+      return '<tr>'
+        + '<td class="td-email">' + esc(g.email) + '</td>'
+        + '<td class="td-name">'  + esc(g.name)  + '</td>'
+        + '<td style="text-align:right;">'
+          + '<button class="btn-secondary" style="color:var(--red);border-color:var(--red);font-size:.78rem;padding:.3rem .7rem;" '
+          + 'onclick="deletePatrolGroup(' + qEmail + ',this)">&#128465; Delete</button>'
+        + '</td>'
+        + '</tr>';
+    }).join('');
+
+    body.innerHTML = '<table class="uu-table">'
+      + '<thead><tr><th>Group Email</th><th>Name</th><th></th></tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table>';
+    wrap.style.display = '';
+  }
+
+  /** Deletes an orphan patrol group and removes its row on success. */
+  async function deletePatrolGroup(groupEmail, btn) {
+    if (!confirm('Permanently delete the group ' + groupEmail + '?\n\nThis cannot be undone.')) return;
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    var origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="uu-spinner" style="width:.8rem;height:.8rem;border-width:2px;vertical-align:middle;display:inline-block;"></span>';
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=deleteGroup&email=' + encodeURIComponent(groupEmail);
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      // Remove the row from the table
+      var row = btn.closest('tr');
+      if (row) {
+        var tbody = row.parentNode;
+        row.remove();
+        // Hide the whole section if no rows remain
+        if (!tbody.querySelectorAll('tr').length) {
+          var wrap = document.getElementById('old-patrols-wrap');
+          if (wrap) wrap.style.display = 'none';
+        }
+      }
+    } catch (ex) {
+      alert('Failed to delete ' + groupEmail + ':\n' + ex.message);
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
   }
 
   function sortBy(col) {
@@ -1890,7 +2450,9 @@ function dumpFirst() {
 
   // ── Proposed changes table ───────────────────────────────────────────────
 
-  var pendingChanges = []; // module-level so updateSelected() can index into it
+  var pendingChanges    = []; // module-level so updateSelected() can index into it
+  var patrolGroupStatus = {}; // groupEmail → 'checking' | 'exists' | 'missing' | 'error'
+  var patrolGroupErrors = {}; // groupEmail → error message string when status === 'error'
 
   /**
    * Compares matched GWS users against roster values for the four synced fields.

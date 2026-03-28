@@ -247,6 +247,37 @@ A subprocess looking for `java.exe` in `runtime/bin/` will fail silently in dist
 - `org.slf4j:slf4j-nop:1.7.36` — silence Thymeleaf logging
 - `org.apache.pdfbox:pdfbox:3.0.3` — PDF text extraction for schedule importer
 
+## Admin Console (admin.html)
+
+The admin console lives entirely in `src/main/resources/templates/admin.html` (~2800 lines).
+It is a self-contained static HTML page with embedded JavaScript — no framework, no build step.
+
+**Panel system:** `showPanel(key, btn)` looks up `id="panel-<key>"` — any panel with a
+matching ID wires up automatically. No registration needed.
+
+**Setup accordion visibility:** `um-setup-wrap` (the entire GWS setup accordion including
+the Code.gs `<pre>` block) is hidden via `display:none` once a URL is saved to localStorage.
+Buttons or controls intended for ongoing use (e.g. Copy Code.gs) must live in the
+always-visible load row **outside** `um-setup-wrap`, not inside it.
+
+**Apps Script deployment gap:** The Code.gs embedded in `<pre id="script-code-um">` is what
+users copy and deploy to Google Apps Script. Changes to that block only take effect after the
+user manually copies the new code and redeploys their web app. Always remind users to redeploy
+after any GWS API surface change.
+
+**GWS multi-value fields:** `Patrol`, `Parents`, and `Scouts` are all `{type,value}[]` arrays
+in the GWS custom schema. Read with `mvValues('FieldName')` in the Apps Script → comma-separated
+string in the JS layer. Write by mapping string arrays to `[{type:'work', value: name}]`.
+Compare as normalized sorted comma-joined strings for order-independent equality.
+
+**CSV parser — multiple rows per BSA#:** The Scoutbook CSV can have multiple rows for the
+same scout (one per patrol). The parser must NOT deduplicate by BSA# — `buildRosterIndex`
+handles first-row-wins for identity fields while accumulating all patrol values in `byPatrols`.
+
+**`renderTable()` cascade:** Calling `renderTable(getFilteredUsers())` triggers the full
+update: workspace users table → proposed updates → unmatched users → user errors. Hook new
+data-dependent tables into this call (or into `loadUsers().then()`).
+
 ## Documentation
 Create concise JavaDoc for any file that you touch. It should be to the point, and aimed at senior developers to understand the main point of the code.
 
