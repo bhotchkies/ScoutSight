@@ -2031,10 +2031,24 @@ function updateGroupMembers(e) {
             + '<span style="font-size:.78rem;color:var(--red);">&#9888; ' + esc(data.error) + '</span></div>';
           return;
         }
-        var currentSet  = new Set(data.members);
+        // Expand currentSet with all email aliases for members already in the group.
+        // Google Groups permits only one membership per Google Account — adding a secondary
+        // alias for an account whose primary is already a member returns "already exists".
+        // Building this expanded set prevents those aliases from appearing as "to add".
+        var emailToUser = {};
+        allUsers.forEach(function(u) {
+          var all = [u.email.toLowerCase()].concat((u.secondaryEmails || []).map(function(e) { return e.toLowerCase(); }));
+          all.forEach(function(e) { emailToUser[e] = all; });
+        });
+        var currentSet = new Set(data.members);
+        data.members.forEach(function(m) {
+          var aliases = emailToUser[m] || [];
+          aliases.forEach(function(a) { currentSet.add(a); });
+        });
+
         var expectedSet = getExpectedPatrolMembers(patrolName);
         var toAdd    = Object.keys(expectedSet).filter(function(e) { return !currentSet.has(e); }).sort();
-        var toRemove = Array.from(currentSet).filter(function(e) { return !expectedSet[e]; }).sort();
+        var toRemove = Array.from(new Set(data.members)).filter(function(e) { return !expectedSet[e]; }).sort();
         renderPatrolSyncSection(syncWrap, groupEmail, toAdd, toRemove);
       })
       .catch(function(ex) {
