@@ -3,10 +3,8 @@ package org.troop600.scoutsight.cli;
 import org.troop600.scoutsight.html.HtmlGenerator;
 import org.troop600.scoutsight.model.Scout;
 import org.troop600.scoutsight.parser.AdvancementParser;
-import org.troop600.scoutsight.parser.RosterReportEntry;
-import org.troop600.scoutsight.parser.RosterReportParser;
-import org.troop600.scoutsight.parser.ScoutRosterEntry;
-import org.troop600.scoutsight.parser.ScoutRosterParser;
+import org.troop600.scoutsight.parser.AdminRosterEntry;
+import org.troop600.scoutsight.parser.AdminRosterParser;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -30,48 +28,32 @@ public class Main {
             csv = findLatestCsv(Path.of("inputdata"));
         }
 
-        Path rosterCsv        = (args.length > 1 && !args[1].isEmpty()) ? Path.of(args[1]) : null;
-        String campName       = (args.length > 2 && !args[2].isEmpty()) ? args[2] : null;
-        Path rosterReportCsv  = (args.length > 3 && !args[3].isEmpty()) ? Path.of(args[3]) : null;
+        Path adminRosterCsv = (args.length > 1 && !args[1].isEmpty()) ? Path.of(args[1]) : null;
+        String campName     = (args.length > 2 && !args[2].isEmpty()) ? args[2] : null;
 
         log.println("Parsing: " + csv);
         List<Scout> scouts = new AdvancementParser().parse(csv);
         log.printf("Loaded %d scouts%n%n", scouts.size());
 
-        if (rosterCsv != null) {
-            log.println("Parsing roster: " + rosterCsv);
-            Map<String, ScoutRosterEntry> roster = new ScoutRosterParser().parse(rosterCsv);
+        if (adminRosterCsv != null) {
+            log.println("Parsing admin roster: " + adminRosterCsv);
+            Map<String, AdminRosterEntry> roster = new AdminRosterParser().parse(adminRosterCsv);
             int joined = 0;
             for (Scout s : scouts) {
-                ScoutRosterEntry entry = roster.get(s.bsaMemberId);
+                AdminRosterEntry entry = roster.get(s.bsaMemberId);
                 if (entry != null) {
                     s.patrol      = entry.patrol();
                     s.schoolGrade = entry.schoolGrade();
+                    s.joinYear    = entry.joinYear();
                     s.dateJoined  = entry.dateJoined();
+                    s.birthYear   = entry.birthYear();
+                    s.gender      = entry.gender();
+                    s.schoolInfo  = entry.schoolInfo();
+                    s.positions   = entry.positions();
                     joined++;
                 }
             }
-            log.printf("Joined roster data for %d/%d scouts%n%n", joined, scouts.size());
-        }
-
-        if (rosterReportCsv != null) {
-            log.println("Parsing roster report: " + rosterReportCsv);
-            Map<String, RosterReportEntry> report = new RosterReportParser().parse(rosterReportCsv);
-            int joined = 0;
-            for (Scout s : scouts) {
-                RosterReportEntry entry = report.get(s.bsaMemberId);
-                if (entry != null) {
-                    s.patrol     = entry.patrol();
-                    s.schoolGrade = entry.schoolGrade();
-                    s.joinYear   = entry.joinYear();
-                    s.birthYear  = entry.birthYear();
-                    s.schoolInfo = entry.schoolInfo();
-                    s.gender     = entry.gender();
-                    s.positions  = entry.positions();
-                    joined++;
-                }
-            }
-            log.printf("Joined roster report data for %d/%d scouts%n%n", joined, scouts.size());
+            log.printf("Joined admin roster data for %d/%d scouts%n%n", joined, scouts.size());
         }
 
         for (Scout s : scouts) {

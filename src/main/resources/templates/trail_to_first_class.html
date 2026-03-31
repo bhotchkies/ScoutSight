@@ -496,7 +496,7 @@
     }
 
     function matchesScout(s, f) {
-      if (f.patrol    !== 'All' && s.patrol    !== f.patrol)        return false;
+      if (f.patrol    !== 'All' && !(s.patrol || '').split(',').map(p => p.trim()).includes(f.patrol)) return false;
       if (f.grade     !== 'All' && s.grade     !== Number(f.grade)) return false;
       if (f.birthYear !== 'All' && s.birthYear !== f.birthYear)     return false;
       if (f.joinYear  !== 'All' && s.joinYear  !== f.joinYear)      return false;

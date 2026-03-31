@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Builds and writes {@code output/<stem>/patrol_balancing.html} — a matrix of
@@ -30,13 +31,14 @@ class PatrolBalancingPageWriter {
     // -------------------------------------------------------------------------
 
     private static String buildJson(List<Scout> scouts, String stem) {
-        // Sorted unique patrol names (non-null, non-blank)
+        // Sorted unique patrol names (non-null, non-blank); a scout may belong to multiple patrols
         TreeSet<String> patrolSet = new TreeSet<>();
         boolean hasNone    = false;
         boolean hasAgeData = false;
         for (Scout s : scouts) {
-            if (s.patrol != null && !s.patrol.isBlank()) patrolSet.add(s.patrol);
-            else                                          hasNone = true;
+            List<String> ps = patrolsOf(s);
+            if (!ps.isEmpty()) patrolSet.addAll(ps);
+            else               hasNone = true;
             if (s.birthYear != null && !s.birthYear.isBlank()) hasAgeData = true;
         }
         List<String> patrols = new ArrayList<>(patrolSet);
@@ -59,9 +61,10 @@ class PatrolBalancingPageWriter {
             for (Scout s : scouts) {
                 if (!rankLabel.equals(IndexPageWriter.currentRankShort(s))) continue;
                 total++;
-                if (s.patrol != null && !s.patrol.isBlank()) {
-                    patrolToNames.computeIfAbsent(s.patrol, k -> new ArrayList<>())
-                                 .add(s.displayName());
+                List<String> ps = patrolsOf(s);
+                if (!ps.isEmpty()) {
+                    for (String p : ps)
+                        patrolToNames.computeIfAbsent(p, k -> new ArrayList<>()).add(s.displayName());
                 } else {
                     noneNames.add(s.displayName());
                 }
@@ -97,13 +100,20 @@ class PatrolBalancingPageWriter {
             for (Scout s : scouts) {
                 if (s.birthYear == null || s.birthYear.isBlank()) continue;
                 Map<String, List<String>> pm = yearMap.get(s.birthYear);
-                String key = (s.patrol != null && !s.patrol.isBlank()) ? s.patrol : "__none__";
-                pm.computeIfAbsent(key, k -> new ArrayList<>()).add(s.displayName());
+                List<String> ps = patrolsOf(s);
+                if (!ps.isEmpty()) {
+                    for (String p : ps)
+                        pm.computeIfAbsent(p, k -> new ArrayList<>()).add(s.displayName());
+                } else {
+                    pm.computeIfAbsent("__none__", k -> new ArrayList<>()).add(s.displayName());
+                }
             }
 
             for (Map.Entry<String, Map<String, List<String>>> e : yearMap.entrySet()) {
                 Map<String, List<String>> pm  = e.getValue();
-                int total = pm.values().stream().mapToInt(List::size).sum();
+                // Count unique scouts for this birth year (cell sums would double-count multi-patrol scouts)
+                int total = (int) scouts.stream()
+                    .filter(s -> e.getKey().equals(s.birthYear)).count();
                 if (total == 0) continue;
 
                 jb.obj()
@@ -128,12 +138,11 @@ class PatrolBalancingPageWriter {
         // ── Patrol totals ─────────────────────────────────────────────────────
         jb.obj("patrolTotals");
         for (String p : patrols) {
-            long count = scouts.stream().filter(s -> p.equals(s.patrol)).count();
+            long count = scouts.stream().filter(s -> patrolsOf(s).contains(p)).count();
             jb.field(p, (int) count);
         }
         if (hasNone) {
-            long noneCount = scouts.stream()
-                .filter(s -> s.patrol == null || s.patrol.isBlank()).count();
+            long noneCount = scouts.stream().filter(s -> patrolsOf(s).isEmpty()).count();
             jb.field("(none)", (int) noneCount);
         }
         jb.endObj();  // patrolTotals
@@ -141,5 +150,18 @@ class PatrolBalancingPageWriter {
         jb.field("grandTotal", scouts.size());
         jb.endObj();  // root
         return jb.toString();
+    }
+
+    /**
+     * Returns the individual patrol names for a scout. A scout may belong to multiple
+     * patrols stored as a comma-separated string (e.g. {@code "Ranger, Senior"}).
+     * Returns an empty list if the scout has no patrol assignment.
+     */
+    private static List<String> patrolsOf(Scout s) {
+        if (s.patrol == null || s.patrol.isBlank()) return List.of();
+        return Arrays.stream(s.patrol.split(","))
+                     .map(String::trim)
+                     .filter(p -> !p.isEmpty())
+                     .collect(Collectors.toList());
     }
 }

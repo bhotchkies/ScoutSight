@@ -83,7 +83,8 @@ class AdvancementPlansPageWriter {
         TreeSet<String> joinYearSet  = new TreeSet<>();
 
         for (Scout s : scouts) {
-            if (s.patrol    != null && !s.patrol.isBlank())    patrolSet.add(s.patrol);
+            if (s.patrol != null && !s.patrol.isBlank())
+                for (String p : s.patrol.split(",")) { String t = p.trim(); if (!t.isEmpty()) patrolSet.add(t); }
             if (s.birthYear != null && !s.birthYear.isBlank()) birthYearSet.add(s.birthYear);
             if (s.joinYear  != null && !s.joinYear.isBlank())  joinYearSet.add(s.joinYear);
         }

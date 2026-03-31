@@ -6,14 +6,16 @@ import java.nio.file.Path;
 import java.util.Map;
 
 /**
- * Writes admin.html with the Full Troop Roster CSV embedded as {@code window.ROSTER_CSV}
- * and the admin-console blocked-email list embedded as {@code window.BLOCKED_EMAILS}
- * for client-side filtering of Google Workspace accounts.
+ * Writes admin.html with the Full Troop Roster CSV embedded as {@code window.ROSTER_CSV},
+ * the admin-console blocked-email list embedded as {@code window.BLOCKED_EMAILS}, and the
+ * Apps Script Code.gs source injected into the setup UI {@code <pre>} block.
  */
 class AdminPageWriter {
 
     private static final Path BLOCKED_EMAILS_FILE =
             Path.of("config", "admin-console", "blocked_emails.json");
+    private static final Path CODE_GS_FILE =
+            Path.of("config", "admin-console", "code.gs");
 
     static void write(Path outputDir, String rosterCsvPath) throws IOException {
         String csvContent = "";
@@ -38,8 +40,21 @@ class AdminPageWriter {
             System.err.println("Warning: could not read blocked_emails.json: " + e.getMessage());
         }
 
+        // Read Code.gs and HTML-escape for embedding in a <pre> element.
+        String codeGs = "";
+        try {
+            codeGs = htmlEscape(ResourceIO.readString(CODE_GS_FILE));
+        } catch (IOException e) {
+            System.err.println("Warning: could not read code.gs: " + e.getMessage());
+        }
+
         String html = ThymeleafRenderer.render("admin",
-                Map.of("rosterCsvData", escaped, "blockedEmailsJson", blockedEmailsJson));
+                Map.of("rosterCsvData", escaped, "blockedEmailsJson", blockedEmailsJson,
+                       "codeGsContent", codeGs));
         Files.writeString(outputDir.resolve("admin.html"), html);
+    }
+
+    private static String htmlEscape(String s) {
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }

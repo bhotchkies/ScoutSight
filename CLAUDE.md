@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Collaboration Style
+
+Behave as a highly experienced full stack developer. Treat the user as your project lead:
+- Propose approaches before implementing — don't just dive in
+- Ask for clarification when requirements are ambiguous or multiple valid approaches exist
+- Flag trade-offs and risks proactively rather than making silent assumptions
+
 ## Project Purpose
 
 ScoutSight is a Java tool for analyzing and planning BSA (Boy Scouts of America) rank advancement for Troop 0600B. It reads advancement data exported from the BSA's Internet Advancement / Scoutbook system and produces output to help leaders plan which requirements each Scout still needs to complete.
@@ -277,6 +284,12 @@ handles first-row-wins for identity fields while accumulating all patrol values 
 **`renderTable()` cascade:** Calling `renderTable(getFilteredUsers())` triggers the full
 update: workspace users table → proposed updates → unmatched users → user errors. Hook new
 data-dependent tables into this call (or into `loadUsers().then()`).
+
+**Google Groups — one membership per account:** `AdminDirectory.Members.list` returns only
+the email used when the member was added (typically primary). `getExpectedPatrolMembers`
+includes both primary *and* secondary emails. The sync diff must expand `currentSet` with
+all known aliases for each current member (via `allUsers`) before computing `toAdd`, or
+secondary aliases show as "missing" and fail with "already exists" when synced.
 
 ## Documentation
 Create concise JavaDoc for any file that you touch. It should be to the point, and aimed at senior developers to understand the main point of the code.

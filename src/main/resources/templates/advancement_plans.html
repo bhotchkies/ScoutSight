@@ -695,7 +695,7 @@
       const filtered = d.scouts.filter(s => {
         if (singleScout) return s.memberId === SCOUT_FILTER;
         if (grade     !== 'All'      && s.grade     !== Number(grade))  return false;
-        if (patrol    !== 'All'      && s.patrol    !== patrol)         return false;
+        if (patrol    !== 'All'      && !(s.patrol || '').split(',').map(p => p.trim()).includes(patrol)) return false;
         if (birthYear !== 'All years' && s.birthYear !== birthYear)     return false;
         if (joinYear  !== 'All years' && s.joinYear  !== joinYear)      return false;
         if (ranks.size > 0 && !ranks.has(s.currentRank))               return false;

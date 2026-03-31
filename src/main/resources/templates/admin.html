@@ -117,7 +117,7 @@
     .ov-card-badge { align-self: flex-start; font-size: .65rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--amber); background: var(--amber-lt); border: 1px solid var(--amber); border-radius: 999px; padding: .1rem .45rem; }
 
     /* ── Unmatched Users panel ── */
-    .uu-layout { display: flex; flex-direction: column; gap: 1.6rem; max-width: 860px; }
+    .uu-layout { display: flex; flex-direction: column; gap: 1.6rem; max-width: 1100px; }
     .um-load-row { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
     .btn-link { font-family: var(--font-b); font-size: .82rem; font-weight: 700; color: var(--green-mid); background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; }
     .btn-link:hover { color: var(--green); }
@@ -166,7 +166,7 @@
     .connect-status.err { color: var(--red); }
 
     /* Users table */
-    .uu-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+    .uu-table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow-x: auto; overflow-y: hidden; }
     .uu-table-toolbar { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .8rem 1.1rem; border-bottom: 1px solid var(--border-lt); flex-wrap: wrap; }
     .uu-table-title { font-family: var(--font-h); font-size: .95rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--navy); }
     .uu-count-badge { font-size: .78rem; font-weight: 700; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: .15rem .6rem; }
@@ -286,6 +286,16 @@
     .btn-action-primary:hover { background: var(--green-mid); border-color: var(--green-mid); }
     .btn-action-secondary { background: var(--surface-2); color: var(--text-muted); border-color: var(--border); }
     .btn-action-secondary:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── Set Forwarding modal ── */
+    .fwd-modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: 0 8px 32px rgba(0,0,0,.22); width: 400px; max-width: 95vw; display: flex; flex-direction: column; overflow: hidden; }
+    .fwd-modal-body { padding: 1.1rem 1.2rem; }
+    .fwd-modal-label { font-family: var(--font-b); font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: .45rem; }
+    .fwd-modal-user  { font-size: .88rem; color: var(--navy); font-weight: 600; margin-bottom: 1rem; word-break: break-all; }
+    .fwd-modal-input { width: 100%; box-sizing: border-box; font-family: var(--font-b); font-size: .88rem; padding: .48rem .75rem; border: 1.5px solid var(--border); border-radius: var(--r); background: var(--surface); color: var(--text); outline: none; transition: border-color var(--t); }
+    .fwd-modal-input:focus { border-color: var(--green-mid); }
+    .fwd-modal-input.err   { border-color: var(--red); }
+    .fwd-modal-errmsg { font-size: .78rem; color: var(--red); margin-top: .35rem; min-height: 1.1em; }
 
     /* Match GWS account modal */
     .match-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; }
@@ -483,458 +493,7 @@
                       <span class="script-block-label">Code.gs</span>
                       <button class="script-copy-btn" onclick="copyScript(this,'script-code-um')">Copy</button>
                     </div>
-                    <pre class="script-pre" id="script-code-um">var DOMAIN = 'troop600.com';
-
-function doGet(e) {
-  var action = (e.parameter || {}).action || '';
-  try {
-    switch (action) {
-      case 'listUsers':  return respond(listUsers());
-      case 'dumpFirst':  return respond(dumpFirst());
-      case 'updateUser':         return respond(updateUser(e));
-      case 'addRelationship':    return respond(addRelationship(e));
-      case 'removeRelationship': return respond(removeRelationship(e));
-      case 'checkGroup':         return respond(checkGroup(e));
-      case 'createGroup':        return respond(createGroup(e));
-      case 'listGroups':          return respond(listGroups(e));
-      case 'deleteGroup':         return respond(deleteGroup(e));
-      case 'getGroupMembers':     return respond(getGroupMembers(e));
-      case 'updateGroupMembers':  return respond(updateGroupMembers(e));
-      default:                   return respond({ error: 'Unknown action: ' + action });
-    }
-  } catch (err) {
-    return respond({ error: err.message });
-  }
-}
-
-function respond(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * Returns all users in the domain with primary + secondary emails,
- * org unit, status, and all custom schema attributes.
- */
-function listUsers() {
-  var users = [];
-  var pageToken;
-  do {
-    var page = AdminDirectory.Users.list({
-      domain:     DOMAIN,
-      maxResults: 500,
-      orderBy:    'familyName',
-      projection: 'full',        // required to include customSchemas
-      pageToken:  pageToken
-    });
-    (page.users || []).forEach(function(u) {
-
-      // Secondary emails (all non-primary entries in the emails array)
-      var secondaryEmails = (u.emails || [])
-        .filter(function(e) { return !e.primary; })
-        .map(function(e) { return e.address || ''; })
-        .filter(Boolean);
-
-      // Flatten all custom schema fields into a single map keyed by field name.
-      // Schema name is intentionally ignored so field names work regardless of
-      // what the schema was named in the Workspace admin console.
-      var custom = {};
-      if (u.customSchemas) {
-        Object.keys(u.customSchemas).forEach(function(schema) {
-          var fields = u.customSchemas[schema];
-          Object.keys(fields).forEach(function(field) {
-            custom[field] = fields[field];
-          });
-        });
-      }
-
-      // Multi-value fields are arrays of {type, value} objects — extract the values.
-      function mvValues(field) {
-        var arr = custom[field];
-        if (!arr) return '';
-        if (!Array.isArray(arr)) return String(arr);
-        return arr.map(function(item) { return item.value || ''; }).filter(Boolean).join(', ');
-      }
-
-      users.push({
-        id:              u.id,
-        email:           u.primaryEmail,
-        firstName:       u.name.givenName  || '',
-        lastName:        u.name.familyName || '',
-        orgUnit:         u.orgUnitPath,
-        suspended:       u.suspended || false,
-        lastLogin:       u.lastLoginTime || null,
-        secondaryEmails: secondaryEmails,
-        // Custom schema fields (schema names: Scout_Attributes, Troop_Attributes, Parent_Attributes)
-        rank:     custom['Rank']     || '',
-        patrol:   mvValues('Patrol'),
-        scoutId:  custom['Scout_ID'] != null ? String(custom['Scout_ID']) : '',
-        isYouth:  custom['Is_Youth'] != null ? custom['Is_Youth'] : '',
-        parents:  mvValues('Parents'),
-        scouts:   mvValues('Scouts')
-      });
-    });
-    pageToken = page.nextPageToken;
-  } while (pageToken);
-
-  return { users: users };
-}
-
-/**
- * Updates fields for a single Workspace user.
- * Params: userId (Google user id), changes (URL-encoded JSON).
- * Recognized keys: givenName, familyName, orgUnitPath, suspended,
- *   Scout_ID (Number), Is_Youth (Boolean), Patrol, Rank,
- *   Parents (email string array), Scouts (email string array).
- */
-function updateUser(e) {
-  var userId      = (e.parameter || {}).userId;
-  var changesJson = (e.parameter || {}).changes;
-  if (!userId || !changesJson) return { error: 'Missing userId or changes' };
-
-  var changes;
-  try { changes = JSON.parse(changesJson); }
-  catch (ex) { return { error: 'Invalid changes JSON: ' + ex.message }; }
-
-  var userUpdate = {};
-  var schemas    = {};
-
-  // ── Top-level user resource fields ──────────────────────────────────────
-  if ('givenName' in changes || 'familyName' in changes) {
-    var given  = String(changes['givenName']  || '').trim();
-    var family = String(changes['familyName'] || '').trim();
-    userUpdate.name = {
-      givenName:  given,
-      familyName: family,
-      fullName:   (given + ' ' + family).trim()
-    };
-  }
-  if ('orgUnitPath' in changes) {
-    var ou = String(changes['orgUnitPath'] || '').trim();
-    userUpdate.orgUnitPath = (ou.charAt(0) === '/') ? ou : '/' + ou;
-  }
-  if ('suspended' in changes) {
-    userUpdate.suspended = (changes['suspended'] === true || changes['suspended'] === 'true');
-  }
-
-  // ── Troop_Attributes schema ──────────────────────────────────────────────
-  if ('Scout_ID' in changes) {
-    schemas['Troop_Attributes'] = schemas['Troop_Attributes'] || {};
-    var raw = changes['Scout_ID'];
-    schemas['Troop_Attributes']['Scout_ID'] = (raw === '' || raw == null) ? null : Number(raw);
-  }
-  if ('Is_Youth' in changes) {
-    schemas['Troop_Attributes'] = schemas['Troop_Attributes'] || {};
-    schemas['Troop_Attributes']['Is_Youth'] = (changes['Is_Youth'] === true || changes['Is_Youth'] === 'true');
-  }
-
-  // ── Scout_Attributes schema ──────────────────────────────────────────────
-  if ('Patrol' in changes) {
-    schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
-    schemas['Scout_Attributes']['Patrol'] = (changes['Patrol'] || []).map(function(name) {
-      return { type: 'work', value: name };
-    });
-  }
-  if ('Rank' in changes) {
-    schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
-    schemas['Scout_Attributes']['Rank'] = changes['Rank'];
-  }
-  if ('Parents' in changes) {
-    schemas['Scout_Attributes'] = schemas['Scout_Attributes'] || {};
-    schemas['Scout_Attributes']['Parents'] = (changes['Parents'] || []).map(function(addr) {
-      return { type: 'work', value: addr };
-    });
-  }
-
-  // ── Parent_Attributes schema ─────────────────────────────────────────────
-  if ('Scouts' in changes) {
-    schemas['Parent_Attributes'] = schemas['Parent_Attributes'] || {};
-    schemas['Parent_Attributes']['Scouts'] = (changes['Scouts'] || []).map(function(addr) {
-      return { type: 'work', value: addr };
-    });
-  }
-
-  if (Object.keys(schemas).length) userUpdate.customSchemas = schemas;
-  if (!Object.keys(userUpdate).length) return { error: 'No recognized fields to update' };
-
-  try {
-    AdminDirectory.Users.update(userUpdate, userId);
-    return { ok: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-/**
- * Adds a parent–scout relationship to both users' custom schema multi-value arrays.
- * Params: parentEmail, scoutEmail.
- * Idempotent — does not add duplicate entries.
- */
-function addRelationship(e) {
-  var parentEmail = (e.parameter || {}).parentEmail;
-  var scoutEmail  = (e.parameter || {}).scoutEmail;
-  if (!parentEmail || !scoutEmail) return { error: 'Missing parentEmail or scoutEmail' };
-  try {
-    // Append scoutEmail to parent's Parent_Attributes.Scouts
-    var parent = AdminDirectory.Users.get(parentEmail, { projection: 'full', viewType: 'admin_view' });
-    var parentScouts = ((parent.customSchemas || {}).Parent_Attributes || {}).Scouts || [];
-    if (!parentScouts.some(function(s) { return s.value === scoutEmail; })) {
-      AdminDirectory.Users.update(
-        { customSchemas: { Parent_Attributes: { Scouts: parentScouts.concat([{ type: 'work', value: scoutEmail }]) } } },
-        parentEmail);
-    }
-    // Append parentEmail to scout's Scout_Attributes.Parents
-    var scout = AdminDirectory.Users.get(scoutEmail, { projection: 'full', viewType: 'admin_view' });
-    var scoutParents = ((scout.customSchemas || {}).Scout_Attributes || {}).Parents || [];
-    if (!scoutParents.some(function(p) { return p.value === parentEmail; })) {
-      AdminDirectory.Users.update(
-        { customSchemas: { Scout_Attributes: { Parents: scoutParents.concat([{ type: 'work', value: parentEmail }]) } } },
-        scoutEmail);
-    }
-    return { ok: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-/**
- * Removes a parent–scout relationship from both users' custom schema arrays.
- * Params: parentEmail, scoutEmail.
- * Idempotent — no-op if the link does not exist.
- */
-function removeRelationship(e) {
-  var parentEmail = (e.parameter || {}).parentEmail;
-  var scoutEmail  = (e.parameter || {}).scoutEmail;
-  if (!parentEmail || !scoutEmail) return { error: 'Missing parentEmail or scoutEmail' };
-  try {
-    // Remove scoutEmail from parent's Parent_Attributes.Scouts
-    var parent = AdminDirectory.Users.get(parentEmail, { projection: 'full', viewType: 'admin_view' });
-    var parentScouts = ((parent.customSchemas || {}).Parent_Attributes || {}).Scouts || [];
-    var newParentScouts = parentScouts.filter(function(s) { return s.value !== scoutEmail; });
-    if (newParentScouts.length !== parentScouts.length) {
-      AdminDirectory.Users.update(
-        { customSchemas: { Parent_Attributes: { Scouts: newParentScouts } } },
-        parentEmail);
-    }
-    // Remove parentEmail from scout's Scout_Attributes.Parents
-    var scout = AdminDirectory.Users.get(scoutEmail, { projection: 'full', viewType: 'admin_view' });
-    var scoutParents = ((scout.customSchemas || {}).Scout_Attributes || {}).Parents || [];
-    var newScoutParents = scoutParents.filter(function(p) { return p.value !== parentEmail; });
-    if (newScoutParents.length !== scoutParents.length) {
-      AdminDirectory.Users.update(
-        { customSchemas: { Scout_Attributes: { Parents: newScoutParents } } },
-        scoutEmail);
-    }
-    return { ok: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-/** Debug: returns the raw Admin SDK object for the first user — use to verify field names. */
-function dumpFirst() {
-  var page = AdminDirectory.Users.list({
-    domain: DOMAIN, maxResults: 1, projection: 'full'
-  });
-  var u = (page.users || [])[0];
-  if (!u) return { error: 'No users found' };
-  return {
-    primaryEmail:  u.primaryEmail,
-    name:          u.name,
-    emails:        u.emails,
-    customSchemas: u.customSchemas,
-    orgUnitPath:   u.orgUnitPath,
-    suspended:     u.suspended
-  };
-}
-
-/**
- * Checks whether a Google Group with the given email address exists.
- * Params: email — the group email to check.
- * Returns: { exists: true } or { exists: false }. Errors surface as { error: '...' }.
- */
-function checkGroup(e) {
-  var email = (e.parameter || {}).email;
-  if (!email) return { error: 'Missing email' };
-  try {
-    AdminDirectory.Groups.get(email);
-    return { exists: true };
-  } catch (err) {
-    // GAS throws on any non-2xx response. "not found" variants mean the group doesn't exist.
-    var msg = (err.message || '').toLowerCase();
-    if (msg.indexOf('not found') !== -1 || msg.indexOf('404') !== -1) {
-      return { exists: false };
-    }
-    return { error: err.message };
-  }
-}
-
-/**
- * Creates a new Google Group for a patrol, copies settings from the template group
- * (rangers2025@troop600.com), then adds the provided member emails.
- * Params: email (new group address), name (display name), members (JSON array of emails).
- * Note: subject prefix ([PATROL NAME]) is not settable via the GroupsSettings API and must
- * be configured manually in the Google Groups admin console after creation.
- */
-function createGroup(e) {
-  var params      = e.parameter || {};
-  var email       = params.email;
-  var name        = params.name;
-  var membersJson = params.members || '[]';
-  if (!email || !name) return { error: 'Missing email or name' };
-
-  var TEMPLATE = 'rangers2025@troop600.com';
-
-  try {
-    // Create the group resource
-    AdminDirectory.Groups.insert({
-      email:       email,
-      name:        name,
-      description: name + ' patrol mailing list'
-    });
-
-    // Copy settings from the template group (non-fatal if it fails)
-    try {
-      var tpl = GroupsSettings.Groups.get(TEMPLATE);
-      GroupsSettings.Groups.update({
-        whoCanPostMessage:               tpl.whoCanPostMessage,
-        whoCanViewMembership:            tpl.whoCanViewMembership,
-        whoCanViewGroup:                 tpl.whoCanViewGroup,
-        whoCanJoin:                      tpl.whoCanJoin,
-        isArchived:                      tpl.isArchived,
-        messageModerationLevel:          tpl.messageModerationLevel,
-        spamModerationLevel:             tpl.spamModerationLevel,
-        replyTo:                         tpl.replyTo,
-        includeInGlobalAddressList:      tpl.includeInGlobalAddressList,
-        sendMessageDenyNotification:     tpl.sendMessageDenyNotification,
-        defaultMessageDenyNotificationText: tpl.defaultMessageDenyNotificationText,
-        membersCanPostAsTheGroup:        tpl.membersCanPostAsTheGroup,
-        includeStandardFooter:           true,
-        includeCustomFooter:             tpl.includeCustomFooter,
-        customFooterText:                tpl.customFooterText,
-        whoCanLeaveGroup:                tpl.whoCanLeaveGroup,
-        whoCanContactOwner:              tpl.whoCanContactOwner,
-        favoriteRepliesOnTop:            tpl.favoriteRepliesOnTop
-      }, email);
-    } catch (settingsErr) {
-      Logger.log('Warning: could not copy group settings from ' + TEMPLATE + ': ' + settingsErr.message);
-    }
-
-    // Add members (scouts + parents); non-fatal per member
-    var members;
-    try { members = JSON.parse(membersJson); } catch (ex) { members = []; }
-    members.forEach(function(memberEmail) {
-      if (!memberEmail) return;
-      try {
-        AdminDirectory.Members.insert({ email: memberEmail, role: 'MEMBER' }, email);
-      } catch (memberErr) {
-        Logger.log('Warning: could not add ' + memberEmail + ' to ' + email + ': ' + memberErr.message);
-      }
-    });
-
-    return { ok: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-/**
- * Lists all Google Groups in the domain whose email ends with the given suffix.
- * Params: suffix (e.g. "-patrol@troop600.com").
- * Returns: { groups: [ { email, name } ] }
- */
-function listGroups(e) {
-  var suffix = (e.parameter || {}).suffix || '';
-  var groups = [];
-  var pageToken;
-  do {
-    var page = AdminDirectory.Groups.list({
-      domain:     DOMAIN,
-      maxResults: 200,
-      pageToken:  pageToken
-    });
-    (page.groups || []).forEach(function(g) {
-      if (!suffix || (g.email || '').toLowerCase().endsWith(suffix.toLowerCase())) {
-        groups.push({ email: g.email, name: g.name || g.email });
-      }
-    });
-    pageToken = page.nextPageToken;
-  } while (pageToken);
-  return { groups: groups };
-}
-
-/**
- * Permanently deletes a Google Group by email address.
- * Params: email — the group address to delete.
- */
-function deleteGroup(e) {
-  var email = (e.parameter || {}).email;
-  if (!email) return { error: 'Missing email' };
-  try {
-    AdminDirectory.Groups.remove(email);
-    return { ok: true };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-/**
- * Returns the list of member email addresses for a Google Group.
- * Params: email — the group address.
- * Returns: { members: [email, ...] }
- */
-function getGroupMembers(e) {
-  var email = (e.parameter || {}).email;
-  if (!email) return { error: 'Missing email' };
-  try {
-    var members = [];
-    var pageToken;
-    do {
-      var page = AdminDirectory.Members.list(email, { maxResults: 200, pageToken: pageToken });
-      (page.members || []).forEach(function(m) {
-        if (m.email) members.push(m.email.toLowerCase());
-      });
-      pageToken = page.nextPageToken;
-    } while (pageToken);
-    return { members: members };
-  } catch (err) {
-    return { error: err.message };
-  }
-}
-
-/**
- * Adds and removes members from a Google Group in one call.
- * Params: groupEmail, toAdd (JSON array of emails), toRemove (JSON array of emails).
- * Non-fatal per member — collects errors and returns them alongside ok:true.
- */
-function updateGroupMembers(e) {
-  var groupEmail   = (e.parameter || {}).groupEmail;
-  var toAddJson    = (e.parameter || {}).toAdd    || '[]';
-  var toRemoveJson = (e.parameter || {}).toRemove || '[]';
-  if (!groupEmail) return { error: 'Missing groupEmail' };
-
-  var toAdd, toRemove;
-  try { toAdd    = JSON.parse(toAddJson);    } catch (ex) { toAdd    = []; }
-  try { toRemove = JSON.parse(toRemoveJson); } catch (ex) { toRemove = []; }
-
-  var errors = [];
-  toAdd.forEach(function(memberEmail) {
-    try {
-      AdminDirectory.Members.insert({ email: memberEmail, role: 'MEMBER' }, groupEmail);
-    } catch (err) {
-      errors.push('ADD ' + memberEmail + ': ' + err.message);
-    }
-  });
-  toRemove.forEach(function(memberEmail) {
-    try {
-      AdminDirectory.Members.remove(groupEmail, memberEmail);
-    } catch (err) {
-      errors.push('REMOVE ' + memberEmail + ': ' + err.message);
-    }
-  });
-  return { ok: true, errors: errors };
-}</pre>
+                    <pre class="script-pre" id="script-code-um">[(${codeGsContent})]</pre>
                   </div>
                 </div>
               </div>
@@ -978,7 +537,9 @@ function updateGroupMembers(e) {
     "https://www.googleapis.com/auth/admin.directory.user",
     "https://www.googleapis.com/auth/admin.directory.group",
     "https://www.googleapis.com/auth/admin.directory.group.member",
-    "https://www.googleapis.com/auth/apps.groups.settings"
+    "https://www.googleapis.com/auth/apps.groups.settings",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.send_mail"
   ],
   "webapp": {
     "executeAs": "USER_DEPLOYING",
@@ -1103,6 +664,8 @@ function updateGroupMembers(e) {
             <div style="display:flex;align-items:center;gap:.6rem;">
               <span class="uu-table-title">Workspace Users</span>
               <span class="uu-count-badge" id="user-count" style="display:none">0</span>
+              <button id="add-user-btn" class="btn-secondary" onclick="openNewUserModal(null)"
+                      style="display:none;font-size:.78rem;padding:.28rem .7rem;">&#43; Add New User</button>
             </div>
             <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
               <div class="uu-filter-group" id="filter-status-group" style="display:none">
@@ -1279,6 +842,31 @@ function updateGroupMembers(e) {
   </main>
 </div>
 
+<!-- ── Set Forwarding modal ── -->
+<div id="fwd-overlay" class="match-overlay" style="display:none;" onclick="if(event.target===this)closeFwdModal()">
+  <div class="fwd-modal" role="dialog" aria-modal="true" aria-labelledby="fwd-modal-title">
+    <div class="match-modal-hd">
+      <div class="match-modal-hd-text">
+        <div class="match-modal-title" id="fwd-modal-title">Set Forward Address</div>
+        <div class="match-modal-sub"   id="fwd-modal-sub"></div>
+      </div>
+      <button class="match-modal-x" onclick="closeFwdModal()" title="Close">&#x2715;</button>
+    </div>
+    <div class="fwd-modal-body">
+      <div class="fwd-modal-label">Forwarding email for</div>
+      <div class="fwd-modal-user" id="fwd-modal-user"></div>
+      <input id="fwd-modal-input" class="fwd-modal-input" type="email" placeholder="forward@example.com"
+             oninput="document.getElementById('fwd-modal-errmsg').textContent='';this.classList.remove('err')"
+             onkeydown="if(event.key==='Enter')saveFwdModal()" />
+      <div class="fwd-modal-errmsg" id="fwd-modal-errmsg"></div>
+    </div>
+    <div class="match-modal-ft">
+      <button class="btn-secondary" onclick="closeFwdModal()">Cancel</button>
+      <button class="btn-primary" id="fwd-save-btn" onclick="saveFwdModal()">Set Forward</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Match GWS Account modal ── -->
 <div id="match-overlay" class="match-overlay" style="display:none;" onclick="if(event.target===this)closeMatchModal()">
   <div class="match-modal" role="dialog" aria-modal="true" aria-labelledby="match-modal-title-el">
@@ -1296,6 +884,25 @@ function updateGroupMembers(e) {
     <div class="match-modal-list" id="match-modal-list"></div>
     <div class="match-modal-ft">
       <button class="btn-secondary" onclick="closeMatchModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add New User modal ── -->
+<div id="new-user-overlay" class="match-overlay" style="display:none;" onclick="if(event.target===this)closeNewUserModal()">
+  <div class="edit-user-modal" role="dialog" aria-modal="true" aria-labelledby="nu-modal-title">
+    <div class="match-modal-hd">
+      <div class="match-modal-hd-text">
+        <div class="match-modal-title" id="nu-modal-title">Add New User</div>
+        <div class="match-modal-sub"   id="nu-modal-sub">Creates a new Google Workspace account for troop600.com</div>
+      </div>
+      <button class="match-modal-x" onclick="closeNewUserModal()" title="Close">&#x2715;</button>
+    </div>
+    <div class="edit-modal-body" id="nu-modal-body"></div>
+    <div id="nu-modal-msg" style="padding:.45rem 1.1rem;font-size:.82rem;display:none;"></div>
+    <div class="match-modal-ft">
+      <button class="btn-secondary" onclick="closeNewUserModal()">Cancel</button>
+      <button class="btn-primary" id="nu-save-btn" onclick="saveNewUserModal()">Create User</button>
     </div>
   </div>
 </div>
@@ -1452,6 +1059,421 @@ function updateGroupMembers(e) {
     updateUmSetupVisibility();
   }
 
+  // ── Email forwarding ─────────────────────────────────────────────────────
+
+  /** Fetches forwarding status for all users and re-renders the table. */
+  function loadForwardingStatuses() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    forwardingData = 'loading';
+    renderTable(getFilteredUsers());
+    var fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=listForwardingStatuses';
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          console.error('listForwardingStatuses error:', data.error);
+          forwardingData = { _error: data.error };
+          renderTable(getFilteredUsers());
+          return;
+        }
+        forwardingData = {};
+        (data.statuses || []).forEach(function(s) { forwardingData[s.email.toLowerCase()] = s; });
+        renderTable(getFilteredUsers());
+      })
+      .catch(function(ex) {
+        console.error('listForwardingStatuses fetch failed:', ex.message);
+        forwardingData = { _error: ex.message };
+        renderTable(getFilteredUsers());
+      });
+  }
+
+  /**
+   * Builds the forwarding cell HTML for a given user's primary email.
+   * States: loading spinner, active (green), verified-not-enabled (amber), pending (amber), not-set (button).
+   */
+  /** Returns a clickable error pill that copies the full error text to the clipboard. */
+  function fwdErrorPill(msg) {
+    var qMsg = JSON.stringify(msg).replace(/"/g, '&quot;');
+    return '<span class="pill" '
+      + 'style="background:var(--red-lt);color:var(--red);border-color:var(--red);cursor:pointer;" '
+      + 'title="Click to copy: ' + esc(msg) + '" '
+      + 'onclick="navigator.clipboard.writeText(' + qMsg + ').then(function(){'
+        + 'var el=this;el.textContent=\'Copied!\';'
+        + 'setTimeout(function(){el.innerHTML=\'&#9888; Error\';},1500);'
+      + '}.bind(this))">&#9888; Error</span>';
+  }
+
+  function forwardingCellHtml(email) {
+    var key    = email.toLowerCase();
+    var qEmail = JSON.stringify(email).replace(/"/g, '&quot;');
+    var spinner = '<td><span class="uu-spinner" style="width:.75rem;height:.75rem;border-width:2px;vertical-align:middle;display:inline-block;"></span></td>';
+    var loadBtn = '<td><button class="btn-action btn-action-secondary" style="font-size:.75rem;padding:.2rem .55rem;" '
+                + 'onclick="loadForwardingForUser(' + qEmail + ')">&#8635; Load</button></td>';
+
+    if (forwardingData === 'loading') return spinner;
+    if (forwardingData === null)      return loadBtn;
+
+    var s = forwardingData[key];
+    if (!s) {
+      if (forwardingData._error) return '<td>' + fwdErrorPill(forwardingData._error) + '</td>';
+      return loadBtn;
+    }
+    if (s._loading) return spinner;
+    if (s.noMailbox) return '<td><span style="color:var(--text-muted);" title="Gmail not enabled for this account">—</span></td>';
+    if (s.error)     return '<td>' + fwdErrorPill(s.error) + '</td>';
+    if (s.enabled && s.forwardTo) {
+      return '<td><span class="pill pill-active" title="Forwarding to: ' + esc(s.forwardTo) + '">&#10003; Yes</span></td>';
+    }
+    if (s.verifiedAddresses && s.verifiedAddresses.length) {
+      var verifiedTo = s.verifiedAddresses[0];
+      var qUser = JSON.stringify(email).replace(/"/g, '&quot;');
+      var qFwd  = JSON.stringify(verifiedTo).replace(/"/g, '&quot;');
+      return '<td><button class="pill" style="background:var(--amber-lt);color:var(--amber);border-color:var(--amber);cursor:pointer;" '
+        + 'title="Click to enable forwarding to ' + esc(verifiedTo) + '" '
+        + 'onclick="enableForwarding(' + qUser + ',' + qFwd + ',this)">&#9679; Verified, not active</button></td>';
+    }
+    if (s.pendingAddresses && s.pendingAddresses.length) {
+      return '<td><span class="pill" style="background:var(--amber-lt);color:var(--amber);border-color:var(--amber);" '
+        + 'title="Pending verification: ' + esc(s.pendingAddresses.join(', ')) + '">&#9679; Pending</span></td>';
+    }
+    return '<td><button class="btn-action btn-action-secondary" onclick="openFwdModal(' + qEmail + ')">&#8594; Set Forward</button></td>';
+  }
+
+  /** Loads forwarding status for a single user and updates their row. */
+  function loadForwardingForUser(email) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    if (!forwardingData || typeof forwardingData !== 'object') forwardingData = {};
+    forwardingData[email.toLowerCase()] = { _loading: true };
+    renderTable(getFilteredUsers());
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=getForwardingStatus&email=' + encodeURIComponent(email);
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!forwardingData || typeof forwardingData !== 'object') forwardingData = {};
+        forwardingData[email.toLowerCase()] = data.error
+          ? { email: email, error: data.error }
+          : data.status;
+        renderTable(getFilteredUsers());
+      })
+      .catch(function(ex) {
+        if (!forwardingData || typeof forwardingData !== 'object') forwardingData = {};
+        forwardingData[email.toLowerCase()] = { email: email, error: ex.message };
+        renderTable(getFilteredUsers());
+      });
+  }
+
+  /** Opens the Set Forwarding popup for the given GWS user email. */
+  function openFwdModal(email) {
+    // Pre-populate with the first secondary email on the account, if any.
+    var user      = (allUsers || []).find(function(u) { return u.email.toLowerCase() === email.toLowerCase(); });
+    var prefillTo = (user && user.secondaryEmails && user.secondaryEmails.length) ? user.secondaryEmails[0] : '';
+
+    document.getElementById('fwd-modal-user').textContent   = email;
+    document.getElementById('fwd-modal-sub').textContent    = prefillTo ? 'Pre-filled from account alternate email' : '';
+    document.getElementById('fwd-modal-input').value        = prefillTo;
+    document.getElementById('fwd-modal-input').className    = 'fwd-modal-input';
+    document.getElementById('fwd-modal-errmsg').textContent = '';
+    document.getElementById('fwd-save-btn').disabled        = false;
+    document.getElementById('fwd-save-btn').textContent     = 'Set Forward';
+    document.getElementById('fwd-overlay').style.display    = 'flex';
+    setTimeout(function() { document.getElementById('fwd-modal-input').focus(); }, 50);
+  }
+
+  function closeFwdModal() {
+    document.getElementById('fwd-overlay').style.display = 'none';
+  }
+
+  /** Validates and submits the forwarding address. */
+  function saveFwdModal() {
+    var userEmail = document.getElementById('fwd-modal-user').textContent.trim();
+    var fwdEmail  = document.getElementById('fwd-modal-input').value.trim();
+    var input     = document.getElementById('fwd-modal-input');
+    var errEl     = document.getElementById('fwd-modal-errmsg');
+    var saveBtn   = document.getElementById('fwd-save-btn');
+
+    // Basic email validation
+    if (!fwdEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fwdEmail)) {
+      input.classList.add('err');
+      errEl.textContent = 'Please enter a valid email address.';
+      input.focus();
+      return;
+    }
+
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving\u2026';
+    errEl.textContent   = '';
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=setForwarding'
+      + '&email='     + encodeURIComponent(userEmail)
+      + '&forwardTo=' + encodeURIComponent(fwdEmail);
+
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        closeFwdModal();
+        if (data.pending) {
+          // Address queued for ownership verification — Gmail will email the destination.
+          // Auto-forwarding cannot be enabled until the recipient confirms.
+          forwardingData[userEmail.toLowerCase()] = {
+            email: userEmail, enabled: false, forwardTo: null,
+            pendingAddresses: [fwdEmail], verifiedAddresses: []
+          };
+        } else {
+          forwardingData[userEmail.toLowerCase()] = {
+            email: userEmail, enabled: true, forwardTo: fwdEmail,
+            pendingAddresses: [], verifiedAddresses: []
+          };
+        }
+        renderTable(getFilteredUsers());
+      })
+      .catch(function(ex) {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Set Forward';
+        errEl.textContent   = ex.message;
+      });
+  }
+
+  /**
+   * Enables forwarding for a user to an already-verified address without opening the modal.
+   * The element passed as `btn` is replaced with a spinner while the request is in flight.
+   */
+  function enableForwarding(userEmail, forwardTo, btn) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    btn.disabled    = true;
+    btn.textContent = '\u29d7 Enabling\u2026';
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=setForwarding'
+      + '&email='     + encodeURIComponent(userEmail)
+      + '&forwardTo=' + encodeURIComponent(forwardTo);
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        forwardingData[userEmail.toLowerCase()] = { email: userEmail, enabled: true, forwardTo: forwardTo, pendingAddresses: [], verifiedAddresses: [] };
+        renderTable(getFilteredUsers());
+      })
+      .catch(function(ex) {
+        btn.disabled    = false;
+        btn.innerHTML   = '&#9679; Verified, not active';
+        btn.title       = 'Failed to enable: ' + ex.message;
+      });
+  }
+
+  // ── Add New User modal ──────────────────────────────────────────────────────
+
+  /**
+   * Generates a default username: youth = firstName + lastInitial,
+   * adult = lastName + firstInitial. Lowercase, non-alphanumeric chars stripped.
+   */
+  function generateUsername(first, last, isYouth) {
+    var f = (first || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    var l = (last  || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (!f && !l) return '';
+    return isYouth ? (f + (l ? l[0] : '')) : (l + (f ? f[0] : ''));
+  }
+
+  /** Collects unique non-empty patrol names from loaded roster data. */
+  function getRosterPatrols() {
+    var seen = {};
+    if (parsedRoster) {
+      parsedRoster.forEach(function(row) {
+        var p = (findField(row, ['patrol']) || '').trim();
+        if (p) seen[p] = true;
+      });
+    }
+    if (rosterIndex && rosterIndex.byPatrols) {
+      Object.keys(rosterIndex.byPatrols).forEach(function(k) {
+        var p = (rosterIndex.byPatrols[k] || '').trim();
+        if (p) seen[p] = true;
+      });
+    }
+    return Object.keys(seen).sort();
+  }
+
+  /** Called when name or youth fields change — refreshes the username suggestion. */
+  function nuAutoUsername() {
+    var firstEl = document.getElementById('nu-first');
+    var lastEl  = document.getElementById('nu-last');
+    var youthEl = document.getElementById('nu-youth');
+    var unEl    = document.getElementById('nu-username');
+    if (!firstEl || !lastEl || !youthEl || !unEl) return;
+    unEl.value = generateUsername(firstEl.value, lastEl.value, youthEl.checked);
+  }
+
+  /**
+   * Opens the Add New User modal. Pass a rosterIdx (index into unmatchedRosterRows)
+   * to pre-populate fields from that row, or null for a blank form.
+   */
+  function openNewUserModal(rosterIdx) {
+    var prefill = (rosterIdx != null) ? (unmatchedRosterRows[rosterIdx] || null) : null;
+
+    var firstName = prefill ? (findField(prefill, ['first name']) || '') : '';
+    var lastName  = prefill ? (findField(prefill, ['last name'])  || '') : '';
+    var isYouth   = prefill ? (prefill._section === 'YOUTH MEMBERS') : true;
+    var bsaId     = prefill ? (findField(prefill, ['bsa number']) || '') : '';
+    var secEmail  = prefill ? (findField(prefill, ['email']) || '') : '';
+    var rank   = prefill ? (findField(prefill, ['rank']) || '') : '';
+    var patrol = '';
+    if (prefill) {
+      var bsaNum = findField(prefill, ['bsa number']) || '';
+      patrol = (rosterIndex && rosterIndex.byPatrols && rosterIndex.byPatrols[bsaNum])
+               || (findField(prefill, ['patrol']) || '').trim();
+    }
+
+    var username = generateUsername(firstName, lastName, isYouth);
+
+    var patrols = getRosterPatrols();
+    var patrolOpts = '<option value="">— none —</option>'
+      + patrols.map(function(p) {
+          return '<option value="' + esc(p) + '"' + (p === patrol ? ' selected' : '') + '>' + esc(p) + '</option>';
+        }).join('');
+
+    var RANKS = ['', 'Scout', 'Tenderfoot', 'Second Class', 'First Class', 'Star Scout', 'Life Scout', 'Eagle Scout'];
+    var rankOpts = RANKS.map(function(r) {
+      return '<option value="' + esc(r) + '"' + (r === rank ? ' selected' : '') + '>' + (r || '— none —') + '</option>';
+    }).join('');
+
+    document.getElementById('nu-modal-body').innerHTML = ''
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Name &amp; Type</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">First Name&nbsp;<span style="color:var(--red)">*</span></label>'
+          + '<input id="nu-first" class="edit-input" type="text" value="' + esc(firstName) + '" oninput="nuAutoUsername()" autocomplete="off">'
+        + '</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">Last Name&nbsp;<span style="color:var(--red)">*</span></label>'
+          + '<input id="nu-last" class="edit-input" type="text" value="' + esc(lastName) + '" oninput="nuAutoUsername()" autocomplete="off">'
+        + '</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">Is Youth</label>'
+          + '<input id="nu-youth" type="checkbox"' + (isYouth ? ' checked' : '') + ' onchange="nuAutoUsername()">'
+        + '</div>'
+      + '</div>'
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Account</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">Username&nbsp;<span style="color:var(--red)">*</span></label>'
+          + '<div style="display:flex;align-items:center;gap:.35rem;flex:1;">'
+            + '<input id="nu-username" class="edit-input" type="text" value="' + esc(username) + '" autocomplete="off" style="flex:1;min-width:0;">'
+            + '<span style="font-size:.82rem;color:var(--text-muted);white-space:nowrap;">@troop600.com</span>'
+          + '</div>'
+        + '</div>'
+      + '</div>'
+      + '<div class="edit-section">'
+        + '<div class="edit-section-title">Troop Data <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">BSA ID</label>'
+          + '<input id="nu-bsaid" class="edit-input" type="text" inputmode="numeric" value="' + esc(bsaId) + '" autocomplete="off">'
+        + '</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">Secondary Email</label>'
+          + '<input id="nu-secemail" class="edit-input" type="email" value="' + esc(secEmail) + '" autocomplete="off" placeholder="Password &amp; forwarding sent here">'
+        + '</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">Rank</label>'
+          + '<select id="nu-rank" class="edit-input">' + rankOpts + '</select>'
+        + '</div>'
+        + '<div class="edit-field-row">'
+          + '<label class="edit-field-label">Patrol</label>'
+          + '<select id="nu-patrol" class="edit-input">' + patrolOpts + '</select>'
+        + '</div>'
+      + '</div>';
+
+    var msgEl = document.getElementById('nu-modal-msg');
+    msgEl.style.display = 'none';
+    msgEl.textContent   = '';
+    var saveBtn = document.getElementById('nu-save-btn');
+    saveBtn.disabled    = false;
+    saveBtn.textContent = 'Create User';
+    saveBtn.onclick     = saveNewUserModal;
+
+    document.getElementById('new-user-overlay').style.display = 'flex';
+    setTimeout(function() { var el = document.getElementById('nu-first'); if (el) el.focus(); }, 50);
+  }
+
+  function closeNewUserModal() {
+    document.getElementById('new-user-overlay').style.display = 'none';
+  }
+
+  /** Validates and submits the new-user form to the Apps Script createUser action. */
+  function saveNewUserModal() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) { alert('No Apps Script URL configured.'); return; }
+
+    var firstName = (document.getElementById('nu-first')    .value || '').trim();
+    var lastName  = (document.getElementById('nu-last')     .value || '').trim();
+    var username  = (document.getElementById('nu-username') .value || '').trim().toLowerCase();
+    var isYouth   =  document.getElementById('nu-youth')    .checked;
+    var bsaId     = (document.getElementById('nu-bsaid')    .value || '').trim();
+    var secEmail  = (document.getElementById('nu-secemail') .value || '').trim();
+    var rank      = (document.getElementById('nu-rank')     .value || '').trim();
+    var patrol    = (document.getElementById('nu-patrol')   .value || '').trim();
+
+    var msgEl   = document.getElementById('nu-modal-msg');
+    var saveBtn = document.getElementById('nu-save-btn');
+
+    function showErr(msg) {
+      msgEl.style.display = '';
+      msgEl.style.color   = 'var(--red)';
+      msgEl.textContent   = msg;
+    }
+
+    if (!firstName || !lastName) return showErr('First and last name are required.');
+    if (!username)               return showErr('Username is required.');
+    if (!/^[a-z0-9][a-z0-9._-]*$/.test(username))
+      return showErr('Username may only contain lowercase letters, numbers, dots, hyphens, and underscores.');
+    if (secEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(secEmail))
+      return showErr('Secondary email address is not valid.');
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Creating\u2026';
+    msgEl.style.display = 'none';
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=createUser'
+      + '&firstName='      + encodeURIComponent(firstName)
+      + '&lastName='       + encodeURIComponent(lastName)
+      + '&username='       + encodeURIComponent(username)
+      + '&isYouth='        + (isYouth ? 'true' : 'false')
+      + '&bsaId='          + encodeURIComponent(bsaId)
+      + '&secondaryEmail=' + encodeURIComponent(secEmail)
+      + '&rank='           + encodeURIComponent(rank)
+      + '&patrol='         + encodeURIComponent(patrol);
+
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        // Show the temporary password — admin must share it with the new user manually.
+        msgEl.style.display = '';
+        msgEl.style.color   = 'var(--green)';
+        msgEl.innerHTML = '\u2713 User <strong>' + esc(data.email) + '</strong> created.'
+          + (data.password
+              ? ' Temporary password: <strong style="font-family:monospace;user-select:all;">' + esc(data.password) + '</strong>'
+                + ' &mdash; share this with the user; they will be prompted to change it on first login.'
+              : '')
+          + (data.warnings && data.warnings.length ? '<br>\u26a0 ' + data.warnings.map(esc).join(' ') : '');
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Close';
+        saveBtn.onclick     = function() { closeNewUserModal(); loadUsers(); };
+      })
+      .catch(function(ex) {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Create User';
+        showErr(ex.message);
+      });
+  }
+
   // Show/hide the um setup section based on whether a URL is saved.
   function updateUmSetupVisibility() {
     var hasUrl   = !!localStorage.getItem(GWS_URL_KEY);
@@ -1497,9 +1519,12 @@ function updateGroupMembers(e) {
 
   // ── Fetch users ───────────────────────────────────────────────────────────
 
-  var allUsers    = [];
-  var rosterIndex = null;
-  var parsedRoster = null;
+  var allUsers      = [];
+  var rosterIndex   = null;
+  var parsedRoster  = null;
+  // Forwarding status cache: primaryEmail → { enabled, forwardTo, pendingAddresses[], verifiedAddresses[], error }
+  // null = not yet loaded; 'loading' = fetch in flight
+  var forwardingData = null;
 
   // Blocked GWS accounts — sourced from config/admin-console/blocked_emails.json at build time.
   // Stored as a lowercase Set for O(1) lookup. Never matched, never shown in any table.
@@ -1540,8 +1565,9 @@ function updateGroupMembers(e) {
         allUsers = (data.users || []).filter(function(u) { return !isBlocked(u); });
         setStatus('ok', '&#10003; Connected &mdash; ' + allUsers.length + ' users loaded from troop600.com');
         renderTable(getFilteredUsers());
-        document.getElementById('uu-search').style.display = allUsers.length ? '' : 'none';
-        document.getElementById('user-count').style.display = allUsers.length ? '' : 'none';
+        document.getElementById('uu-search').style.display    = allUsers.length ? '' : 'none';
+        document.getElementById('user-count').style.display   = allUsers.length ? '' : 'none';
+        document.getElementById('add-user-btn').style.display = '';
         var naBtn = document.getElementById('filter-needs-age-btn');
         if (naBtn) naBtn.style.display = allUsers.length ? '' : 'none';
         var show = allUsers.length ? '' : 'none';
@@ -1549,6 +1575,7 @@ function updateGroupMembers(e) {
         document.getElementById('filter-match-group').style.display  = rosterIndex ? show : 'none';
         arRender();
         renderPatrolsPage();
+        forwardingData = forwardingData && typeof forwardingData === 'object' ? forwardingData : null;
       })
       .catch(function(err) {
         ['um', 'uu'].forEach(function(s) {
@@ -1670,15 +1697,20 @@ function updateGroupMembers(e) {
     var cols = [
       { key: 'lastName',       label: 'Last Name'       },
       { key: 'firstName',      label: 'First Name'      },
-      { key: 'email',          label: 'Primary Email'   },
-      { key: 'secondaryEmail', label: 'Secondary Email', noSort: true },
-      { key: 'suspended',      label: 'Status'          }
+      { key: 'email',          label: 'Email(s)',        noSort: false },
+      { key: 'suspended',      label: 'Status'          },
+      { key: 'forwarding',     label: 'Forwarding',     noSort: true }
     ];
     if (hasRoster) cols.push({ key: 'match', label: 'Match', noSort: true });
     cols.push({ key: 'actions', label: '', noSort: true });
 
     var arrow = sortAsc ? ' &#9650;' : ' &#9660;';
     var thead = '<thead><tr>' + cols.map(function(c) {
+      if (c.key === 'forwarding') {
+        return '<th>Forwarding <button class="btn-action btn-action-secondary" '
+          + 'style="font-size:.7rem;padding:.15rem .45rem;margin-left:.3rem;vertical-align:middle;" '
+          + 'onclick="loadForwardingStatuses()" title="Load forwarding status for all users">Load All</button></th>';
+      }
       if (c.noSort) return '<th>' + c.label + '</th>';
       var isSorted = c.key === sortCol;
       return '<th class="' + (isSorted ? 'sorted' : '') + '" onclick="sortBy(\'' + c.key + '\')">' +
@@ -1698,8 +1730,9 @@ function updateGroupMembers(e) {
         ? '<button class="pill pill-suspended" data-email="' + esc(u.email) + '" onclick="toggleSuspended(this.dataset.email)" style="cursor:pointer;background:var(--red-lt);border-color:var(--red);" title="Click to reactivate">&#9679; Suspended</button>'
         : '<button class="pill pill-active"    data-email="' + esc(u.email) + '" onclick="toggleSuspended(this.dataset.email)" style="cursor:pointer;background:#e6f4ec;" title="Click to suspend">&#9679; Active</button>';
       var secondaryHtml = (u.secondaryEmails || []).map(function(e) {
-        return '<div class="td-email">' + esc(e) + '</div>';
-      }).join('') || '<span style="color:var(--border)">—</span>';
+        return '<div class="td-email" style="color:var(--text-muted);font-size:.8em;">' + esc(e) + '</div>';
+      }).join('');
+      var emailCellHtml = '<td class="td-email">' + esc(u.email) + secondaryHtml + '</td>';
       var matchCell = hasRoster
         ? (matchRow
             ? '<td class="td-status"><span class="pill pill-active">Yes</span></td>'
@@ -1708,14 +1741,19 @@ function updateGroupMembers(e) {
       return '<tr>' +
         '<td class="td-name">'   + esc(u.lastName)  + '</td>' +
         '<td class="td-name">'   + esc(u.firstName) + '</td>' +
-        '<td class="td-email">'  + esc(u.email)     + '</td>' +
-        '<td>'                   + secondaryHtml    + '</td>' +
+        emailCellHtml +
         '<td class="td-status">' + pill             + '</td>' +
+        forwardingCellHtml(u.email) +
         matchCell +
         '<td style="white-space:nowrap;">' +
           '<button class="btn-action btn-action-secondary" ' +
             'data-email="' + esc(u.email) + '" ' +
-            'onclick="openEditModal(this.dataset.email)">&#9998; Edit</button>' +
+            'onclick="openEditModal(this.dataset.email)">&#9998; Edit</button> ' +
+          '<button class="btn-action" ' +
+            'style="background:var(--red-lt);color:var(--red);border-color:var(--red);" ' +
+            'data-email="' + esc(u.email) + '" data-id="' + esc(u.id) + '" ' +
+            'data-name="' + esc(u.firstName + ' ' + u.lastName) + '" ' +
+            'onclick="deleteUser(this.dataset.email,this.dataset.id,this.dataset.name)">&#128465; Delete</button>' +
         '</td>' +
         '</tr>';
     }).join('') + '</tbody>';
@@ -2889,6 +2927,28 @@ function updateGroupMembers(e) {
     }
   }
 
+  /** Confirms and permanently deletes a Workspace user account. */
+  async function deleteUser(email, userId, displayName) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var msg = 'Permanently delete ' + displayName + ' (' + email + ')?\n\n'
+      + 'This will immediately remove their Google Workspace account, email, and all associated data. '
+      + 'This cannot be undone.\n\nType DELETE to confirm.';
+    if (prompt(msg) !== 'DELETE') return;
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=deleteUser'
+      + '&userId=' + encodeURIComponent(userId || email);
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      loadUsers();
+    } catch (ex) {
+      alert('Failed to delete user: ' + ex.message);
+    }
+  }
+
   // ── Match GWS account modal ───────────────────────────────────────────────
 
   var matchingRosterRow = null; // the roster row being matched in the modal
@@ -3037,7 +3097,8 @@ function updateGroupMembers(e) {
    */
   function arRender() {
     // isYouth is a boolean from the Admin SDK (true/false) or '' if unset.
-    arAdults = allUsers.filter(function(u) { return u.isYouth === false; });
+    // Treat unset ('') as adult — accounts without Is_Youth are almost always adults.
+    arAdults = allUsers.filter(function(u) { return u.isYouth !== true; });
     arScouts = allUsers.filter(function(u) { return u.isYouth === true;  });
     arAdults.sort(function(a, b) {
       return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
@@ -3571,7 +3632,7 @@ function updateGroupMembers(e) {
         '<td class="td-text">'  + esc(row._section || '')                   + '</td>' +
         '<td style="white-space:nowrap;">' +
           '<button class="btn-action btn-action-primary" onclick="openMatchPopup(' + i + ')">Match</button> ' +
-          '<button class="btn-action btn-action-secondary" disabled title="Create new account — coming soon">New</button>' +
+          '<button class="btn-action btn-action-secondary" onclick="openNewUserModal(' + i + ')">&#43; New</button>' +
         '</td>' +
         '</tr>';
     }).join('') + '</tbody>';

@@ -186,7 +186,7 @@
           if (grade === 'Unknown' && s.grade >= 7) return false;
           if (grade !== 'Unknown' && s.grade !== Number(grade)) return false;
         }
-        if (patrol    !== 'All' && s.patrol    !== patrol)    return false;
+        if (patrol    !== 'All' && !(s.patrol || '').split(',').map(p => p.trim()).includes(patrol)) return false;
         if (birthYear !== 'All' && s.birthYear !== birthYear) return false;
         if (joinYear  !== 'All' && s.joinYear  !== joinYear)  return false;
         if (ranks.size > 0 && !ranks.has(s.currentRank))       return false;

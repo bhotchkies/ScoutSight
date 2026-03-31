@@ -140,7 +140,7 @@
     }
 
     function matchesFilters(scout, filters) {
-      if (filters.patrol    !== 'All' && scout.patrol    !== filters.patrol)        return false;
+      if (filters.patrol    !== 'All' && !(scout.patrol || '').split(',').map(p => p.trim()).includes(filters.patrol)) return false;
       if (filters.grade     !== 'All' && scout.grade     !== Number(filters.grade)) return false;
       if (filters.birthYear !== 'All' && scout.birthYear !== filters.birthYear)     return false;
       if (filters.joinYear  !== 'All' && scout.joinYear  !== filters.joinYear)      return false;

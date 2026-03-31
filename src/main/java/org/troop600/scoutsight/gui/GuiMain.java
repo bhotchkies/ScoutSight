@@ -69,8 +69,6 @@ public class GuiMain extends JFrame {
     private static final Preferences PREFS          = Preferences.userNodeForPackage(GuiMain.class);
     private static final String      PREF_WORK_DIR  = "workDir";
     private static final String      PREF_ADV_CSV   = "advancementCsv";
-    private static final String      PREF_SCOUTS    = "scoutsCsv";
-    private static final String      PREF_ROSTER    = "rosterReportCsv";
     private static final String      PREF_CAMP      = "camp";
     private static final String      PREF_SHEETS_URL  = "sheetsUrl";
     private static final String      PREF_ADMIN_MODE  = "adminMode";
@@ -79,8 +77,6 @@ public class GuiMain extends JFrame {
     // ── Component references ─────────────────────────────────────────────────
     private final JTextField          workDirField;
     private final JTextField          advancementField;
-    private final JTextField          scoutsField;
-    private final JTextField          rosterField;
     private final JComboBox<CampEntry> campCombo;
     private final JTextField          sheetsUrlField;
     private final JCheckBox           adminModeCheckbox;
@@ -135,8 +131,6 @@ public class GuiMain extends JFrame {
         // Text fields
         workDirField     = styledField(PREFS.get(PREF_WORK_DIR, System.getProperty("user.dir")));
         advancementField = styledField(PREFS.get(PREF_ADV_CSV,  ""));
-        scoutsField      = styledField(PREFS.get(PREF_SCOUTS,   ""));
-        rosterField      = styledField(PREFS.get(PREF_ROSTER,   ""));
 
         // Camp combo
         campCombo = new JComboBox<>();
@@ -160,18 +154,12 @@ public class GuiMain extends JFrame {
         adminModeCheckbox.setSelected(adminEnabled);
 
         adminRosterField = styledField(PREFS.get(PREF_ADMIN_ROSTER, ""));
-        adminRosterField.setEnabled(adminEnabled);
 
         adminRosterBtn = browseButton();
-        adminRosterBtn.setEnabled(adminEnabled);
         adminRosterBtn.addActionListener(e -> pickFile(adminRosterField, PREF_ADMIN_ROSTER));
 
-        adminModeCheckbox.addActionListener(e -> {
-            boolean on = adminModeCheckbox.isSelected();
-            PREFS.put(PREF_ADMIN_MODE, Boolean.toString(on));
-            adminRosterField.setEnabled(on);
-            adminRosterBtn.setEnabled(on);
-        });
+        adminModeCheckbox.addActionListener(e ->
+            PREFS.put(PREF_ADMIN_MODE, Boolean.toString(adminModeCheckbox.isSelected())));
 
         workDirField.addActionListener(e -> onWorkDirChanged());
         workDirField.addFocusListener(new FocusAdapter() {
@@ -183,10 +171,6 @@ public class GuiMain extends JFrame {
         workDirBtn.addActionListener(e -> pickDirectory());
         JButton advBtn = browseButton();
         advBtn.addActionListener(e -> pickFile(advancementField, PREF_ADV_CSV));
-        JButton scoutsBtn = browseButton();
-        scoutsBtn.addActionListener(e -> pickFile(scoutsField, PREF_SCOUTS));
-        JButton rosterBtn = browseButton();
-        rosterBtn.addActionListener(e -> pickFile(rosterField, PREF_ROSTER));
 
         // Action buttons
         runButton = new JButton("Generate Reports");
@@ -241,7 +225,7 @@ public class GuiMain extends JFrame {
         JPanel cardsPanel = new JPanel();
         cardsPanel.setLayout(new BoxLayout(cardsPanel, BoxLayout.Y_AXIS));
         cardsPanel.setBackground(C_BG);
-        cardsPanel.add(buildFormCard(workDirField, workDirBtn, advBtn, scoutsBtn, rosterBtn));
+        cardsPanel.add(buildFormCard(workDirField, workDirBtn, advBtn));
         cardsPanel.add(buildAdminCard());
 
         JPanel body = new JPanel(new BorderLayout());
@@ -326,7 +310,7 @@ public class GuiMain extends JFrame {
 
     private JPanel buildFormCard(
             JTextField workDirField, JButton workDirBtn,
-            JButton advBtn, JButton scoutsBtn, JButton rosterBtn) {
+            JButton advBtn) {
 
         // Card background
         JPanel card = new JPanel(new GridBagLayout());
@@ -353,15 +337,17 @@ public class GuiMain extends JFrame {
 
         r = addFormRow(card, r, "Advancement CSV", advancementField, advBtn, true,
                 "Required · Download from advancements.scouting.org",
-                loadHelpHtml("_advancement_csv_help.html"),250);
+                loadHelpHtml("_advancement_csv_help.html"), 250);
 
-        r = addFormRow(card, r, "Scouts CSV", scoutsField, scoutsBtn, false,
-                "Optional · Adds patrol & grade · Download from advancements.scouting.org",
-                loadHelpHtml("_scouts_csv_help.html"),260);
-
-        r = addFormRow(card, r, "Roster Report", rosterField, rosterBtn, false,
-                "Optional · Adds birth year, join year & positions · Download from advancements.scouting.org",
-                loadHelpHtml("_roster_report_help.html"),290);
+        r = addFormRow(card, r, "Admin Roster CSV", adminRosterField, adminRosterBtn, false,
+                "Optional · Adds patrol, grade, join date, birth year & positions · Download from advancements.scouting.org",
+                "<html><body style='font-family:SansSerif;font-size:11pt;margin:2px 4px'>" +
+                "<p><b>Admin Roster CSV</b></p>" +
+                "<p>The full troop admin roster export (YOUTH MEMBERS section). Provides patrol, " +
+                "school grade, join date, birth year, gender, and positions for each scout.</p>" +
+                "<p>File naming convention: <code>RosterReport_Troop0600B_Troop_600_Admin_&lt;date&gt;.csv</code></p>" +
+                "<p>Download from <b>advancements.scouting.org → Roster → Export</b>.</p>" +
+                "</body></html>", 120);
 
         // Camp row
         r = addCampRow(card, r);
@@ -500,9 +486,8 @@ public class GuiMain extends JFrame {
 
     /**
      * Builds the "Troop 600 Admin" card shown below the main input-files card.
-     * The card is gated by {@link #adminModeCheckbox}; when unchecked all file
-     * controls are disabled. No generation logic lives here yet — file selection
-     * only, for future Google Workspace upload integration.
+     * The checkbox controls whether {@code admin.html} is generated; admin roster
+     * file selection has moved to the main INPUT FILES card.
      */
     private JPanel buildAdminCard() {
         JPanel card = new JPanel(new GridBagLayout());
@@ -527,20 +512,18 @@ public class GuiMain extends JFrame {
 
         GridBagConstraints sc = gbc(0, r, 3, 1);
         sc.anchor = GridBagConstraints.LINE_START;
-        sc.insets = new Insets(0, 0, 6, 0);
+        sc.insets = new Insets(0, 0, 4, 0);
         card.add(headerPanel, sc);
         r++;
 
-        r = addFormRow(card, r, "Full Troop Roster", adminRosterField, adminRosterBtn, false,
-                "Optional · Full troop admin export from advancements.scouting.org",
-                "<html><body style='font-family:SansSerif;font-size:11pt;margin:2px 4px'>" +
-                "<p><b>Full Troop Roster</b></p>" +
-                "<p>The full admin roster export from the BSA system — includes adult members, " +
-                "positions, email addresses, and training records.</p>" +
-                "<p>Used for Troop 600 Google Workspace data sync (troop600.com). " +
-                "File naming convention: <code>RosterReport_Troop0600B_Troop_600_Admin_&lt;date&gt;.csv</code></p>" +
-                "<p>Download from <b>advancements.scouting.org → Roster → Export</b>.</p>" +
-                "</body></html>", 120);
+        // Hint explaining what the checkbox does
+        JLabel hint = new JLabel("When checked, generates admin.html using the Admin Roster CSV above.");
+        hint.setFont(FONT_HINT);
+        hint.setForeground(C_MUTED);
+        GridBagConstraints hc = gbc(0, r, 3, 1);
+        hc.anchor = GridBagConstraints.LINE_START;
+        hc.insets = new Insets(0, 22, 0, 0);
+        card.add(hint, hc);
 
         return card;
     }
@@ -836,8 +819,7 @@ public class GuiMain extends JFrame {
 
         Thread worker = new Thread(() -> {
             try {
-                runCli(workDir, advCsv, scoutsField.getText().trim(), campStem,
-                       rosterField.getText().trim());
+                runCli(workDir, advCsv, campStem);
                 setStatus("Done", C_GREEN_MID);
             } catch (Exception e) {
                 java.io.StringWriter sw = new java.io.StringWriter();
@@ -854,8 +836,7 @@ public class GuiMain extends JFrame {
         worker.start();
     }
 
-    private void runCli(String workDir, String advCsv, String scoutsCsv,
-                        String campStem, String rosterCsv) throws Exception {
+    private void runCli(String workDir, String advCsv, String campStem) throws Exception {
 
         PrintStream logStream = new PrintStream(new OutputStream() {
             @Override public void write(int b) {
@@ -872,12 +853,13 @@ public class GuiMain extends JFrame {
         // Inject Apps Script URL so camp_scheduler.html is pre-connected for recipients
         org.troop600.scoutsight.html.HtmlGenerator.setSheetsUrl(sheetsUrlField.getText().trim());
 
-        // Inject admin roster path so admin.html is generated when admin mode is active
-        String adminPath = (adminModeCheckbox.isSelected() && !adminRosterField.getText().isBlank())
-                ? adminRosterField.getText().trim() : null;
+        // Admin roster path: passed as arg[1] always; admin.html generation is gated by the checkbox
+        String adminRosterCsv = adminRosterField.getText().trim();
+        String adminPath = (adminModeCheckbox.isSelected() && !adminRosterCsv.isBlank())
+                ? adminRosterCsv : null;
         org.troop600.scoutsight.html.HtmlGenerator.setAdminRosterPath(adminPath);
 
-        String[] args = { advCsv, scoutsCsv, campStem, rosterCsv };
+        String[] args = { advCsv, adminRosterCsv, campStem };
         org.troop600.scoutsight.cli.Main.run(args, Path.of(workDir), logStream);
         appendLog("\nDone.\n");
     }
