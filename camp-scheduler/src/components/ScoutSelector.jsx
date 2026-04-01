@@ -43,10 +43,22 @@ export default function ScoutSelector({
     }
   }
 
-  // Group scouts by patrol
+  // Group scouts by patrol. A scout may belong to multiple patrols (comma-separated);
+  // resolve to the single highest-priority patrol for grouping purposes.
+  // Priority: any non-special patrol > Senior > Ranger (lowest).
+  function resolvePatrol(patrolStr) {
+    if (!patrolStr) return 'Unassigned'
+    const parts = patrolStr.split(',').map(p => p.trim()).filter(Boolean)
+    if (parts.length === 0) return 'Unassigned'
+    const other  = parts.find(p => p.toLowerCase() !== 'ranger' && p.toLowerCase() !== 'senior')
+    if (other)   return other
+    if (parts.some(p => p.toLowerCase() === 'senior')) return 'Senior'
+    return 'Ranger'
+  }
+
   const patrols = {}
   scouts.forEach((scout, idx) => {
-    const patrol = scout.patrol || 'Unassigned'
+    const patrol = resolvePatrol(scout.patrol)
     if (!patrols[patrol]) patrols[patrol] = []
     patrols[patrol].push({ scout, idx })
   })
