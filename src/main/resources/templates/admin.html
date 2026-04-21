@@ -483,10 +483,12 @@
               <div class="setup-step">
                 <div class="step-num">3</div>
                 <div class="step-body">
-                  <div class="step-title">Paste the script below</div>
+                  <div class="step-title">Paste the script and email templates</div>
                   <div class="step-desc">
-                    Replace all contents of <code>Code.gs</code> with the following script, then save
-                    (<code>Ctrl+S</code>).
+                    Replace all contents of <code>Code.gs</code> with the script below, then save
+                    (<code>Ctrl+S</code>). The welcome email templates are defined as
+                    <code>buildWelcomeHtml</code> and <code>buildWelcomePlain</code> at the top of
+                    the file — edit them there to customise the message sent to new users.
                   </div>
                   <div class="script-block">
                     <div class="script-block-header">
@@ -761,6 +763,7 @@
         <h3 style="font-family:var(--font-h);font-size:1.1rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--red);margin-bottom:.75rem;">&#9888; Old Patrol Groups</h3>
         <div id="old-patrols-body"></div>
       </div>
+      <div id="plc-group-wrap" style="display:none;margin-top:2rem;"></div>
     </div>
 
     <!-- ── Assign Relationships ── -->
@@ -1069,7 +1072,13 @@
     renderTable(getFilteredUsers());
     var fetchUrl = url + (url.includes('?') ? '&' : '?') + 'action=listForwardingStatuses';
     fetch(fetchUrl)
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        return r.text().then(function(text) {
+          if (text.trimStart().startsWith('<'))
+            throw new Error('Apps Script returned an HTML page — the web app may need to be redeployed. Copy the updated Code.gs from Setup Instructions and create a new deployment.');
+          return JSON.parse(text);
+        });
+      })
       .then(function(data) {
         if (data.error) {
           console.error('listForwardingStatuses error:', data.error);
@@ -1134,8 +1143,12 @@
         + 'onclick="enableForwarding(' + qUser + ',' + qFwd + ',this)">&#9679; Verified, not active</button></td>';
     }
     if (s.pendingAddresses && s.pendingAddresses.length) {
-      return '<td><span class="pill" style="background:var(--amber-lt);color:var(--amber);border-color:var(--amber);" '
-        + 'title="Pending verification: ' + esc(s.pendingAddresses.join(', ')) + '">&#9679; Pending</span></td>';
+      var pendingAddr = s.pendingAddresses[0];
+      var qAddr = JSON.stringify(pendingAddr).replace(/"/g, '&quot;');
+      return '<td><button class="pill" '
+        + 'style="background:var(--amber-lt);color:var(--amber);border-color:var(--amber);cursor:pointer;" '
+        + 'title="Pending verification: ' + esc(s.pendingAddresses.join(', ')) + '. Click to resend." '
+        + 'onclick="resendVerification(' + qEmail + ',' + qAddr + ')">&#9679; Pending</button></td>';
     }
     return '<td><button class="btn-action btn-action-secondary" onclick="openFwdModal(' + qEmail + ')">&#8594; Set Forward</button></td>';
   }
@@ -1151,7 +1164,13 @@
     var fetchUrl = url + (url.includes('?') ? '&' : '?')
       + 'action=getForwardingStatus&email=' + encodeURIComponent(email);
     fetch(fetchUrl)
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        return r.text().then(function(text) {
+          if (text.trimStart().startsWith('<'))
+            throw new Error('Apps Script returned an HTML page — the web app may need to be redeployed.');
+          return JSON.parse(text);
+        });
+      })
       .then(function(data) {
         if (!forwardingData || typeof forwardingData !== 'object') forwardingData = {};
         forwardingData[email.toLowerCase()] = data.error
@@ -1240,6 +1259,25 @@
         saveBtn.textContent = 'Set Forward';
         errEl.textContent   = ex.message;
       });
+  }
+
+  /** Confirms and retriggers the Gmail forwarding verification email for a pending address. */
+  async function resendVerification(userEmail, pendingAddr) {
+    if (!confirm('Resend verification email to ' + pendingAddr + '?\n\nGoogle will send a new verification link to that address.')) return;
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=resendForwardingVerification'
+      + '&email='     + encodeURIComponent(userEmail)
+      + '&forwardTo=' + encodeURIComponent(pendingAddr);
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      alert('Verification email resent to ' + pendingAddr + '.');
+    } catch (ex) {
+      alert('Failed to resend verification: ' + ex.message);
+    }
   }
 
   /**
@@ -1402,6 +1440,9 @@
   }
 
   function closeNewUserModal() {
+    if (nuPollInterval !== null) { clearInterval(nuPollInterval); nuPollInterval = null; }
+    nuCreatedEmail = null;
+    nuSecEmail     = null;
     document.getElementById('new-user-overlay').style.display = 'none';
   }
 
@@ -1451,26 +1492,192 @@
       + '&patrol='         + encodeURIComponent(patrol);
 
     fetch(fetchUrl)
-      .then(function(r) { return r.json(); })
+      .then(function(r) {
+        return r.text().then(function(text) {
+          if (text.trimStart().startsWith('<'))
+            throw new Error('Apps Script returned an HTML page \u2014 the web app may need to be redeployed.');
+          return JSON.parse(text);
+        });
+      })
       .then(function(data) {
         if (data.error) throw new Error(data.error);
-        // Show the temporary password — admin must share it with the new user manually.
-        msgEl.style.display = '';
-        msgEl.style.color   = 'var(--green)';
-        msgEl.innerHTML = '\u2713 User <strong>' + esc(data.email) + '</strong> created.'
-          + (data.password
-              ? ' Temporary password: <strong style="font-family:monospace;user-select:all;">' + esc(data.password) + '</strong>'
-                + ' &mdash; share this with the user; they will be prompted to change it on first login.'
-              : '')
-          + (data.warnings && data.warnings.length ? '<br>\u26a0 ' + data.warnings.map(esc).join(' ') : '');
-        saveBtn.disabled    = false;
-        saveBtn.textContent = 'Close';
-        saveBtn.onclick     = function() { closeNewUserModal(); loadUsers(); };
+        nuTransitionToWaiting(data.email, data.password || null, secEmail,
+                              data.warnings && data.warnings.length ? data.warnings : null);
       })
       .catch(function(ex) {
         saveBtn.disabled    = false;
         saveBtn.textContent = 'Create User';
         showErr(ex.message);
+      });
+  }
+
+  /**
+   * Transitions the new-user modal to the "waiting for account to activate" phase.
+   * Shows the temporary password and a spinner, then polls every 20 s until the
+   * account is visible in the directory, then advances to the forwarding phase.
+   */
+  function nuTransitionToWaiting(email, password, secEmail, warnings) {
+    nuCreatedEmail = email;
+    nuSecEmail     = secEmail || '';
+
+    document.getElementById('nu-modal-title').textContent = 'Account Activating\u2026';
+    document.getElementById('nu-modal-sub').textContent   = email;
+
+    var warningHtml = warnings
+      ? '<p style="margin:.5rem 0 0;color:var(--amber);font-size:.8rem;">\u26a0 ' + warnings.map(esc).join(' ') + '</p>'
+      : '';
+
+    document.getElementById('nu-modal-body').innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:.75rem;padding:1rem 1.1rem;">'
+      + '<div style="display:flex;align-items:center;gap:.75rem;">'
+      +   '<span class="uu-spinner" style="flex-shrink:0;"></span>'
+      +   '<span style="font-size:.88rem;color:var(--text-secondary);">Waiting for Google to provision the account\u2026 checking every 20 seconds.</span>'
+      + '</div>'
+      + (password
+          ? '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:.75rem 1rem;">'
+          +   '<div style="font-size:.75rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.4rem;">Temporary Password</div>'
+          +   '<div style="font-family:monospace;font-size:1rem;user-select:all;color:var(--text-primary);">' + esc(password) + '</div>'
+          +   '<div style="font-size:.76rem;color:var(--text-secondary);margin-top:.3rem;">Share this with the new user &mdash; they will be prompted to change it on first login.</div>'
+          + '</div>'
+          : '')
+      + warningHtml
+      + '</div>';
+
+    // Hide the msg area and reconfigure footer
+    var msgEl   = document.getElementById('nu-modal-msg');
+    var saveBtn = document.getElementById('nu-save-btn');
+    msgEl.style.display  = 'none';
+    saveBtn.style.display = 'none';
+
+    // Rename Cancel → Close so user can exit early
+    var cancelBtn = document.querySelector('#new-user-overlay .btn-secondary');
+    if (cancelBtn) {
+      cancelBtn.textContent = 'Close';
+      cancelBtn.onclick     = function() { closeNewUserModal(); loadUsers(); };
+    }
+
+    // Start polling
+    nuPollInterval = setInterval(nuCheckUser, 20000);
+    // Also run an immediate first check after a short delay (account sometimes ready quickly)
+    setTimeout(nuCheckUser, 3000);
+  }
+
+  /** Polls the Apps Script checkUser action; transitions to forwarding when the account exists. */
+  function nuCheckUser() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url || !nuCreatedEmail) return;
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=checkUser&email=' + encodeURIComponent(nuCreatedEmail);
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.exists && !data.suspended) {
+          clearInterval(nuPollInterval);
+          nuPollInterval = null;
+          // Recover secEmail from the sub-title input that was captured in closure via nuTransitionToWaiting,
+          // but it's gone now — re-read from the forwarding input if present, else empty.
+          nuTransitionToForward(nuCreatedEmail, nuSecEmail);
+        }
+      })
+      .catch(function() { /* network blip — will retry on next interval */ });
+  }
+
+  /**
+   * Transitions the new-user modal to the forwarding-setup phase.
+   * The forwarding email input is pre-populated with the secondary email if available.
+   */
+  function nuTransitionToForward(email, prefillAddr) {
+    document.getElementById('nu-modal-title').textContent = 'Set Up Email Forwarding';
+    document.getElementById('nu-modal-sub').textContent   = email;
+
+    document.getElementById('nu-modal-body').innerHTML =
+      '<div style="padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.6rem;">'
+      + '<p style="margin:0;font-size:.88rem;color:var(--text-secondary);">'
+      +   'The account is ready. Enter a forwarding address to route incoming '
+      +   email + ' mail to an external inbox, then click <strong>Set Forward</strong>.'
+      + '</p>'
+      + '<input id="nu-fwd-input" type="email" class="fwd-modal-input" '
+      +        'placeholder="forward@example.com" value="' + esc(prefillAddr) + '" '
+      +        'oninput="document.getElementById(\'nu-fwd-errmsg\').textContent=\'\';this.classList.remove(\'err\')" '
+      +        'onkeydown="if(event.key===\'Enter\')nuSaveForward(' + JSON.stringify(email).replace(/"/g, '&quot;') + ')" />'
+      + '<div id="nu-fwd-errmsg" class="fwd-modal-errmsg"></div>'
+      + '</div>';
+
+    var msgEl   = document.getElementById('nu-modal-msg');
+    var saveBtn = document.getElementById('nu-save-btn');
+    msgEl.style.display   = 'none';
+    saveBtn.style.display = '';
+    saveBtn.disabled      = false;
+    saveBtn.textContent   = 'Set Forward';
+    saveBtn.onclick       = function() { nuSaveForward(email); };
+
+    var cancelBtn = document.querySelector('#new-user-overlay .btn-secondary');
+    if (cancelBtn) {
+      cancelBtn.textContent = 'Skip';
+      cancelBtn.onclick     = function() { closeNewUserModal(); loadUsers(); };
+    }
+
+    setTimeout(function() {
+      var inp = document.getElementById('nu-fwd-input');
+      if (inp) inp.focus();
+    }, 50);
+  }
+
+  /** Submits the forwarding address for the newly created account, then closes the modal. */
+  function nuSaveForward(email) {
+    var inp    = document.getElementById('nu-fwd-input');
+    var errEl  = document.getElementById('nu-fwd-errmsg');
+    var saveBtn = document.getElementById('nu-save-btn');
+    if (!inp) return;
+    var fwdEmail = inp.value.trim();
+
+    if (!fwdEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fwdEmail)) {
+      inp.classList.add('err');
+      errEl.textContent = 'Please enter a valid email address.';
+      inp.focus();
+      return;
+    }
+
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = 'Saving\u2026';
+    errEl.textContent   = '';
+
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=setForwarding'
+      + '&email='     + encodeURIComponent(email)
+      + '&forwardTo=' + encodeURIComponent(fwdEmail);
+
+    fetch(fetchUrl)
+      .then(function(r) {
+        return r.text().then(function(text) {
+          if (text.trimStart().startsWith('<'))
+            throw new Error('Apps Script returned an HTML page \u2014 the web app may need to be redeployed.');
+          return JSON.parse(text);
+        });
+      })
+      .then(function(data) {
+        if (data.error) throw new Error(data.error);
+        if (data.pending) {
+          forwardingData[email.toLowerCase()] = {
+            email: email, enabled: false, forwardTo: null,
+            pendingAddresses: [fwdEmail], verifiedAddresses: []
+          };
+        } else {
+          forwardingData[email.toLowerCase()] = {
+            email: email, enabled: true, forwardTo: fwdEmail,
+            pendingAddresses: [], verifiedAddresses: []
+          };
+        }
+        closeNewUserModal();
+        loadUsers();
+      })
+      .catch(function(ex) {
+        saveBtn.disabled    = false;
+        saveBtn.textContent = 'Set Forward';
+        errEl.textContent   = ex.message;
       });
   }
 
@@ -1525,6 +1732,11 @@
   // Forwarding status cache: primaryEmail → { enabled, forwardTo, pendingAddresses[], verifiedAddresses[], error }
   // null = not yet loaded; 'loading' = fetch in flight
   var forwardingData = null;
+
+  // New-user modal polling state
+  var nuPollInterval = null;   // setInterval handle; cleared on close or on account found
+  var nuCreatedEmail = null;   // primary GWS email of the account being polled
+  var nuSecEmail     = null;   // secondary (forwarding) email entered in the create form
 
   // Blocked GWS accounts — sourced from config/admin-console/blocked_emails.json at build time.
   // Stored as a lowercase Set for O(1) lookup. Never matched, never shown in any table.
@@ -1839,6 +2051,8 @@
 
     if (!allUsers.length) {
       wrap.innerHTML = '<div class="uu-empty"><div class="uu-empty-icon">&#9872;</div>Load users to view patrol assignments.</div>';
+      var plcWrap = document.getElementById('plc-group-wrap');
+      if (plcWrap) plcWrap.style.display = 'none';
       return;
     }
 
@@ -1855,6 +2069,7 @@
     var sortedNames = Object.keys(patrols).sort();
     if (!sortedNames.length) {
       wrap.innerHTML = '<div class="uu-empty"><div class="uu-empty-icon">&#9872;</div>No patrol assignments found in Google Workspace.</div>';
+      renderPlcGroup();
       return;
     }
 
@@ -1902,6 +2117,7 @@
 
     // Asynchronously check whether each patrol's Google Group exists
     checkAllPatrolGroups(patrols);
+    renderPlcGroup();
   }
 
   /**
@@ -2255,6 +2471,410 @@
       alert('Failed to delete ' + groupEmail + ':\n' + ex.message);
       btn.disabled = false;
       btn.innerHTML = origText;
+    }
+  }
+
+  // ── Patrol Leaders Council (plc@troop600.com) ─────────────────────────────
+
+  /**
+   * Returns a plain-object set of BSA IDs for scouts currently holding the
+   * Patrol Leader position, parsed from the Positions (Tenure) column of the
+   * loaded roster CSV. Segments are pipe-delimited; only segments starting
+   * with "Patrol Leader [" qualify (excludes "Assistant Patrol Leader").
+   */
+  /**
+   * Returns the PLC-eligible position labels for a roster row's Positions (Tenure) string.
+   * Matches Patrol Leader, Assistant Patrol Leader, Scribe, and Instructor
+   * (current positions only — all listed positions in an active roster are current).
+   * Returns an array of display labels.
+   */
+  function getPlcPositionLabels(row) {
+    if (!row) return [];
+    var labels = [];
+    (row['Positions (Tenure)'] || '').split('|').forEach(function(p) {
+      var t  = p.trim();
+      var tl = t.toLowerCase();
+      if (tl.indexOf('assistant patrol leader [') === 0) labels.push('APL');
+      else if (tl.indexOf('patrol leader [') === 0)     labels.push('PL');
+      else if (/^scribe\b/i.test(t))                    labels.push('Scribe');
+      else if (/^instructor\b/i.test(t))                labels.push('Instructor');
+    });
+    return labels;
+  }
+
+  /**
+   * Returns a plain-object set of BSA IDs for scouts holding any PLC-eligible
+   * position (Patrol Leader, Assistant Patrol Leader, Scribe, or Instructor),
+   * parsed from the Positions (Tenure) column of the loaded roster CSV.
+   */
+  function getPlcScoutBsaIds() {
+    if (!rosterIndex) return {};
+    var ids = {};
+    Object.keys(rosterIndex.byScoutId).forEach(function(bsaNum) {
+      var row = rosterIndex.byScoutId[bsaNum];
+      if (getPlcPositionLabels(row).length) ids[bsaNum] = true;
+    });
+    return ids;
+  }
+
+  /**
+   * Finds the GWS youth user for a given BSA number. Tries scoutId match first,
+   * then falls back to first+last name match against the roster row. Returns null
+   * if no match is found. This fallback handles scouts whose Scout_ID field is not
+   * yet populated in Google Workspace.
+   */
+  function findGwsUserForBsaId(bsaNum) {
+    var byId = allUsers.find(function(u) { return u.isYouth && u.scoutId === bsaNum; });
+    if (byId) return byId;
+    if (!rosterIndex) return null;
+    var row = rosterIndex.byScoutId[bsaNum];
+    if (!row) return null;
+    var first = (row['First Name'] || '').toLowerCase().trim();
+    var last  = (row['Last Name']  || '').toLowerCase().trim();
+    return allUsers.find(function(u) {
+      return u.isYouth
+        && u.firstName.toLowerCase().trim() === first
+        && u.lastName.toLowerCase().trim()  === last;
+    }) || null;
+  }
+
+  /**
+   * Finds the GWS user for the current Scoutmaster from the ADULT MEMBERS section
+   * of the roster CSV. Matches by email first, then by first+last name.
+   * Returns null if no roster is loaded or no Scoutmaster is found.
+   */
+  function getPlcSmGwsUser() {
+    if (!rosterIndex) return null;
+    var emailToGws = {};
+    allUsers.forEach(function(u) {
+      [u.email].concat(u.secondaryEmails || []).forEach(function(e) {
+        if (e) emailToGws[e.toLowerCase()] = u;
+      });
+    });
+    var smUser = null;
+    Object.keys(rosterIndex.byScoutId).forEach(function(bsaNum) {
+      if (smUser) return;
+      var row = rosterIndex.byScoutId[bsaNum];
+      if (row._section !== 'ADULT MEMBERS') return;
+      var isSM = (row['Positions (Tenure)'] || '').split('|').some(function(p) {
+        var tl = p.trim().toLowerCase();
+        return tl.indexOf('scoutmaster') === 0 && tl.indexOf('assistant scoutmaster') !== 0;
+      });
+      if (!isSM) return;
+      var email = (row['Email'] || '').trim().toLowerCase();
+      smUser = (email && emailToGws[email]) || null;
+      if (!smUser) {
+        var first = (row['First Name'] || '').toLowerCase().trim();
+        var last  = (row['Last Name']  || '').toLowerCase().trim();
+        smUser = allUsers.find(function(u) {
+          return !u.isYouth
+            && u.firstName.toLowerCase().trim() === first
+            && u.lastName.toLowerCase().trim()  === last;
+        }) || null;
+      }
+    });
+    return smUser;
+  }
+
+  /**
+   * Builds the expected member map for plc@troop600.com:
+   *   • senior-patrol@troop600.com (nested group)
+   *   • scouts holding Patrol Leader, Scribe, or Instructor — primary + secondary emails
+   *   • each such scout's linked parents — primary + secondary emails
+   * Returns a plain object keyed by lowercase email address.
+   */
+  function getExpectedPlcMembers() {
+    var map = { 'senior-patrol@troop600.com': true };
+    // Scoutmaster
+    var sm = getPlcSmGwsUser();
+    if (sm) {
+      [sm.email].concat(sm.secondaryEmails || []).forEach(function(e) {
+        if (e) map[e.toLowerCase()] = true;
+      });
+    }
+    var plBsaIds = getPlcScoutBsaIds();
+    // Pre-index all GWS email aliases → user for fast parent lookup
+    var emailToUser = {};
+    allUsers.forEach(function(u) {
+      [u.email].concat(u.secondaryEmails || []).forEach(function(e) {
+        if (e) emailToUser[e.toLowerCase()] = u;
+      });
+    });
+    Object.keys(plBsaIds).forEach(function(bsaNum) {
+      var u = findGwsUserForBsaId(bsaNum);
+      if (!u) return;
+      // Scout's own emails
+      [u.email].concat(u.secondaryEmails || []).forEach(function(e) {
+        if (e) map[e.toLowerCase()] = true;
+      });
+      // Parents — expand to all known aliases
+      (u.parents || '').split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean)
+        .forEach(function(parentEmail) {
+          var parentUser = emailToUser[parentEmail];
+          if (parentUser) {
+            [parentUser.email].concat(parentUser.secondaryEmails || []).forEach(function(e) {
+              if (e) map[e.toLowerCase()] = true;
+            });
+          } else {
+            map[parentEmail] = true;
+          }
+        });
+    });
+    return map;
+  }
+
+  /**
+   * Renders the Patrol Leaders Council card at the bottom of the Update
+   * Patrols panel. Shows a table of expected members (nested group +
+   * PL scouts + parents) and triggers an async group-existence check.
+   */
+  function renderPlcGroup() {
+    var wrap = document.getElementById('plc-group-wrap');
+    if (!wrap) return;
+
+    var plBsaIds = rosterIndex ? getPlcScoutBsaIds() : {};
+    // Resolve each PLC-eligible BSA ID to a GWS user (scoutId match or name fallback)
+    var seen = {};
+    var plScouts = [];
+    Object.keys(plBsaIds).forEach(function(bsaNum) {
+      var u = findGwsUserForBsaId(bsaNum);
+      if (u && !seen[u.email]) { seen[u.email] = true; plScouts.push(u); }
+    });
+    plScouts.sort(function(a, b) {
+      return (a.lastName + a.firstName).localeCompare(b.lastName + b.firstName);
+    });
+
+    var sm = rosterIndex ? getPlcSmGwsUser() : null;
+
+    // Badge styles keyed by position label
+    var badgeStyle = {
+      'SM':         'background:#ede0f8;border-color:#9060c8;color:#3d1870;',
+      'PL':         'background:#dff0e5;border-color:#6abf80;color:#1a4d2e;',
+      'APL':        'background:#d8f0eb;border-color:#4aad8a;color:#0d3b2e;',
+      'Scribe':     'background:#dce8f8;border-color:#5b8fd4;color:#1a2744;',
+      'Instructor': 'background:var(--amber-lt);border-color:var(--amber);color:#7a4f00;'
+    };
+
+    var tbody = '<tr style="background:var(--surface-2);">'
+      + '<td colspan="3" style="font-size:.82rem;font-family:monospace;color:var(--navy-mid);padding:.5rem .85rem;">'
+      + '&#8728;&thinsp;Nested group: <strong>senior-patrol@troop600.com</strong></td></tr>';
+    if (sm) {
+      var smBadge = '<span class="pill" style="' + badgeStyle['SM'] + 'font-size:.62rem;margin-left:.25rem;">SM</span>';
+      tbody += '<tr>'
+        + '<td class="td-name">' + esc(sm.lastName) + '</td>'
+        + '<td class="td-name">' + esc(sm.firstName) + smBadge + '</td>'
+        + '<td class="td-email">' + esc(sm.email) + '</td>'
+        + '</tr>';
+    }
+    plScouts.forEach(function(u) {
+      var rosterRow = rosterIndex && rosterIndex.byScoutId[u.scoutId];
+      var labels    = getPlcPositionLabels(rosterRow);
+      var badges    = labels.map(function(lbl) {
+        return '<span class="pill" style="' + (badgeStyle[lbl] || '') + 'font-size:.62rem;margin-left:.25rem;">' + esc(lbl) + '</span>';
+      }).join('');
+      tbody += '<tr>'
+        + '<td class="td-name">' + esc(u.lastName) + '</td>'
+        + '<td class="td-name">' + esc(u.firstName) + badges + '</td>'
+        + '<td class="td-email">' + esc(u.email) + '</td>'
+        + '</tr>';
+      (u.parents || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean)
+        .forEach(function(parentEmail) {
+          var parent = allUsers.find(function(pu) {
+            return pu.email.toLowerCase() === parentEmail.toLowerCase()
+              || (pu.secondaryEmails || []).some(function(se) { return se.toLowerCase() === parentEmail.toLowerCase(); });
+          });
+          tbody += '<tr style="color:var(--text-muted);">'
+            + '<td class="td-name" style="padding-left:1.8rem;" colspan="2">'
+            + esc(parent ? parent.lastName + ', ' + parent.firstName : parentEmail) + '</td>'
+            + '<td class="td-email">' + esc(parent ? parent.email : parentEmail) + '</td>'
+            + '</tr>';
+        });
+    });
+
+    wrap.style.display = '';
+    wrap.innerHTML = '<h3 style="font-family:var(--font-h);font-size:1.1rem;font-weight:600;'
+      + 'letter-spacing:.04em;text-transform:uppercase;color:var(--navy);margin-bottom:.75rem;">'
+      + 'Patrol Leaders Council</h3>'
+      + '<div class="patrol-card">'
+        + '<div class="patrol-card-header">'
+          + '<div class="patrol-card-info">'
+            + '<span class="patrol-card-name">Patrol Leaders Council</span>'
+            + '<span class="patrol-card-count">' + (plScouts.length + (sm ? 1 : 0)) + '\u00a0member'
+              + (plScouts.length + (sm ? 1 : 0) !== 1 ? 's' : '') + '</span>'
+            + '<span class="patrol-group-email">&#9993;\u00a0plc@troop600.com</span>'
+          + '</div>'
+          + '<div id="plc-actions">'
+            + '<button class="btn-secondary" disabled>'
+              + '<span class="uu-spinner" style="width:.8rem;height:.8rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>'
+              + 'Checking\u2026</button>'
+          + '</div>'
+        + '</div>'
+        + '<table class="uu-table">'
+          + '<thead><tr><th>Last Name</th><th>First Name</th><th>Email</th></tr></thead>'
+          + '<tbody>' + tbody + '</tbody>'
+        + '</table>'
+        + '<div id="plc-sync-wrap" style="display:none"></div>'
+      + '</div>';
+
+    checkPlcGroup();
+  }
+
+  /** Checks whether plc@troop600.com exists and wires up the Create or Sync button. */
+  async function checkPlcGroup() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var actionsDiv = document.getElementById('plc-actions');
+    if (!actionsDiv) return;
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=checkGroup&email=' + encodeURIComponent('plc@troop600.com');
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) {
+        actionsDiv.innerHTML = '<span style="color:var(--red);font-size:.82rem;">&#9888; ' + esc(data.error) + '</span>';
+      } else if (data.exists) {
+        actionsDiv.innerHTML = '<button class="btn-secondary" onclick="syncPlcGroup(this)">&#8635; Sync Members</button>';
+        loadPlcGroupSync();
+      } else {
+        actionsDiv.innerHTML = '<button class="btn-primary" onclick="createPlcGroup(this)">+ Create Group</button>';
+      }
+    } catch (ex) {
+      actionsDiv.innerHTML = '<span style="color:var(--red);font-size:.82rem;">&#9888; ' + esc(ex.message) + '</span>';
+    }
+  }
+
+  /**
+   * Creates plc@troop600.com via the Apps Script createGroup endpoint,
+   * seeding it with the full expected member list.
+   */
+  async function createPlcGroup(btn) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="uu-spinner" style="width:.8rem;height:.8rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>Creating\u2026';
+    var members  = Object.keys(getExpectedPlcMembers());
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=createGroup'
+      + '&email='   + encodeURIComponent('plc@troop600.com')
+      + '&name='    + encodeURIComponent('Patrol Leaders Council')
+      + '&members=' + encodeURIComponent(JSON.stringify(members));
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.error) throw new Error(data.error);
+      checkPlcGroup();
+    } catch (ex) {
+      alert('Failed to create plc@troop600.com:\n' + ex.message);
+      btn.disabled  = false;
+      btn.innerHTML = '+ Create Group';
+    }
+  }
+
+  /**
+   * Fetches the current membership of plc@troop600.com, diffs against the
+   * expected set, and renders the sync section. Expands email aliases for
+   * existing members to prevent "already exists" errors on secondary aliases.
+   */
+  function loadPlcGroupSync() {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var syncWrap = document.getElementById('plc-sync-wrap');
+    if (!syncWrap) return;
+    syncWrap.style.display = '';
+    syncWrap.innerHTML = '<div class="patrol-sync-header">'
+      + '<span class="patrol-sync-title">Group Sync</span>'
+      + '<span style="font-size:.78rem;color:var(--text-muted);">'
+        + '<span class="uu-spinner" style="width:.75rem;height:.75rem;border-width:2px;vertical-align:middle;margin-right:.3rem;display:inline-block;"></span>'
+        + 'Checking members\u2026</span></div>';
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=getGroupMembers&email=' + encodeURIComponent('plc@troop600.com');
+    fetch(fetchUrl)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) {
+          syncWrap.innerHTML = '<div class="patrol-sync-header"><span class="patrol-sync-title">Group Sync</span>'
+            + '<span style="font-size:.78rem;color:var(--red);">&#9888; ' + esc(data.error) + '</span></div>';
+          return;
+        }
+        // Expand aliases for existing members so secondary addresses aren't shown as "to add"
+        var emailToAliases = {};
+        allUsers.forEach(function(u) {
+          var all = [u.email.toLowerCase()].concat((u.secondaryEmails || []).map(function(e) { return e.toLowerCase(); }));
+          all.forEach(function(e) { emailToAliases[e] = all; });
+        });
+        var currentSet = new Set(data.members);
+        data.members.forEach(function(m) {
+          (emailToAliases[m] || []).forEach(function(a) { currentSet.add(a); });
+        });
+        var expectedSet = getExpectedPlcMembers();
+        var toAdd    = Object.keys(expectedSet).filter(function(e) { return !currentSet.has(e); }).sort();
+        var toRemove = Array.from(currentSet).filter(function(e) { return !expectedSet[e]; }).sort();
+        renderPlcSyncSection(syncWrap, toAdd, toRemove);
+      })
+      .catch(function(ex) {
+        syncWrap.innerHTML = '<div class="patrol-sync-header"><span class="patrol-sync-title">Group Sync</span>'
+          + '<span style="font-size:.78rem;color:var(--red);">&#9888; ' + esc(ex.message) + '</span></div>';
+      });
+  }
+
+  /** Renders add/remove checkboxes for the PLC sync diff, or an "up to date" badge. */
+  function renderPlcSyncSection(syncWrap, toAdd, toRemove) {
+    if (!toAdd.length && !toRemove.length) {
+      syncWrap.innerHTML = '<div class="patrol-sync-header">'
+        + '<span class="patrol-sync-title">Group Sync</span>'
+        + '<span class="sync-up-to-date">&#10003; Group is up to date</span></div>';
+      return;
+    }
+    var rows = toAdd.map(function(email) {
+      return '<label class="sync-change-row">'
+        + '<input type="checkbox" checked data-action="add" data-email="' + esc(email) + '">'
+        + '<span class="sync-badge add">+ Add</span><span>' + esc(email) + '</span></label>';
+    }).concat(toRemove.map(function(email) {
+      return '<label class="sync-change-row">'
+        + '<input type="checkbox" checked data-action="remove" data-email="' + esc(email) + '">'
+        + '<span class="sync-badge remove">&minus; Remove</span><span>' + esc(email) + '</span></label>';
+    })).join('');
+    syncWrap.innerHTML = '<div class="patrol-sync-header">'
+        + '<span class="patrol-sync-title">Group Sync &mdash; '
+          + (toAdd.length ? toAdd.length + ' to add' : '')
+          + (toAdd.length && toRemove.length ? ', ' : '')
+          + (toRemove.length ? toRemove.length + ' to remove' : '')
+        + '</span>'
+        + '<button class="btn-primary" style="font-size:.78rem;padding:.35rem .8rem;" onclick="syncPlcGroup(this)">&#8635; Apply Sync</button>'
+      + '</div>' + rows;
+  }
+
+  /**
+   * Reads checked changes in the PLC sync section and applies them via
+   * updateGroupMembers, then reloads the sync view to confirm.
+   */
+  async function syncPlcGroup(btn) {
+    var url = localStorage.getItem(GWS_URL_KEY);
+    if (!url) return;
+    var syncWrap = document.getElementById('plc-sync-wrap');
+    if (!syncWrap) return;
+    var toAdd = [], toRemove = [];
+    syncWrap.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+      if (cb.getAttribute('data-action') === 'add')    toAdd.push(cb.getAttribute('data-email'));
+      if (cb.getAttribute('data-action') === 'remove') toRemove.push(cb.getAttribute('data-email'));
+    });
+    if (!toAdd.length && !toRemove.length) { alert('No changes selected.'); return; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying\u2026'; }
+    var fetchUrl = url + (url.includes('?') ? '&' : '?')
+      + 'action=updateGroupMembers'
+      + '&groupEmail=' + encodeURIComponent('plc@troop600.com')
+      + '&toAdd='      + encodeURIComponent(JSON.stringify(toAdd))
+      + '&toRemove='   + encodeURIComponent(JSON.stringify(toRemove));
+    try {
+      var r    = await fetch(fetchUrl);
+      var data = await r.json();
+      if (data.errors && data.errors.length) {
+        alert('Completed with ' + data.errors.length + ' error(s):\n\n' + data.errors.join('\n'));
+      }
+      loadPlcGroupSync();
+    } catch (ex) {
+      alert('Sync failed: ' + ex.message);
+      if (btn) { btn.disabled = false; btn.textContent = '\u21BB Apply Sync'; }
     }
   }
 

@@ -40,14 +40,13 @@ class AdminPageWriter {
             System.err.println("Warning: could not read blocked_emails.json: " + e.getMessage());
         }
 
-        // Read Code.gs and HTML-escape for embedding in a <pre> element.
+        // Read Code.gs and email templates; HTML-escape for embedding in <pre> elements.
         String codeGs = "";
         try {
             codeGs = htmlEscape(ResourceIO.readString(CODE_GS_FILE));
         } catch (IOException e) {
             System.err.println("Warning: could not read code.gs: " + e.getMessage());
         }
-
         String html = ThymeleafRenderer.render("admin",
                 Map.of("rosterCsvData", escaped, "blockedEmailsJson", blockedEmailsJson,
                        "codeGsContent", codeGs));

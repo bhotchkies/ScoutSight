@@ -1,5 +1,95 @@
 var DOMAIN = 'troop600.com';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Welcome-email templates — edit here to customise the message sent to new users.
+// Both functions receive: firstName (string), fullEmail (string), password (string).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Returns the HTML body of the welcome email. */
+function buildWelcomeHtml(firstName, fullEmail, password) {
+  return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.1);">
+
+  <!-- Header -->
+  <tr><td style="background:#1a4d2e;padding:24px 32px;">
+    <p style="margin:0;color:#ffffff;font-size:20px;font-weight:bold;">Troop 600B</p>
+    <p style="margin:4px 0 0;color:#a8d5b5;font-size:13px;">Google Workspace Account</p>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style="padding:32px;">
+    <p style="margin:0 0 16px;font-size:15px;color:#222;">Hi ${firstName},</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#444;line-height:1.6;">
+      Your Troop 600 account has been created. Use the
+      credentials below to sign in at
+      <a href="https://troop600.com/" style="color:#1a4d2e;">troop600.com/</a>.
+    </p>
+
+    <!-- Credentials box -->
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#f0f7f2;border:1px solid #c8e0d0;border-radius:6px;margin-bottom:24px;">
+    <tr><td style="padding:20px 24px;">
+      <p style="margin:0 0 12px;font-size:11px;font-weight:bold;letter-spacing:.08em;color:#1a4d2e;text-transform:uppercase;">Your Credentials</p>
+      <p style="margin:0 0 8px;font-size:13px;color:#333;">
+        <strong>Email &nbsp;&nbsp;&nbsp;</strong> ${fullEmail}
+      </p>
+      <p style="margin:0;font-size:13px;color:#333;">
+        <strong>Password</strong>
+        <span style="font-family:'Courier New',monospace;background:#fff;border:1px solid #ccc;border-radius:3px;padding:2px 8px;letter-spacing:.05em;">${password}</span>
+      </p>
+    </td></tr></table>
+
+    <p style="margin:0 0 16px;font-size:13px;color:#555;line-height:1.6;">
+      &#128274; You will be prompted to set a new password on your first sign-in.
+    </p>
+    <p style="margin:0 0 16px;font-size:13px;color:#555;line-height:1.6;">
+      &#128231; You will shortly receive a <strong>separate email from Google</strong>
+      asking you to authorize email forwarding to this account.
+      Please open it and click <strong>Confirm</strong> to complete the setup.
+    </p>
+    <p style="margin:0;font-size:13px;color:#555;line-height:1.6;">
+      Your @troop600.com email is used for troop communications, Google Drive,
+      and other Troop 600B Google services.
+    </p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style="background:#f9f9f9;border-top:1px solid #eee;padding:16px 32px;">
+    <p style="margin:0;font-size:12px;color:#888;">&mdash; Troop 600B Admin</p>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body>
+</html>`;
+}
+
+/** Returns the plain-text body of the welcome email (shown by email clients that don't render HTML). */
+function buildWelcomePlain(firstName, fullEmail, password) {
+  return `Hi ${firstName},
+
+Your Troop 600 account has been created.
+
+  Email:    ${fullEmail}
+  Password: ${password}
+
+Go to https://troop600.com/ and sign in with the email and password above within the next 48 hours.
+You will be prompted to choose a new password on your first sign-in.
+
+You will shortly receive a separate email from Google asking you to authorize
+email forwarding to your ${fullEmail} account. Please open it and click
+Confirm to complete the setup.
+
+Your @troop600.com email is used for troop communications, Google Drive, and
+other Troop 600B Google services.
+
+\u2014 Troop 600B Admin`;
+}
+
 /**
  * Diagnostic: run this directly in the Apps Script editor (not via web app) to verify
  * that the service account key and DWD are configured correctly.
@@ -49,8 +139,10 @@ function doGet(e) {
       case 'updateGroupMembers':  return respond(updateGroupMembers(e));
       case 'listForwardingStatuses':  return respond(listForwardingStatuses());
       case 'getForwardingStatus':     return respond(getForwardingStatus(e));
-      case 'setForwarding':           return respond(setForwarding(e));
+      case 'setForwarding':                return respond(setForwarding(e));
+      case 'resendForwardingVerification': return respond(resendForwardingVerification(e));
       case 'createUser':             return respond(createUser(e));
+      case 'checkUser':              return respond(checkUser(e));
       case 'deleteUser':             return respond(deleteUser(e));
       default:                   return respond({ error: 'Unknown action: ' + action });
     }
@@ -231,6 +323,23 @@ function deleteUser(e) {
     return { ok: true };
   } catch (err) {
     return { error: err.message };
+  }
+}
+
+/**
+ * Checks whether a GWS account exists and is active (not suspended).
+ * Params: email (primary GWS address to check).
+ * Returns { exists: true } once the account is live, { exists: false } while it is still provisioning.
+ */
+function checkUser(e) {
+  var email = ((e.parameter || {}).email || '').trim();
+  if (!email) return { error: 'Missing email' };
+  try {
+    var user = AdminDirectory.Users.get(email, { projection: 'basic', viewType: 'admin_view' });
+    return { exists: true, suspended: !!user.suspended };
+  } catch (err) {
+    // 404 = not yet visible; treat as still provisioning.
+    return { exists: false };
   }
 }
 
@@ -738,7 +847,18 @@ function setForwardingForUser(email, forwardTo) {
     muteHttpExceptions: true
   });
   var fwdData = JSON.parse(fwdResp.getContentText());
-  if (fwdData.error) return { error: fwdData.error.message };
+  if (fwdData.error) {
+    var fwdMsg = fwdData.error.message || '';
+    // "Precondition check failed" means the address was added but isn't verified yet —
+    // auto-forwarding cannot be enabled until the recipient clicks the verification link.
+    // "Invalid Email Address" can appear for the same reason on some domain configurations.
+    // Both are expected for external addresses; treat as pending rather than an error.
+    if (fwdMsg.toLowerCase().indexOf('precondition') !== -1 ||
+        fwdMsg.toLowerCase().indexOf('invalid email') !== -1) {
+      return { pending: true, forwardTo: forwardTo };
+    }
+    return { error: fwdMsg };
+  }
 
   return { ok: true };
 }
@@ -753,6 +873,56 @@ function setForwarding(e) {
   var forwardTo = params.forwardTo;
   if (!email || !forwardTo) return { error: 'Missing email or forwardTo' };
   return setForwardingForUser(email, forwardTo);
+}
+
+/**
+ * Retriggers Google's standard forwarding verification email for a pending address.
+ * Params: email (GWS primary email), forwardTo (pending forwarding address).
+ */
+function resendForwardingVerification(e) {
+  var params    = e.parameter || {};
+  var email     = (params.email     || '').trim();
+  var forwardTo = (params.forwardTo || '').trim();
+  if (!email || !forwardTo) return { error: 'Missing email or forwardTo' };
+
+  var keyJson = PropertiesService.getScriptProperties().getProperty('SERVICE_ACCOUNT_KEY');
+  if (!keyJson) return { error: 'SERVICE_ACCOUNT_KEY script property not set' };
+  var keyData;
+  try { keyData = JSON.parse(keyJson); } catch (ex) { return { error: 'SERVICE_ACCOUNT_KEY is not valid JSON' }; }
+
+  var jwt = makeServiceAccountJwt(keyData, email);
+  var tokenResp = UrlFetchApp.fetch('https://oauth2.googleapis.com/token', {
+    method: 'post',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    payload: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwt,
+    muteHttpExceptions: true
+  });
+  var tokenData = JSON.parse(tokenResp.getContentText());
+  if (!tokenData.access_token) {
+    return { error: 'Failed to get access token: ' + (tokenData.error_description || tokenData.error || 'unknown') };
+  }
+
+  var verifyUrl = 'https://gmail.googleapis.com/gmail/v1/users/'
+    + encodeURIComponent(email)
+    + '/settings/forwardingAddresses/'
+    + encodeURIComponent(forwardTo)
+    + '/verify';
+
+  var resp = UrlFetchApp.fetch(verifyUrl, {
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + tokenData.access_token },
+    muteHttpExceptions: true
+  });
+
+  // 204 No Content = success; error body = failure
+  var body = resp.getContentText();
+  if (body) {
+    try {
+      var data = JSON.parse(body);
+      if (data.error) return { error: data.error.message || JSON.stringify(data.error) };
+    } catch (ex) { /* non-JSON on 204 — treat as success */ }
+  }
+  return { ok: true };
 }
 
 /**
@@ -828,19 +998,17 @@ function createUser(e) {
   var warnings = [];
 
   // Send welcome email with temp password to secondary address via MailApp.
+  // Edit welcome_email.html (HTML body) and welcome_email_plain.html (plain-text fallback)
+  // in the Apps Script project to customise the email content.
   // Requires the script.send_mail OAuth scope declared in appsscript.json.
   if (secondaryEmail) {
     try {
       MailApp.sendEmail({
-        to:      secondaryEmail,
-        subject: 'Your Troop 600B Google Workspace account',
-        body:    'Hi ' + firstName + ',\n\n'
-               + 'Your Troop 600B Google Workspace account has been created.\n\n'
-               + '  Email:    ' + fullEmail + '\n'
-               + '  Password: ' + password + '\n\n'
-               + 'You will be asked to set a new password the first time you sign in.\n\n'
-               + 'Sign in at: https://accounts.google.com\n\n'
-               + '\u2014 Troop 600B Admin'
+        to:       secondaryEmail,
+        subject:  'Your Troop 600B Google Workspace account',
+        name:     'Troop 600B Admin',
+        body:     buildWelcomePlain(firstName, fullEmail, password),
+        htmlBody: buildWelcomeHtml(firstName, fullEmail, password)
       });
     } catch (ex) {
       warnings.push('Welcome email could not be sent: ' + ex.message);
