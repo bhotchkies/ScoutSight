@@ -58,15 +58,20 @@ export async function sheetsAcquireLock(url, scoutId, deviceId) {
 }
 
 /**
- * Write a scout's selections to the sheet and release the lock.
- * Pass selections=null to release without writing.
+ * Write a scout's selections + status to the sheet and release the lock.
+ * Always writes a non-null payload so status is persisted even when selections are empty.
  */
-export async function sheetsReleaseLock(url, scoutId, deviceId, selections) {
+export async function sheetsReleaseLock(url, scoutId, deviceId, selections, status) {
+  const payload = {
+    morning:  selections?.morning  ?? [],
+    freeTime: selections?.freeTime ?? [],
+    status:   status ?? null
+  }
   return get(url, {
     action:         'releaseLock',
     scoutId,
     deviceId,
-    selectionsJson: JSON.stringify(selections ?? null)
+    selectionsJson: JSON.stringify(payload)
   })
 }
 

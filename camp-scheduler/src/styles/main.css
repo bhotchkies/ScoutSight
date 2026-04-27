@@ -16,6 +16,14 @@
   --green-mid: #2d6a4f;
   --green-light: #d8f3e3;
 
+  --blue-mid: #1d4ed8;
+  --blue-light: #dbeafe;
+  --blue-border: #93c5fd;
+
+  --red-status-mid: #b91c1c;
+  --red-status-light: #fee2e2;
+  --red-status-border: #fca5a5;
+
   --partial-bg: #eef0f8;
   --partial-accent: #4a5ab8;
   --partial-border: #c5caee;
@@ -222,20 +230,34 @@ button:disabled { cursor: not-allowed; }
 }
 .scout-card:active { transform: translateY(0); }
 
-.scout-card--done {
+/* Scout status card variants */
+.scout-card--finalized {
   background: var(--green-light);
   border-color: var(--selected-border);
-  opacity: 0.85;
 }
 
-.done-check {
+.scout-card--in-progress {
+  background: var(--blue-light);
+  border-color: var(--blue-border);
+}
+
+.scout-card--not-attending {
+  background: var(--red-status-light);
+  border-color: var(--red-status-border);
+  opacity: 0.82;
+}
+
+/* Status badge — top-right corner of scout card */
+.status-badge {
   position: absolute;
   top: 0.6rem;
   right: 0.75rem;
-  font-size: 1rem;
-  color: var(--green-mid);
+  font-size: 0.9rem;
   font-weight: 700;
 }
+.status-badge--finalized     { color: var(--green-mid); }
+.status-badge--in-progress   { color: var(--blue-mid); font-size: 0.65rem; }
+.status-badge--not-attending { color: var(--red-status-mid); }
 
 .scout-card-name {
   font-family: var(--font-heading);
@@ -257,6 +279,9 @@ button:disabled { cursor: not-allowed; }
   font-weight: 600;
   margin-top: 0.2rem;
 }
+.scout-card-count--in-progress   { color: var(--blue-mid); }
+.scout-card-count--finalized     { color: var(--green-mid); }
+.scout-card-count--not-attending { color: var(--red-status-mid); font-style: italic; }
 
 /* ============================================================
    SCREEN 2 — Schedule Picker
@@ -325,19 +350,73 @@ button:disabled { cursor: not-allowed; }
   padding: 0.25rem 0.7rem;
 }
 
-.btn-done {
+/* ── Schedule Picker — three action buttons ─────────────────── */
+.pick-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.btn-not-attending {
+  background: rgba(239,68,68,0.08);
+  color: #fca5a5;
+  border: 1.5px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.38rem 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.btn-not-attending:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.5); }
+.btn-not-attending--active {
+  background: rgba(239,68,68,0.25);
+  border-color: rgba(239,68,68,0.65);
+  color: #ff8080;
+}
+
+.btn-save-sched {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.88);
+  border: 1.5px solid rgba(255,255,255,0.28);
+  border-radius: var(--radius-sm);
+  padding: 0.38rem 0.85rem;
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn-save-sched:hover { background: rgba(255,255,255,0.2); }
+.btn-save-sched--active {
+  background: rgba(96,165,250,0.25);
+  border-color: rgba(96,165,250,0.6);
+  color: #bfdbfe;
+}
+
+.btn-finalize {
   background: var(--gold);
   color: #1a1a14;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 0.5rem 1.1rem;
+  padding: 0.38rem 0.85rem;
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   transition: filter 0.15s;
+  white-space: nowrap;
 }
-.btn-done:hover { filter: brightness(1.08); }
+.btn-finalize:hover { filter: brightness(1.08); }
+.btn-finalize--active {
+  background: #2d8a52;
+  color: #fff;
+  filter: none;
+}
 
 .pick-body {
   flex: 1;

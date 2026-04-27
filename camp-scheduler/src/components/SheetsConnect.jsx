@@ -6,7 +6,7 @@ import { sheetsConnect } from '../utils/sheetsIO'
 // deploy as a Web App (Execute as: Me, Access: Anyone), and share the URL.
 
 const APPS_SCRIPT = `// Camp Scheduler — Google Apps Script Backend
-// Version 1.2
+// Version 1.3 — status field now embedded in SelectionsJson blob (no script changes needed)
 //
 // SETUP:
 // 1. In your Google Sheet go to Extensions → Apps Script

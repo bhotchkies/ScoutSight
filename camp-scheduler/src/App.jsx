@@ -7,44 +7,69 @@ import { toggleMorningSelection, toggleFreeTimeSelection } from './utils/schedul
 import { downloadJSON, downloadCSV, handleUploadFile } from './utils/scheduleIO'
 import { sheetsGetAll, sheetsAcquireLock, sheetsReleaseLock, sheetsDropLock, sheetsPing } from './utils/sheetsIO'
 
-/** Returns a Set of memberIds that have at least one morning or free-time selection. */
-function doneFromSelections(sels) {
-  return new Set(
-    Object.entries(sels)
-      .filter(([, s]) => (s?.morning?.length ?? 0) + (s?.freeTime?.length ?? 0) > 0)
-      .map(([id]) => id)
-  )
+/**
+ * Extracts { morning, freeTime } selections from raw Sheets data, stripping the
+ * embedded status field and skipping entries with no class picks.
+ */
+function selectionsFromData(rawData) {
+  const result = {}
+  for (const [id, s] of Object.entries(rawData)) {
+    if (!s) continue
+    const morning  = s.morning  ?? []
+    const freeTime = s.freeTime ?? []
+    if (morning.length > 0 || freeTime.length > 0) {
+      result[id] = { morning, freeTime }
+    }
+  }
+  return result
+}
+
+/**
+ * Extracts scout statuses from raw Sheets data.
+ * For entries without an explicit status field, derives 'in_progress'
+ * from the presence of selections (backward compatibility).
+ */
+function statusesFromData(rawData) {
+  const result = {}
+  for (const [id, s] of Object.entries(rawData)) {
+    if (!s) continue
+    if (s.status) {
+      result[id] = s.status
+    } else if ((s.morning?.length ?? 0) + (s.freeTime?.length ?? 0) > 0) {
+      result[id] = 'in_progress'
+    }
+  }
+  return result
 }
 
 export default function App() {
   const { scouts, campSchedule, campConfig } = window.SCOUT_SIGHT_DATA
 
-  const [screen, setScreen]             = useState('select')  // 'select' | 'pick' | 'print' | 'connect'
+  const [screen, setScreen]               = useState('select')  // 'select' | 'pick' | 'print' | 'connect'
   const [currentScoutIdx, setCurrentScoutIdx] = useState(0)
-  const [doneScouts, setDoneScouts]     = useState(new Set())
+  // scoutStatuses: { [memberId]: 'in_progress' | 'finalized' | 'not_attending' }
+  const [scoutStatuses, setScoutStatuses] = useState({})
   // selections: { [memberId]: { morning: [{classIdx, sessionIdx}], freeTime: [{ftIdx}] } }
-  const [selections, setSelections]     = useState({})
+  const [selections, setSelections]       = useState({})
 
   // Google Sheets sync state
-  const [sheetsUrl, setSheetsUrl]       = useState(() => {
-    // Pre-seeded URL from a distribution package takes priority over localStorage
+  const [sheetsUrl, setSheetsUrl]         = useState(() => {
     const seeded = window.SCOUT_SIGHT_DATA?.sheetsUrl
     if (seeded) return seeded
     const s = localStorage.getItem('sheetsUrl')
     return (s && s !== 'offline') ? s : null
   })
-  const [locks, setLocks]               = useState({})  // { [memberId]: deviceId }
-  const [deviceId]                      = useState(() => {
-    // sessionStorage: stable per-tab, so each browser tab has its own identity
+  const [locks, setLocks]                 = useState({})  // { [memberId]: deviceId }
+  const [deviceId]                        = useState(() => {
     let id = sessionStorage.getItem('deviceId')
     if (!id) { id = crypto.randomUUID(); sessionStorage.setItem('deviceId', id) }
     return id
   })
 
-  const [syncMsg, setSyncMsg]          = useState(null)  // null = idle; string = loading message
+  const [syncMsg, setSyncMsg]             = useState(null)
 
-  const pingRef            = useRef(null)  // interval for keepalive pings while editing
-  const editingMemberIdRef = useRef(null)  // memberId of the scout currently being edited
+  const pingRef            = useRef(null)
+  const editingMemberIdRef = useRef(null)
 
   const currentScout = scouts[currentScoutIdx]
 
@@ -54,16 +79,16 @@ export default function App() {
     setSyncMsg('Loading schedule data…')
     sheetsGetAll(sheetsUrl)
       .then(data => {
-        setSelections(data.selections ?? {})
-        setDoneScouts(doneFromSelections(data.selections ?? {}))
+        const raw = data.selections ?? {}
+        setSelections(selectionsFromData(raw))
+        setScoutStatuses(statusesFromData(raw))
         setLocks(data.locks ?? {})
       })
       .catch(e => console.warn('Initial sheets load failed:', e.message))
       .finally(() => setSyncMsg(null))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Release lock immediately if the user closes the tab or navigates away while editing.
-  // keepalive: true lets the request survive page unload; GET avoids the Apps Script POST-redirect issue.
+  // Release lock immediately if the user closes/navigates away while editing.
   useEffect(() => {
     if (!sheetsUrl || screen !== 'pick') return
     function handlePageHide() {
@@ -77,10 +102,7 @@ export default function App() {
     return () => window.removeEventListener('pagehide', handlePageHide)
   }, [sheetsUrl, screen, deviceId])
 
-  // Poll for updates when connected and on the select screen.
-  // Stops polling on 'pick' to avoid overwriting in-progress edits.
-  // Polls immediately on entering 'select' so released locks clear right away,
-  // then repeats every 4 s.
+  // Poll for updates on the select screen (stops while editing to avoid clobbering).
   useEffect(() => {
     if (!sheetsUrl || screen !== 'select') return
     let active = true
@@ -88,14 +110,15 @@ export default function App() {
       try {
         const data = await sheetsGetAll(sheetsUrl)
         if (!active) return
-        setSelections(data.selections ?? {})
-        setDoneScouts(doneFromSelections(data.selections ?? {}))
+        const raw = data.selections ?? {}
+        setSelections(selectionsFromData(raw))
+        setScoutStatuses(statusesFromData(raw))
         setLocks(data.locks ?? {})
       } catch (e) {
         console.warn('Sheets sync failed:', e.message)
       }
     }
-    poll()                          // immediate — clears stale locks on screen entry
+    poll()
     const id = setInterval(poll, 4000)
     return () => { active = false; clearInterval(id) }
   }, [sheetsUrl, screen])
@@ -111,9 +134,6 @@ export default function App() {
           alert(`${scout.name} is currently being edited by another device. Try again in a moment.`)
           return
         }
-        // Re-verify: read the sheet back to confirm our lock is actually there.
-        // If two devices both received ok:true, only the one whose deviceId is in
-        // the sheet should proceed — the other backs off here.
         const verify = await sheetsGetAll(sheetsUrl)
         if (verify.locks[scout.memberId] !== deviceId) {
           setSyncMsg(null)
@@ -127,7 +147,6 @@ export default function App() {
       }
       setSyncMsg(null)
       editingMemberIdRef.current = scout.memberId
-      // Ping every 5 s to keep the lock alive (lock expires at 60 s server-side)
       pingRef.current = setInterval(() => {
         sheetsPing(sheetsUrl, scout.memberId, deviceId).catch(() => {})
       }, 5000)
@@ -136,32 +155,65 @@ export default function App() {
     setScreen('pick')
   }
 
-  async function handleDoneWithScout() {
+  /**
+   * Shared helper: write selections + status to Sheets, update local state, return to select screen.
+   * forcedSelections overrides the current selections map (used for Not Attending to write empty array).
+   */
+  async function saveAndRelease(status, forcedSelections) {
+    const memberId = currentScout.memberId
+    const sels = forcedSelections ?? selections[memberId] ?? { morning: [], freeTime: [] }
+
     if (sheetsUrl && editingMemberIdRef.current) {
       clearInterval(pingRef.current)
-      setSyncMsg(`Saving ${currentScout.name}'s schedule…`)
+      setSyncMsg(`Saving ${currentScout.name}…`)
       try {
-        await sheetsReleaseLock(
-          sheetsUrl,
-          editingMemberIdRef.current,
-          deviceId,
-          selections[editingMemberIdRef.current] ?? null
-        )
+        await sheetsReleaseLock(sheetsUrl, memberId, deviceId, sels, status)
       } catch (e) {
         console.warn('Release lock failed:', e.message)
       }
       setSyncMsg(null)
       editingMemberIdRef.current = null
     }
-    setDoneScouts(prev => {
-      const sel = selections[currentScout.memberId]
-      const hasSelections = (sel?.morning?.length ?? 0) + (sel?.freeTime?.length ?? 0) > 0
-      const next = new Set(prev)
-      if (hasSelections) next.add(currentScout.memberId)
-      else next.delete(currentScout.memberId)
+
+    // When forced selections are provided (not_attending), update or clear local selections.
+    if (forcedSelections) {
+      setSelections(prev => {
+        const next = { ...prev }
+        if (forcedSelections.morning.length === 0 && forcedSelections.freeTime.length === 0) {
+          delete next[memberId]
+        } else {
+          next[memberId] = forcedSelections
+        }
+        return next
+      })
+    }
+
+    setScoutStatuses(prev => {
+      const next = { ...prev }
+      if (status === null) delete next[memberId]
+      else next[memberId] = status
       return next
     })
     setScreen('select')
+  }
+
+  async function handleSaveScout() {
+    const sel = selections[currentScout.memberId]
+    const hasSelections = (sel?.morning?.length ?? 0) + (sel?.freeTime?.length ?? 0) > 0
+    await saveAndRelease(hasSelections ? 'in_progress' : null)
+  }
+
+  async function handleFinalizeScout() {
+    await saveAndRelease('finalized')
+  }
+
+  async function handleNotAttending() {
+    const firstName = currentScout.name.split(' ')[0]
+    const ok = window.confirm(
+      `Mark ${firstName} as Not Attending?\n\nThis will clear all their selections.`
+    )
+    if (!ok) return
+    await saveAndRelease('not_attending', { morning: [], freeTime: [] })
   }
 
   async function handleBackToSelect() {
@@ -177,13 +229,8 @@ export default function App() {
     setScreen('select')
   }
 
-  function handlePrint() {
-    setScreen('print')
-  }
-
-  function handleBackFromPrint() {
-    setScreen('select')
-  }
+  function handlePrint() { setScreen('print') }
+  function handleBackFromPrint() { setScreen('select') }
 
   function handleMorningToggle(classIdx, sessionIdx) {
     setSelections(prev => toggleMorningSelection(prev, currentScout.memberId, classIdx, sessionIdx))
@@ -194,7 +241,7 @@ export default function App() {
   }
 
   function handleDownloadJSON() {
-    downloadJSON(selections, scouts, campSchedule, campConfig)
+    downloadJSON(selections, scoutStatuses, scouts, campSchedule, campConfig)
   }
 
   function handleDownloadCSV() {
@@ -202,16 +249,17 @@ export default function App() {
   }
 
   function handleUpload(file) {
-    handleUploadFile(file, campSchedule, scouts, newSels => {
+    handleUploadFile(file, campSchedule, scouts, (newSels, newStatuses) => {
       setSelections(newSels)
-      setDoneScouts(doneFromSelections(newSels))
+      setScoutStatuses(newStatuses)
     })
   }
 
   function handleSheetsConnect(url, initialData) {
     setSheetsUrl(url)
-    setSelections(initialData.selections ?? {})
-    setDoneScouts(doneFromSelections(initialData.selections ?? {}))
+    const raw = initialData.selections ?? {}
+    setSelections(selectionsFromData(raw))
+    setScoutStatuses(statusesFromData(raw))
     setLocks(initialData.locks ?? {})
     setScreen('select')
   }
@@ -235,7 +283,7 @@ export default function App() {
         <ScoutSelector
           scouts={scouts}
           campConfig={campConfig}
-          doneScouts={doneScouts}
+          scoutStatuses={scoutStatuses}
           selections={selections}
           locks={locks}
           deviceId={deviceId}
@@ -255,9 +303,12 @@ export default function App() {
           campSchedule={campSchedule}
           campConfig={campConfig}
           selections={selections}
+          scoutStatus={scoutStatuses[currentScout.memberId]}
           onMorningToggle={handleMorningToggle}
           onFreeTimeToggle={handleFreeTimeToggle}
-          onDone={handleDoneWithScout}
+          onSave={handleSaveScout}
+          onFinalize={handleFinalizeScout}
+          onNotAttending={handleNotAttending}
           onBack={handleBackToSelect}
         />
       )}

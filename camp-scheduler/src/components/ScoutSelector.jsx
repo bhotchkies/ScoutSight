@@ -6,7 +6,6 @@ const RANK_ORDER = [
 ]
 
 function currentRank(scout) {
-  // Find the highest completed rank
   let highest = null
   for (const rankName of RANK_ORDER) {
     if (scout.completedRanks.includes(rankName)) highest = rankName
@@ -20,8 +19,18 @@ function shortRank(fullName) {
     .replace('Eagle Scout', 'Eagle')
 }
 
+/** Returns the CSS modifier and icon for a scout's status. */
+function statusStyle(status) {
+  switch (status) {
+    case 'finalized':    return { cls: 'scout-card--finalized',    icon: '✓', iconCls: 'status-badge--finalized' }
+    case 'in_progress':  return { cls: 'scout-card--in-progress',  icon: '●', iconCls: 'status-badge--in-progress' }
+    case 'not_attending': return { cls: 'scout-card--not-attending', icon: '✕', iconCls: 'status-badge--not-attending' }
+    default:             return { cls: '', icon: null, iconCls: '' }
+  }
+}
+
 export default function ScoutSelector({
-  scouts, campConfig, doneScouts, selections,
+  scouts, campConfig, scoutStatuses, selections,
   locks, deviceId, connected,
   onSelectScout, onPrint, onDownloadJSON, onDownloadCSV, onUpload, onOpenSync
 }) {
@@ -43,9 +52,6 @@ export default function ScoutSelector({
     }
   }
 
-  // Group scouts by patrol. A scout may belong to multiple patrols (comma-separated);
-  // resolve to the single highest-priority patrol for grouping purposes.
-  // Priority: any non-special patrol > Senior > Ranger (lowest).
   function resolvePatrol(patrolStr) {
     if (!patrolStr) return 'Unassigned'
     const parts = patrolStr.split(',').map(p => p.trim()).filter(Boolean)
@@ -137,25 +143,30 @@ export default function ScoutSelector({
             <h2 className="patrol-name">{patrol}</h2>
             <div className="scout-grid">
               {members.map(({ scout, idx }) => {
-                const done   = doneScouts.has(scout.memberId)
+                const status = scoutStatuses[scout.memberId]
                 const locked = locks?.[scout.memberId] && locks[scout.memberId] !== deviceId
                 const sel    = selections[scout.memberId]
-                const morningCount = sel?.morning.length ?? 0
-                const ftCount      = sel?.freeTime.length ?? 0
+                const morningCount    = sel?.morning?.length ?? 0
+                const ftCount         = sel?.freeTime?.length ?? 0
                 const totalSelections = morningCount + ftCount
+                const { cls, icon, iconCls } = statusStyle(status)
+
                 return (
                   <button
                     key={scout.memberId}
-                    className={`scout-card ${done ? 'scout-card--done' : ''} ${locked ? 'scout-card--locked' : ''}`}
+                    className={`scout-card ${cls} ${locked ? 'scout-card--locked' : ''}`}
                     onClick={() => !locked && onSelectScout(idx)}
                     disabled={locked}
                   >
-                    {done   && <span className="done-check">✓</span>}
+                    {icon   && <span className={`status-badge ${iconCls}`}>{icon}</span>}
                     {locked && <span className="locked-badge">In use</span>}
                     <span className="scout-card-name">{scout.name}</span>
                     <span className="scout-card-rank">{shortRank(currentRank(scout))}</span>
-                    {totalSelections > 0 && (
-                      <span className="scout-card-count">
+                    {status === 'not_attending' && (
+                      <span className="scout-card-count scout-card-count--not-attending">Not Attending</span>
+                    )}
+                    {status !== 'not_attending' && totalSelections > 0 && (
+                      <span className={`scout-card-count${status ? ` scout-card-count--${status.replace('_', '-')}` : ''}`}>
                         {morningCount > 0 && `${morningCount} morning`}
                         {morningCount > 0 && ftCount > 0 && ' · '}
                         {ftCount > 0 && `${ftCount} free-time`}

@@ -152,23 +152,26 @@ function showWarnings(warnings) {
 
 // ── Downloads ────────────────────────────────────────────────
 
-export function downloadJSON(selections, scouts, campSchedule, campConfig) {
+export function downloadJSON(selections, scoutStatuses, scouts, campSchedule, campConfig) {
   const { dailyClasses, freeTimeClasses } = campSchedule
 
   const data = {
-    version:    1,
+    version:    2,
     camp:       campConfig.campName,
     exportedAt: new Date().toISOString(),
     selections: {}
   }
 
   for (const scout of scouts) {
-    const sel = selections[scout.memberId]
-    if (!sel || (sel.morning.length === 0 && sel.freeTime.length === 0)) continue
+    const sel    = selections[scout.memberId]
+    const status = scoutStatuses[scout.memberId]
+    const hasSelections = sel && (sel.morning.length > 0 || sel.freeTime.length > 0)
+    if (!hasSelections && !status) continue
 
     data.selections[scout.memberId] = {
-      name: scout.name,
-      morning: sel.morning.map(({ classIdx, sessionIdx }) => {
+      name:   scout.name,
+      status: status ?? null,
+      morning: (sel?.morning ?? []).map(({ classIdx, sessionIdx }) => {
         const dc   = dailyClasses[classIdx]
         const sess = dc.sessions[sessionIdx]
         return {
@@ -178,7 +181,7 @@ export function downloadJSON(selections, scouts, campSchedule, campConfig) {
           time:  `${sess.start}-${sess.end}`
         }
       }),
-      freeTime: sel.freeTime.map(({ ftIdx }) => {
+      freeTime: (sel?.freeTime ?? []).map(({ ftIdx }) => {
         const ft = freeTimeClasses[ftIdx]
         return { ftIdx, names: ft.meritBadges, day: ft.day }
       })
@@ -230,13 +233,16 @@ export function parseUploadedJSON(text, campSchedule) {
     throw new Error('Invalid format: missing "selections" object.')
   }
 
-  const result   = {}
-  const warnings = []
+  const selections = {}
+  const statuses   = {}
+  const warnings   = []
 
   for (const [memberId, scoutData] of Object.entries(data.selections)) {
     const morning  = []
     const freeTime = []
     const label    = scoutData.name ?? memberId
+
+    if (scoutData.status) statuses[memberId] = scoutData.status
 
     for (const entry of (scoutData.morning ?? [])) {
       const r = resolveMorning(entry, campSchedule, warnings, label)
@@ -247,19 +253,20 @@ export function parseUploadedJSON(text, campSchedule) {
       if (r) freeTime.push(r)
     }
     if (morning.length > 0 || freeTime.length > 0) {
-      result[memberId] = { morning, freeTime }
+      selections[memberId] = { morning, freeTime }
     }
   }
 
   showWarnings(warnings)
-  return result
+  return { selections, statuses }
 }
 
 export function parseUploadedCSV(text, campSchedule, scouts) {
   const scoutMap = Object.fromEntries(scouts.map(s => [s.memberId, s.name]))
   const lines    = text.trim().split(/\r?\n/)
-  const result   = {}
-  const warnings = []
+  const selections = {}
+  const statuses   = {}
+  const warnings   = []
 
   // Skip header row (line 0)
   for (let i = 1; i < lines.length; i++) {
@@ -275,30 +282,34 @@ export function parseUploadedCSV(text, campSchedule, scouts) {
     const names = namesRaw.split(' + ').map(n => n.trim()).filter(Boolean)
     const label = scoutMap[memberId] ?? memberId
 
-    if (!result[memberId]) result[memberId] = { morning: [], freeTime: [] }
+    if (!selections[memberId]) selections[memberId] = { morning: [], freeTime: [] }
 
     if (type === 'morning') {
       const r = resolveMorning({ names, time: timeOrDay }, campSchedule, warnings, label)
-      if (r) result[memberId].morning.push(r)
+      if (r) selections[memberId].morning.push(r)
     } else if (type === 'freetime') {
       const r = resolveFreeTime({ names, day: timeOrDay }, campSchedule, warnings, label)
-      if (r) result[memberId].freeTime.push(r)
+      if (r) selections[memberId].freeTime.push(r)
     }
   }
 
-  // Remove scouts with nothing resolved
-  for (const id of Object.keys(result)) {
-    const sel = result[id]
-    if (sel.morning.length === 0 && sel.freeTime.length === 0) delete result[id]
+  // Remove scouts with nothing resolved; mark remaining as in_progress
+  for (const id of Object.keys(selections)) {
+    const sel = selections[id]
+    if (sel.morning.length === 0 && sel.freeTime.length === 0) {
+      delete selections[id]
+    } else {
+      statuses[id] = 'in_progress'
+    }
   }
 
   showWarnings(warnings)
-  return result
+  return { selections, statuses }
 }
 
 /**
  * Top-level upload handler. Auto-detects JSON vs CSV by file extension,
- * falling back to content sniffing. Calls onLoad(newSelections) on success.
+ * falling back to content sniffing. Calls onLoad(newSelections, newStatuses) on success.
  */
 export function handleUploadFile(file, campSchedule, scouts, onLoad) {
   const reader = new FileReader()
@@ -308,20 +319,20 @@ export function handleUploadFile(file, campSchedule, scouts, onLoad) {
       const isJson = file.name.toLowerCase().endsWith('.json')
         || (!file.name.toLowerCase().endsWith('.csv') && text.trim().startsWith('{'))
 
-      const newSelections = isJson
+      const { selections, statuses } = isJson
         ? parseUploadedJSON(text, campSchedule)
         : parseUploadedCSV(text, campSchedule, scouts)
 
-      const count = Object.keys(newSelections).length
+      const count = Object.keys(selections).length + Object.keys(statuses).filter(id => !selections[id]).length
       if (count === 0) {
         alert('No recognizable schedule data found in the uploaded file.')
         return
       }
 
       const confirmed = window.confirm(
-        `Replace all current schedule data with selections for ${count} scout(s) from "${file.name}"?\n\nThis cannot be undone.`
+        `Replace all current schedule data with data for ${count} scout(s) from "${file.name}"?\n\nThis cannot be undone.`
       )
-      if (confirmed) onLoad(newSelections)
+      if (confirmed) onLoad(selections, statuses)
     } catch (err) {
       alert(`Failed to load file: ${err.message}`)
     }

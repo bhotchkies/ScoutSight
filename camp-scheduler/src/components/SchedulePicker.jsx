@@ -4,16 +4,13 @@ import FreeTimeClasses from './FreeTimeClasses'
 import { groupFreeTimeByBadge } from '../utils/scheduleUtils'
 
 export default function SchedulePicker({
-  scout, scouts, campSchedule, campConfig, selections,
-  onMorningToggle, onFreeTimeToggle, onDone, onBack
+  scout, scouts, campSchedule, campConfig, selections, scoutStatus,
+  onMorningToggle, onFreeTimeToggle, onSave, onFinalize, onNotAttending, onBack
 }) {
   const { dailyClasses, freeTimeClasses } = campSchedule
   const scoutSel = selections[scout.memberId] || { morning: [], freeTime: [] }
 
-  // Show all morning classes — completed ones are greyed out in the grid itself
-  const allMorning = dailyClasses.map((dc, idx) => ({ dc, idx }))
-
-  // Show all free-time groups — completed ones are greyed out in the grid itself
+  const allMorning  = dailyClasses.map((dc, idx) => ({ dc, idx }))
   const allFtGroups = groupFreeTimeByBadge(freeTimeClasses)
 
   const totalSelections = scoutSel.morning.length + scoutSel.freeTime.length
@@ -32,9 +29,29 @@ export default function SchedulePicker({
           {totalSelections > 0 && (
             <span className="selection-count">{totalSelections} selected</span>
           )}
-          <button className="btn btn-done" onClick={onDone}>
-            Done with {scout.name.split(' ')[0]} →
-          </button>
+          <div className="pick-actions">
+            <button
+              className={`btn-not-attending${scoutStatus === 'not_attending' ? ' btn-not-attending--active' : ''}`}
+              onClick={onNotAttending}
+              title="Clear selections and mark scout as not attending camp"
+            >
+              Not Attending
+            </button>
+            <button
+              className={`btn-save-sched${scoutStatus === 'in_progress' ? ' btn-save-sched--active' : ''}`}
+              onClick={onSave}
+              title="Save and return — schedule is still in progress"
+            >
+              Save
+            </button>
+            <button
+              className={`btn-finalize${scoutStatus === 'finalized' ? ' btn-finalize--active' : ''}`}
+              onClick={onFinalize}
+              title="Finalize schedule — mark as complete"
+            >
+              Finalize ✓
+            </button>
+          </div>
         </div>
       </header>
 
@@ -66,7 +83,7 @@ export default function SchedulePicker({
             {allFtGroups.length > 0 && (
               <section className="class-section">
                 <h2 className="section-heading">
-                  Afternoon Free-Time (3:45 PM)
+                  Evening Free-Time (7:00 PM)
                   <span className="section-note">Each offering runs one day; select any day</span>
                 </h2>
                 <FreeTimeClasses
