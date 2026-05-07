@@ -18,7 +18,10 @@
       "mcp__ide__getDiagnostics",
       "Skill(claude-md-management:revise-claude-md)",
       "Bash(find:*)",
-      "mcp__plugin_playwright_playwright__browser_navigate"
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\blair\\\\IdeaProjects\\\\ScoutSight\\\\camp-scheduler\\\\src\" -Recurse -File)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)"
     ]
   }
 }

@@ -1530,6 +1530,259 @@ button:disabled { cursor: not-allowed; }
 .privacy-full-link:hover { text-decoration: underline; }
 
 /* ============================================================
+   SETUP CAMP BUTTON
+   ============================================================ */
+
+.btn-io--setup {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+}
+.btn-io--setup:hover { background: rgba(255, 220, 100, 0.22); border-color: rgba(255, 220, 100, 0.5); }
+
+/* ============================================================
+   SETUP CAMP MODAL
+   ============================================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 12, 0.55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.5rem;
+  width: min(520px, 94vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  margin: 0;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.modal-label {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.modal-label-hint {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-left: 0.4rem;
+}
+
+.modal-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--text);
+  background: var(--surface-2);
+  resize: vertical;
+}
+.modal-textarea:focus { outline: none; border-color: var(--green-mid); }
+
+.modal-select {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--text);
+  background: var(--surface-2);
+  width: 100%;
+  box-sizing: border-box;
+}
+.modal-select:focus { outline: none; border-color: var(--green-mid); }
+
+.modal-choice-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.modal-choice-label {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 5.5rem;
+}
+
+.modal-select--choice { flex: 1; width: auto; }
+
+.modal-card--loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  gap: 1.25rem;
+}
+
+.modal-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--green-mid);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.modal-loading-msg {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+.btn-secondary:hover { background: var(--border); }
+
+/* ── Summary styles ─────────────────────────────────────────── */
+
+.setup-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.setup-summary p { margin: 0; }
+
+.summary-section {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-section-label {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0 0 0.2rem;
+}
+
+.summary-item { margin: 0; }
+
+.summary-warning {
+  margin-top: 0.25rem;
+  padding: 0.65rem 0.9rem;
+  background: #fff8e1;
+  border: 1px solid #f0c060;
+  border-radius: var(--radius-sm);
+  color: #7a4f00;
+  font-size: 0.88rem;
+}
+
+.summary-warning p { margin: 0 0 0.3rem; }
+
+.summary-names {
+  margin: 0.3rem 0 0 1rem;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+/* ── Per-scout debug output ──────────────────────────────────── */
+
+.summary-debug { gap: 0; }
+
+.debug-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.4rem;
+  padding-right: 0.25rem;
+}
+
+.debug-entry {
+  border-left: 2px solid var(--border);
+  padding-left: 0.65rem;
+}
+
+.debug-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin: 0 0 0.15rem;
+  color: var(--text);
+}
+
+.debug-id {
+  font-weight: 400;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.debug-status {
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.debug-note {
+  margin: 0 0 0.1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.debug-note--rank { color: var(--green-mid); }
+.debug-note--mb   { color: var(--blue-mid); }
+
+/* ============================================================
    SYNC OVERLAY — loading indicator for Sheets operations
    ============================================================ */
 

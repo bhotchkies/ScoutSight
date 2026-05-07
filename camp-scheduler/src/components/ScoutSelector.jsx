@@ -1,4 +1,5 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
+import SetupCampModal from './SetupCampModal'
 
 const RANK_ORDER = [
   'Scout Rank', 'Tenderfoot Rank', 'Second Class Rank',
@@ -30,11 +31,12 @@ function statusStyle(status) {
 }
 
 export default function ScoutSelector({
-  scouts, campConfig, scoutStatuses, selections,
+  scouts, campConfig, campSchedule, scoutStatuses, selections,
   locks, deviceId, connected,
-  onSelectScout, onPrint, onDownloadJSON, onDownloadCSV, onUpload, onOpenSync
+  onSelectScout, onPrint, onDownloadJSON, onDownloadCSV, onUpload, onOpenSync, onCampSetup
 }) {
   const fileInputRef = useRef(null)
+  const [showSetup, setShowSetup] = useState(false)
 
   const anySelections = Object.values(selections).some(
     s => s.morning.length > 0 || s.freeTime.length > 0
@@ -89,6 +91,13 @@ export default function ScoutSelector({
           >
             ← Reports
           </a>
+          <button
+            className="btn btn-io btn-io--setup"
+            onClick={() => setShowSetup(true)}
+            title="Bulk-assign attending scouts, rank classes, and merit badge choices"
+          >
+            ⚙ Setup
+          </button>
           <button
             className={`btn btn-io ${connected ? 'btn-io--live' : ''}`}
             onClick={onOpenSync}
@@ -179,6 +188,17 @@ export default function ScoutSelector({
           </section>
         ))}
       </div>
+
+      {showSetup && (
+        <SetupCampModal
+          scouts={scouts}
+          campSchedule={campSchedule}
+          selections={selections}
+          scoutStatuses={scoutStatuses}
+          onApply={(newSels, newStatuses) => onCampSetup(newSels, newStatuses)}
+          onClose={() => setShowSetup(false)}
+        />
+      )}
     </div>
   )
 }

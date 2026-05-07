@@ -255,6 +255,27 @@ export default function App() {
     })
   }
 
+  async function handleCampSetup(newSels, newStatuses) {
+    setSelections(newSels)
+    setScoutStatuses(newStatuses)
+
+    if (!sheetsUrl) return
+
+    // Write all scouts to Sheets in batches so polling doesn't overwrite local state.
+    // releaseLock writes without requiring a prior lock acquisition.
+    // Batching avoids Apps Script concurrency limits that cause silent drops.
+    const BATCH = 8
+    for (let i = 0; i < scouts.length; i += BATCH) {
+      await Promise.all(scouts.slice(i, i + BATCH).map(scout => {
+        const { memberId } = scout
+        const sel    = newSels[memberId] ?? { morning: [], freeTime: [] }
+        const status = newStatuses[memberId] ?? null
+        return sheetsReleaseLock(sheetsUrl, memberId, deviceId, sel, status)
+          .catch(e => console.warn(`Sheets write failed for ${memberId}:`, e.message))
+      }))
+    }
+  }
+
   function handleSheetsConnect(url, initialData) {
     setSheetsUrl(url)
     const raw = initialData.selections ?? {}
@@ -283,6 +304,7 @@ export default function App() {
         <ScoutSelector
           scouts={scouts}
           campConfig={campConfig}
+          campSchedule={campSchedule}
           scoutStatuses={scoutStatuses}
           selections={selections}
           locks={locks}
@@ -294,6 +316,7 @@ export default function App() {
           onDownloadCSV={handleDownloadCSV}
           onUpload={handleUpload}
           onOpenSync={() => setScreen('connect')}
+          onCampSetup={handleCampSetup}
         />
       )}
       {screen === 'pick' && (
