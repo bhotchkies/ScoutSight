@@ -10,9 +10,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class Main {
 
@@ -38,6 +41,7 @@ public class Main {
         if (adminRosterCsv != null) {
             log.println("Parsing admin roster: " + adminRosterCsv);
             Map<String, AdminRosterEntry> roster = new AdminRosterParser().parse(adminRosterCsv);
+            Set<String> matchedIds = new HashSet<>();
             int joined = 0;
             for (Scout s : scouts) {
                 AdminRosterEntry entry = roster.get(s.bsaMemberId);
@@ -50,10 +54,37 @@ public class Main {
                     s.gender      = entry.gender();
                     s.schoolInfo  = entry.schoolInfo();
                     s.positions   = entry.positions();
+                    matchedIds.add(s.bsaMemberId);
                     joined++;
                 }
             }
             log.printf("Joined admin roster data for %d/%d scouts%n%n", joined, scouts.size());
+
+            // Roster-only scouts: on the roster but with zero rows in the advancement export
+            // (e.g. brand-new Scouts who haven't completed any requirements yet). Without this,
+            // AdvancementParser's output is the sole source of the scout list and such scouts
+            // never appear anywhere in the generated reports.
+            int added = 0;
+            for (Map.Entry<String, AdminRosterEntry> e : roster.entrySet()) {
+                String bsaNum = e.getKey();
+                if (matchedIds.contains(bsaNum)) continue;
+                AdminRosterEntry entry = e.getValue();
+                Scout s = new Scout(bsaNum, entry.firstName(), "", entry.lastName(),
+                    new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+                s.patrol      = entry.patrol();
+                s.schoolGrade = entry.schoolGrade();
+                s.joinYear    = entry.joinYear();
+                s.dateJoined  = entry.dateJoined();
+                s.birthYear   = entry.birthYear();
+                s.gender      = entry.gender();
+                s.schoolInfo  = entry.schoolInfo();
+                s.positions   = entry.positions();
+                scouts.add(s);
+                added++;
+            }
+            if (added > 0) {
+                log.printf("Added %d roster-only scout(s) with no advancement data yet%n%n", added);
+            }
         }
 
         for (Scout s : scouts) {

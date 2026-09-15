@@ -52,6 +52,8 @@ public final class AdminRosterParser {
                     "BSA Number column not found in admin roster YOUTH MEMBERS section.");
             }
 
+            int firstNameIdx = findColumnIndex(header, "First Name");
+            int lastNameIdx  = findColumnIndex(header, "Last Name");
             int gradeIdx     = findColumnIndex(header, "Grade");
             int dobIdx       = findColumnIndex(header, "Date of Birth");
             int dateJoinIdx  = findColumnIndex(header, "Date Joined");
@@ -83,7 +85,9 @@ public final class AdminRosterParser {
                     get(row, dateJoinIdx).trim(),
                     get(row, genderIdx).trim(),
                     get(row, schoolIdx).trim(),
-                    get(row, positionsIdx).trim()
+                    get(row, positionsIdx).trim(),
+                    get(row, firstNameIdx).trim(),
+                    get(row, lastNameIdx).trim()
                 });
             }
         }
@@ -94,6 +98,8 @@ public final class AdminRosterParser {
             String[] f    = e.getValue();
             String patrol = String.join(", ", patrolSets.getOrDefault(bsaNum, new LinkedHashSet<>()));
             result.put(bsaNum, new AdminRosterEntry(
+                f[6],                                   // firstName
+                f[7],                                   // lastName
                 patrol,
                 RosterReportParser.parseGrade(f[0]),
                 RosterReportParser.extractYear(f[2]),   // joinYear from Date Joined

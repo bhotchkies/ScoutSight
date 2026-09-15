@@ -6,6 +6,8 @@ package org.troop600.scoutsight.parser;
  * <p>A scout may belong to multiple patrols; {@link #patrol} contains all non-blank
  * patrol names joined with {@code ", "}.
  *
+ * @param firstName   First name (empty if absent)
+ * @param lastName    Last name (empty if absent)
  * @param patrol      Patrol name(s), comma-separated if multiple (empty string if absent)
  * @param schoolGrade School grade as integer (-1 if absent/unparseable)
  * @param joinYear    4-digit year joined, e.g. {@code "2024"} (empty if absent)
@@ -16,6 +18,8 @@ package org.troop600.scoutsight.parser;
  * @param positions   Positions/tenure string, e.g. {@code "Patrol Leader [...] (5m 17d)"} (empty if absent)
  */
 public record AdminRosterEntry(
+        String firstName,
+        String lastName,
         String patrol,
         int    schoolGrade,
         String joinYear,
