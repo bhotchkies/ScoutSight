@@ -54,6 +54,7 @@ admin-console/node_modules/
 # ── Input data ────────────────────────────────────────────────────────────────
 # BSA advancement CSVs contain scout PII. Must not be committed.
 /inputdata/
+/csv/
 
 # ── Secrets ───────────────────────────────────────────────────────────────────
 # The Apps Script web app URL (admin console) is stored in browser localStorage
