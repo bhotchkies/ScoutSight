@@ -78,21 +78,55 @@ stray `announcement-editor` role stripped while `calendar-editor` and
 `pendingTypeAssignment` cleared, and `member`+`parent` added to its existing
 roles. Spot-checked 5 accounts post-write against live data — all correct.
 
-## Remaining work
+## Second and third pass (2026-09-16, same day)
 
-**87 of 164** `pendingTypeAssignment` accounts are still unresolved — no GWS
-record matched by email or `bsaMemberId`<->`scoutId`, or the matched GWS record's
-own `isYouth` is itself unset. This is a separate follow-up:
+Of the 87 initially unresolved, dug further into two subsets:
 
-- Several look like test/temp accounts (`mctestfacesrt@troop600.com`, etc.) that
-  may just need deleting rather than classifying.
-- Several matched a GWS record whose `isYouth` is blank — needs the GWS side
-  fixed (in the Google Workspace admin console) before troopOS can be resolved
-  from it.
-- The rest have no email and no `bsaMemberId` on the troopOS side at all —
-  plausibly accounts that have never logged into troop600.com, same theory as
-  issue #5's 30-row GWS-only list.
+**80 of 87 have no `sub` (Google OAuth subject ID) at all** — i.e. they have
+never completed a Google login to troop600.com. Cross-referencing their names
+(not just BSA number/email) against the full roster CSV resolved 6 more: Tanu
+Mutreja, Ariel Somppi Moore, Jonny Schultz, Lindsey Humphrey -> adult; Arjun
+Mohan, Nitin Selva -> scout. Applied via the same `userType`/`roleIds`/
+`pendingTypeAssignment` fix as the first batch (paste-and-run script, run by
+Blair). **6/6 succeeded.**
 
-roleIds mismatch checking was report-only for this pass and only covered the 32
-accounts that got fixed; it hasn't been run against the 87 unresolved ones since
-their correct `userType` isn't known yet.
+The remaining **74 no-`sub` accounts do not appear on the current roster at
+all**. Repeated family surnames (Brombaugh x3, Stirret x3, Purvis x3, Bach x3,
+McCabe x3, Zhou x2) strongly suggest these are historical/alumni-family records,
+bulk-imported at some point but never activated — not current troop members.
+**Decision: documented here, not tackled.** Out of scope for this ticket unless
+a future need arises to classify or clean up historical accounts.
+
+**7 of 87 do have a `sub`** (i.e. have actually logged in) and were resolved
+individually by naming-convention judgment, cross-checked against family
+relationships already known from issue #5's data:
+
+| Account | -> userType | Basis |
+|---|---|---|
+| Mat Rocha | adult | lastname+firstinitial email pattern; parent of Blake Rocha |
+| Connor Burchard | scout | firstname+lastinitial email pattern |
+| Blake Rocha | scout | firstname+lastinitial email pattern; child of Mat Rocha |
+| William Zhang | scout | firstname+lastinitial email pattern |
+| Anthony Wong | adult | lastname+firstinitial email pattern (GWS record's own `isYouth` was blank — a GWS-side gap, worked around here by direct judgment) |
+| Medical Forms (`medforms@troop600.com`) | **excluded** | a utility/shared mailbox, not a person |
+| Testy McTestFace Sr. (`mctestfacesrt@troop600.com`) | **excluded** | an obvious test account |
+
+Applied the 5 real accounts via the same fix pattern. **5/5 succeeded.**
+
+## Final tally
+
+**88 of 164** `pendingTypeAssignment` accounts resolved and written this session
+(77 + 6 + 5). **2 accounts** (`medforms`, `mctestfacesrt`) identified as
+non-person utility/test accounts and deliberately excluded — not classified
+either way, left as-is. **74 accounts** documented as likely stale/alumni-family
+records (no login ever, not on current roster) and deliberately **not tackled**
+— out of scope for this ticket.
+
+164 - 88 - 2 - 74 = 0. Every `pendingTypeAssignment` account as of this session
+has been reviewed and either resolved, excluded as a non-person account, or
+explicitly deferred as out-of-scope historical data — none were silently
+skipped.
+
+roleIds mismatch checking (adult-exclusive role stripping) was applied to all
+37 scout-bound accounts across all three passes (32 + 2 + 3), not just the
+first batch. 51 accounts were confirmed adult (45 + 4 + 2).
