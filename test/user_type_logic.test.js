@@ -78,4 +78,35 @@ assert.deepStrictEqual(UT.roleMismatchesForScout(misclassifiedScout, exclusive).
 var cleanScout = { roleIds: ['member', 'calendar-editor'] };
 assert.deepStrictEqual(UT.roleMismatchesForScout(cleanScout, exclusive), []);
 
+// ---- indexGwsUsers / classifyPendingUserByGws -----------------------------------
+// This is the classification path that actually matters in practice: troopOS's own
+// scout.bsaMemberId is populated on only ~5 of 164 pendingTypeAssignment accounts
+// (confirmed against live data), so the roster-CSV path above resolves almost
+// nothing. GWS's isYouth, joined by email (or bsaMemberId<->scoutId as a fallback
+// for troopOS accounts with no email on file), resolves the large majority instead.
+var gwsUsers = [
+  { email: 'arinp@troop600.com', isYouth: true, scoutId: '14042724' },
+  { email: 'doug@troop600.com', isYouth: false, scoutId: '12067811' },
+  { email: 'unset@troop600.com', isYouth: '', scoutId: '' },
+  { email: 'noemailscout@troop600.com', isYouth: true, scoutId: '99999999' }
+];
+var gwsIndex = UT.indexGwsUsers(gwsUsers);
+
+var byEmailScout = UT.classifyPendingUserByGws({ email: 'arinp@troop600.com', scout: {} }, gwsIndex);
+assert.strictEqual(byEmailScout.userType, 'scout');
+assert.strictEqual(byEmailScout.matchedBy, 'email');
+
+var byEmailAdult = UT.classifyPendingUserByGws({ email: 'DOUG@troop600.com', scout: {} }, gwsIndex);
+assert.strictEqual(byEmailAdult.userType, 'adult'); // email match is case-insensitive
+
+var byBsaFallback = UT.classifyPendingUserByGws({ email: '', scout: { bsaMemberId: '099999999' } }, gwsIndex);
+assert.strictEqual(byBsaFallback.userType, 'scout');
+assert.strictEqual(byBsaFallback.matchedBy, 'bsaMemberId<->scoutId');
+
+var unsetIsYouth = UT.classifyPendingUserByGws({ email: 'unset@troop600.com', scout: {} }, gwsIndex);
+assert.strictEqual(unsetIsYouth.userType, null);
+
+var noGwsMatch = UT.classifyPendingUserByGws({ email: 'ghost@troop600.com', scout: {} }, gwsIndex);
+assert.strictEqual(noGwsMatch.userType, null);
+
 console.log('user_type_logic.test.js: all assertions passed');

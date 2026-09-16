@@ -132,6 +132,43 @@ function classifyPendingUser(user, roster) {
 }
 
 /**
+ * Indexes a GWS Directory export (admin.html's own `?action=listUsers` shape:
+ * [{email, isYouth, scoutId}, ...]) by email and by scoutId, for use by
+ * classifyPendingUserByGws below.
+ */
+function indexGwsUsers(gwsUsers) {
+  var byEmail = new Map();
+  var byScoutId = new Map();
+  (gwsUsers || []).forEach(function (u) {
+    if (u.email) byEmail.set(String(u.email).toLowerCase(), u);
+    if (u.scoutId) byScoutId.set(String(u.scoutId), u);
+  });
+  return { byEmail: byEmail, byScoutId: byScoutId };
+}
+
+/**
+ * Classifies one pendingTypeAssignment troopOS user against GWS Directory data
+ * (the "raw Google user" record, distinct from troopOS's own bespoke user table
+ * — see docs/relationships-reconciliation-2026-09-16.md for why troopOS's own
+ * scout.bsaMemberId is too sparse to use alone). Matches by email first (the key
+ * both systems share), falling back to bsaMemberId <-> GWS scoutId for troopOS
+ * accounts that have no email on file. Trusts GWS's isYouth flag as ground truth;
+ * returns null (needs manual review) if isYouth itself is unset on the matched
+ * GWS record, or if no GWS record matches at all — never guesses.
+ */
+function classifyPendingUserByGws(user, gwsIndex) {
+  var email = user && user.email;
+  var bsa = user && user.scout && user.scout.bsaMemberId;
+  var gwsUser = null, matchedBy = null;
+  if (email) { gwsUser = gwsIndex.byEmail.get(String(email).toLowerCase()); if (gwsUser) matchedBy = 'email'; }
+  if (!gwsUser && bsa) { gwsUser = gwsIndex.byScoutId.get(normalizeBsaNumber(bsa)) || gwsIndex.byScoutId.get(String(bsa)); if (gwsUser) matchedBy = 'bsaMemberId<->scoutId'; }
+  if (!gwsUser) return { userType: null, reason: 'no matching GWS user by email or bsaMemberId — needs manual review' };
+  if (gwsUser.isYouth === true) return { userType: 'scout', reason: 'GWS isYouth=true, matched by ' + matchedBy, matchedBy: matchedBy, gwsEmail: gwsUser.email };
+  if (gwsUser.isYouth === false) return { userType: 'adult', reason: 'GWS isYouth=false, matched by ' + matchedBy, matchedBy: matchedBy, gwsEmail: gwsUser.email };
+  return { userType: null, reason: 'matched GWS user (' + matchedBy + ') but its isYouth field is unset — needs manual review', matchedBy: matchedBy, gwsEmail: gwsUser.email };
+}
+
+/**
  * Computes roleIds that appear only on already-correctly-typed adults and never on
  * already-correctly-typed scouts, from live troopOS data (not hardcoded) — so a
  * newly-classified scout account can be checked for leftover adult-only roles.
@@ -164,6 +201,8 @@ module.exports = {
   parseRosterRows: parseRosterRows,
   parseRosterCsv: parseRosterCsv,
   classifyPendingUser: classifyPendingUser,
+  indexGwsUsers: indexGwsUsers,
+  classifyPendingUserByGws: classifyPendingUserByGws,
   computeAdultExclusiveRoles: computeAdultExclusiveRoles,
   roleMismatchesForScout: roleMismatchesForScout
 };
