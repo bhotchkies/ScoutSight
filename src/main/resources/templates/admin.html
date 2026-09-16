@@ -1939,7 +1939,7 @@
         var show = allUsers.length ? '' : 'none';
         document.getElementById('filter-status-group').style.display = show;
         document.getElementById('filter-match-group').style.display  = rosterIndex ? show : 'none';
-        arRender();
+        arRenderLists();
         renderPatrolsPage();
         forwardingData = forwardingData && typeof forwardingData === 'object' ? forwardingData : null;
       })
@@ -3938,12 +3938,16 @@
    */
   function arApplyAuthGate() {
     var canRead = hasTrooposPermission('relationships:read');
+    // Keep the tab reachable until a token has actually been saved and shown to lack
+    // relationships:read — otherwise there's no way to navigate to the tab's own JWT
+    // paste box to get read access in the first place.
+    var showTab = canRead || !trooposAuth;
     arCanWrite = hasTrooposPermission('relationships:manage') || hasTrooposPermission('relationships:verify');
     var sidebarBtn = document.querySelector('.sidebar-item[onclick*="assign-relationships"]');
-    if (sidebarBtn) sidebarBtn.style.display = canRead ? '' : 'none';
+    if (sidebarBtn) sidebarBtn.style.display = showTab ? '' : 'none';
     var overviewCard = document.getElementById('ov-card-assign-relationships');
-    if (overviewCard) overviewCard.style.display = canRead ? '' : 'none';
-    if (!canRead) {
+    if (overviewCard) overviewCard.style.display = showTab ? '' : 'none';
+    if (!showTab) {
       var panel = document.getElementById('panel-assign-relationships');
       if (panel && panel.classList.contains('active')) showPanelById('panel-overview');
     }
