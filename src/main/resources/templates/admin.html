@@ -4225,34 +4225,110 @@
   }
 
   /**
-   * Applies staged add/remove changes to the in-memory relationships list and clears
-   * pending state. Does NOT call troopOS's write API yet — POST/DELETE against
-   * /private/tables/relationships lands in a later ticket. Changes made here are lost
-   * on tab reload/reopen until that write path exists.
+   * Writes staged add/remove changes to troopOS, one sequential POST/DELETE per
+   * change (not a single batch call) so a partial failure is visible per-change,
+   * matching the progress pattern used by updateSelected() for the GWS tab. Changes
+   * that fail stay staged so they can be retried; changes that succeed are dropped
+   * from the pending lists. After all calls settle, re-fetches
+   * /private/tables/relationships to confirm what actually landed.
    */
-  function arSaveChanges() {
+  async function arSaveChanges() {
     var total = arPendingAdd.length + arPendingRemove.length;
     if (!total || !arCanWrite) return;
 
-    arPendingAdd.forEach(function(pa) {
-      arRelationships.push({
-        relationshipId: pa.adultId + '#' + pa.scoutId,
-        adultId: pa.adultId,
-        scoutId: pa.scoutId,
-        kind: 'parent',
-        verified: true
-      });
-    });
-    arPendingRemove.forEach(function(pr) {
-      arRelationships = arRelationships.filter(function(r) {
-        return !(r.adultId === pr.adultId && r.scoutId === pr.scoutId);
-      });
-    });
-    arPendingAdd    = [];
-    arPendingRemove = [];
+    var token = getTrooposToken();
+    var statusEl = document.getElementById('ar-status');
+    if (!token) {
+      if (statusEl) { statusEl.textContent = 'No valid troopOS session token — paste one above.'; statusEl.className = 'ar-status-msg'; }
+      return;
+    }
+    var troopId = trooposAuth && trooposAuth.payload ? trooposAuth.payload.troopId : null;
+
+    var saveBtn = document.getElementById('ar-save-btn');
+    var headers = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
+    var adds    = arPendingAdd.slice();
+    var removes = arPendingRemove.slice();
+    var succeededAdd    = {};  // adultId#scoutId -> true, for pairs the await loop below confirmed written
+    var succeededRemove = {};
+    var errors = [];
+    var done = 0;
+
+    function pairKey(p) { return p.adultId + '#' + p.scoutId; }
+
+    function setProgress() {
+      if (!saveBtn) return;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving ' + done + ' / ' + total + '…';
+    }
+    setProgress();
+
+    for (var i = 0; i < adds.length; i++) {
+      var pa = adds[i];
+      try {
+        var rAdd = await fetch(TROOPOS_BASE + '/private/tables/relationships', {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            troopId: troopId,
+            relationshipId: pa.adultId + '#' + pa.scoutId,
+            adultId: pa.adultId,
+            scoutId: pa.scoutId,
+            kind: 'parent',
+            verified: true
+          })
+        });
+        if (!rAdd.ok) throw new Error('HTTP ' + rAdd.status);
+        succeededAdd[pairKey(pa)] = true;
+      } catch (ex) {
+        errors.push('Add ' + pa.adultId + '→' + pa.scoutId + ': ' + ex.message);
+      }
+      done++;
+      setProgress();
+    }
+
+    for (var j = 0; j < removes.length; j++) {
+      var pr = removes[j];
+      try {
+        var rRemove = await fetch(TROOPOS_BASE + '/private/tables/relationships', {
+          method: 'DELETE',
+          headers: headers,
+          body: JSON.stringify({ relationshipId: pr.adultId + '#' + pr.scoutId })
+        });
+        if (!rRemove.ok) throw new Error('HTTP ' + rRemove.status);
+        succeededRemove[pairKey(pr)] = true;
+      } catch (ex) {
+        errors.push('Remove ' + pr.adultId + '→' + pr.scoutId + ': ' + ex.message);
+      }
+      done++;
+      setProgress();
+    }
+
+    // Filter the *current* pending lists (not the pre-loop snapshot) so any relationship
+    // staged while these awaits were in flight is preserved rather than silently dropped.
+    arPendingAdd    = arPendingAdd.filter(function(pa) { return !succeededAdd[pairKey(pa)]; });
+    arPendingRemove = arPendingRemove.filter(function(pr) { return !succeededRemove[pairKey(pr)]; });
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+    if (errors.length) {
+      alert('Completed with ' + errors.length + ' error(s):\n\n' + errors.join('\n'));
+    }
+
+    var refetchError = null;
+    try {
+      var rGet = await fetch(TROOPOS_BASE + '/private/tables/relationships', { headers: { Authorization: 'Bearer ' + token } });
+      if (!rGet.ok) throw new Error('HTTP ' + rGet.status);
+      arRelationships = await rGet.json();
+    } catch (ex) {
+      refetchError = ex.message;
+    }
+
     arRenderLists();
     arDrawLines();
     arUpdateToolbar();
+    if (refetchError && statusEl) {
+      statusEl.textContent = 'Save completed, but re-fetching relationships failed: ' + refetchError;
+      statusEl.className = 'ar-status-msg';
+    }
   }
 
   /**
