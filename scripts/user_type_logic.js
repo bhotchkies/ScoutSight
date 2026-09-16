@@ -6,31 +6,28 @@
 // dateOfBirth/joinDate, which troopOS leaves at 0 for both adults and scouts.
 'use strict';
 
-/** Splits one CSV line into fields, honoring double-quoted fields with embedded commas/quotes. */
+/**
+ * Splits one CSV line into fields, honoring double-quoted fields with embedded
+ * commas/escaped quotes. Ported verbatim from admin.html's parseCsvLine
+ * (src/main/resources/templates/admin.html:3098) — same input format, proven
+ * against the real BSA roster export. Unlike that version, this one does NOT
+ * trim fields, because parseRosterCsv below needs the untrimmed leading cell
+ * to distinguish a quoted-space section marker (`" "` -> `' '`) from an
+ * unquoted empty continuation-row cell (`''`) — trimming would make them
+ * indistinguishable, which is exactly the bug admin.html's comment warns about.
+ */
 function parseCsvLine(line) {
-  var fields = [];
-  var cur = '';
-  var inQuotes = false;
+  var cells = [], cell = '', inQ = false;
   for (var i = 0; i < line.length; i++) {
-    var ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (line[i + 1] === '"') { cur += '"'; i++; }
-        else { inQuotes = false; }
-      } else {
-        cur += ch;
-      }
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ',') {
-      fields.push(cur);
-      cur = '';
-    } else {
-      cur += ch;
-    }
+    var c = line[i];
+    if (c === '"') {
+      if (inQ && line[i + 1] === '"') { cell += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) { cells.push(cell); cell = ''; }
+    else cell += c;
   }
-  fields.push(cur);
-  return fields.map(function (f) { return f.trim(); });
+  cells.push(cell);
+  return cells;
 }
 
 /** Strips whitespace/quotes/leading-zero-agnostic formatting from a BSA number for comparison. */
@@ -39,31 +36,83 @@ function normalizeBsaNumber(raw) {
 }
 
 /**
- * Parses the roster CSV's two sections into BSA-number sets.
- * Section markers are single-cell rows reading "ADULT MEMBERS" / "YOUTH MEMBERS";
- * each section's next row is its column header, used to locate "BSA Number".
+ * Case-insensitive lookup of a field in a roster row object, mirroring
+ * admin.html's findField (src/main/resources/templates/admin.html:3113).
  */
-function parseRosterCsv(csvText) {
-  var lines = csvText.split(/\r?\n/).filter(function (l) { return l.trim().length > 0; });
-  var adultBsaNumbers = new Set();
-  var youthBsaNumbers = new Set();
-  var currentSet = null;
-  var bsaColIndex = -1;
+function findField(obj, names) {
+  for (var k in obj) {
+    if (k === '_section') continue;
+    if (names.indexOf(k.toLowerCase().trim()) !== -1) return obj[k];
+  }
+  return null;
+}
+
+/**
+ * Parses the multi-section BSA Full Troop Roster CSV into row objects tagged
+ * with their section name. Algorithm ported from admin.html's parseRosterCsv
+ * (src/main/resources/templates/admin.html:3132) — see that function's comment
+ * for the section-marker-vs-continuation-row distinction this relies on.
+ * Skips DEN CHIEF MEMBERS sections, same as admin.html.
+ */
+function parseRosterRows(text) {
+  if (!text || !text.trim()) return [];
+  var lines = text.split(/\r?\n/);
+  var section = '';
+  var headers = null;
+  var rows = [];
+  var skipSection = false;
 
   for (var i = 0; i < lines.length; i++) {
-    var fields = parseCsvLine(lines[i]);
-    var joined = fields.join(',');
-    if (/ADULT MEMBERS/i.test(joined)) { currentSet = adultBsaNumbers; bsaColIndex = -1; continue; }
-    if (/YOUTH MEMBERS/i.test(joined)) { currentSet = youthBsaNumbers; bsaColIndex = -1; continue; }
-    if (!currentSet) continue;
-    if (bsaColIndex === -1) {
-      // This is the header row for the current section.
-      bsaColIndex = fields.findIndex(function (f) { return f.toLowerCase() === 'bsa number'; });
-      continue;
+    var line = lines[i];
+    if (!line.trim()) continue;
+    var cells = parseCsvLine(line);
+    if (!cells.length) continue;
+    var first = cells[0].trim();
+
+    if (cells[0] === ' ') {
+      var isColHeader = cells.some(function (c) {
+        var cl = c.trim().toLowerCase();
+        return cl === 'first name' || cl === 'last name' || cl === 'email';
+      });
+      if (isColHeader) {
+        headers = cells.slice(1).map(function (c) { return c.trim(); });
+      } else {
+        var sName = (cells[1] || '').trim();
+        skipSection = sName.toUpperCase().indexOf('DEN CHIEF') !== -1;
+        section = sName;
+        headers = null;
+      }
+    } else if (!skipSection && headers && /^\d+$/.test(first)) {
+      var dataCells = cells.slice(1);
+      var obj = { _section: section };
+      headers.forEach(function (h, idx) {
+        obj[h] = (dataCells[idx] || '').trim();
+      });
+      rows.push(obj);
     }
-    var bsa = fields[bsaColIndex];
-    if (bsa) currentSet.add(normalizeBsaNumber(bsa));
   }
+
+  return rows;
+}
+
+/**
+ * Buckets the roster CSV's rows into adult/youth BSA-number sets by section
+ * name. Any section other than ADULT MEMBERS / YOUTH MEMBERS (e.g. a skipped
+ * DEN CHIEF MEMBERS section) contributes to neither set.
+ */
+function parseRosterCsv(csvText) {
+  var rows = parseRosterRows(csvText);
+  var adultBsaNumbers = new Set();
+  var youthBsaNumbers = new Set();
+
+  rows.forEach(function (row) {
+    var bsa = findField(row, ['bsa number']);
+    if (!bsa) return;
+    var norm = normalizeBsaNumber(bsa);
+    var section = (row._section || '').toUpperCase();
+    if (section.indexOf('ADULT') !== -1) adultBsaNumbers.add(norm);
+    else if (section.indexOf('YOUTH') !== -1) youthBsaNumbers.add(norm);
+  });
 
   return { adultBsaNumbers: adultBsaNumbers, youthBsaNumbers: youthBsaNumbers };
 }
@@ -86,6 +135,8 @@ function classifyPendingUser(user, roster) {
  * Computes roleIds that appear only on already-correctly-typed adults and never on
  * already-correctly-typed scouts, from live troopOS data (not hardcoded) — so a
  * newly-classified scout account can be checked for leftover adult-only roles.
+ * `roleIds` as the field name is confirmed by both a live /private/tables/users
+ * sample and docs/troopos-admin-api.md's PUT /private/tables/users body shape.
  */
 function computeAdultExclusiveRoles(allUsers) {
   var scoutRoles = new Set();
@@ -109,6 +160,8 @@ function roleMismatchesForScout(user, adultExclusiveRoles) {
 module.exports = {
   parseCsvLine: parseCsvLine,
   normalizeBsaNumber: normalizeBsaNumber,
+  findField: findField,
+  parseRosterRows: parseRosterRows,
   parseRosterCsv: parseRosterCsv,
   classifyPendingUser: classifyPendingUser,
   computeAdultExclusiveRoles: computeAdultExclusiveRoles,

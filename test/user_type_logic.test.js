@@ -6,9 +6,13 @@ var assert = require('assert');
 var UT = require('../scripts/user_type_logic.js');
 
 // ---- parseCsvLine -----------------------------------------------------------
+// Does NOT trim (unlike a naive CSV splitter) — parseRosterCsv relies on the
+// untrimmed leading cell to distinguish a quoted-space section marker (`" "`)
+// from an unquoted empty continuation-row cell (`''`).
 assert.deepStrictEqual(UT.parseCsvLine('a,b,c'), ['a', 'b', 'c']);
 assert.deepStrictEqual(UT.parseCsvLine('"a, with comma",b,"c ""quoted"""'), ['a, with comma', 'b', 'c "quoted"']);
-assert.deepStrictEqual(UT.parseCsvLine(' " " ,ADULT MEMBERS'), ['', 'ADULT MEMBERS']);
+assert.deepStrictEqual(UT.parseCsvLine('" ",ADULT MEMBERS'), [' ', 'ADULT MEMBERS']);
+assert.deepStrictEqual(UT.parseCsvLine(',,,,"Parent Name"'), ['', '', '', '', 'Parent Name']);
 
 // ---- normalizeBsaNumber -------------------------------------------------------
 assert.strictEqual(UT.normalizeBsaNumber('"014042724"'), '14042724');
@@ -20,10 +24,14 @@ var rosterCsv = [
   '" ",ADULT MEMBERS',
   '" ","First Name","Last Name","Email","BSA Number","Unit Number"',
   '"1","Douglas","Burchard","doug@example.com","12067811","Troop 600 B"',
+  ',,,,"Continuation Parent Name",,', // continuation row: unquoted empty first cell, not a section marker
   '" ","YOUTH MEMBERS"',
   '" ","First Name","Last Name","Rank","BSA Number","Date of Birth"',
   '"1","Arin","Patel","Second Class","14042724","06/04/2014"',
-  '"2","Noah","Byrne","Scout","014550098","01/01/2013"'
+  '"2","Noah","Byrne","Scout","014550098","01/01/2013"',
+  '" ","DEN CHIEF MEMBERS"',
+  '" ","First Name","Last Name","Rank","BSA Number","Date of Birth"',
+  '"1","Skipped","DenChief","Star Scout","99999999","01/01/2010"'
 ].join('\n');
 
 var roster = UT.parseRosterCsv(rosterCsv);
@@ -31,6 +39,9 @@ assert.strictEqual(roster.adultBsaNumbers.has('12067811'), true);
 assert.strictEqual(roster.adultBsaNumbers.has('14042724'), false);
 assert.strictEqual(roster.youthBsaNumbers.has('14042724'), true);
 assert.strictEqual(roster.youthBsaNumbers.has('14550098'), true); // leading zero normalized away
+// DEN CHIEF MEMBERS is skipped, same as admin.html's parser — not counted in either set.
+assert.strictEqual(roster.youthBsaNumbers.has('99999999'), false);
+assert.strictEqual(roster.adultBsaNumbers.has('99999999'), false);
 
 // ---- classifyPendingUser -------------------------------------------------------
 var scoutAccount = { email: 'arinp@troop600.com', scout: { bsaMemberId: '14042724' } };
