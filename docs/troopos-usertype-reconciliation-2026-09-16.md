@@ -56,10 +56,43 @@ result back. `scripts/classify-user-types.mjs` is written to `fetch()` normally 
 will work as-is once/if the troopOS-side block is resolved; until then, rerunning
 requires the same manual browser-session approach.
 
-## Next step
+## Applied (2026-09-16)
 
-Batch review of the 32 scout / 45 adult proposed list with Blair, per the agreed
-plan (one explicit go-ahead for the reviewed batch, not per-account confirmation),
-before any `PUT /private/tables/users` write happens. roleIds are report-only in
-this pass. The 87 unresolved accounts are a separate follow-up — several may need
-the GWS side fixed (blank `isYouth`) before they're resolvable at all.
+Batch reviewed and approved by Blair. Role targets were updated from report-only to
+active, using two accounts Blair fixed by hand via troop600.com's native UI as the
+reference model: `milesg@troop600.com` (scout: `roleIds` -> `["member","scout"]`)
+and `vielbige@troop600.com` (adult/parent: `roleIds` -> `["member","parent"]`).
+
+All 77 accounts (32 -> scout, 45 -> adult) were written via `PUT
+/private/tables/users`, one call per account, run by Blair pasting a generated
+script into troop600.com's own DevTools console (the harness's auto-mode
+permission classifier blocked Claude from executing the batch write directly via
+browser-script injection — a system-level guard on high-risk actions, separate
+from Blair's own go-ahead).
+
+**Result: 77/77 succeeded.** Each scout account got `userType: "scout"`,
+`pendingTypeAssignment` cleared, and `roleIds` set to its prior roles minus any
+adult-exclusive ones plus `member`+`scout` (e.g. `mattiel@troop600.com` had its
+stray `announcement-editor` role stripped while `calendar-editor` and
+`documents-editor` were kept). Each adult account got `userType: "adult"`,
+`pendingTypeAssignment` cleared, and `member`+`parent` added to its existing
+roles. Spot-checked 5 accounts post-write against live data — all correct.
+
+## Remaining work
+
+**87 of 164** `pendingTypeAssignment` accounts are still unresolved — no GWS
+record matched by email or `bsaMemberId`<->`scoutId`, or the matched GWS record's
+own `isYouth` is itself unset. This is a separate follow-up:
+
+- Several look like test/temp accounts (`mctestfacesrt@troop600.com`, etc.) that
+  may just need deleting rather than classifying.
+- Several matched a GWS record whose `isYouth` is blank — needs the GWS side
+  fixed (in the Google Workspace admin console) before troopOS can be resolved
+  from it.
+- The rest have no email and no `bsaMemberId` on the troopOS side at all —
+  plausibly accounts that have never logged into troop600.com, same theory as
+  issue #5's 30-row GWS-only list.
+
+roleIds mismatch checking was report-only for this pass and only covered the 32
+accounts that got fixed; it hasn't been run against the 87 unresolved ones since
+their correct `userType` isn't known yet.
