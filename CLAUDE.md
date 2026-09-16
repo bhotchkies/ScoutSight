@@ -294,3 +294,13 @@ secondary aliases show as "missing" and fail with "already exists" when synced.
 ## Documentation
 Create concise JavaDoc for any file that you touch. It should be to the point, and aimed at senior developers to understand the main point of the code.
 
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on bhotchkies/ScoutSight (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (neither exists yet — created lazily on first use). See `docs/agents/domain.md`.
+
