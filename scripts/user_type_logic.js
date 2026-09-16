@@ -194,6 +194,34 @@ function roleMismatchesForScout(user, adultExclusiveRoles) {
   return (user.roleIds || []).filter(function (r) { return adultExclusiveRoles.has(r); });
 }
 
+/**
+ * Computes the roleIds a newly-classified scout account should end up with:
+ * current roleIds, minus any adult-exclusive ones, plus the baseline
+ * ["member", "scout"] — modeled on milesg@troop600.com (id 118), whose roleIds
+ * Blair set by hand via troop600.com's native UI as the reference example.
+ * Preserves any other roles the account already had (e.g. "calendar-editor").
+ */
+function targetRoleIdsForScout(currentRoleIds, adultExclusiveRoles) {
+  var kept = (currentRoleIds || []).filter(function (r) { return !adultExclusiveRoles.has(r); });
+  var result = new Set(kept);
+  result.add('member');
+  result.add('scout');
+  return Array.from(result);
+}
+
+/**
+ * Computes the roleIds a newly-classified adult account should end up with:
+ * current roleIds plus the baseline ["member", "parent"] — modeled on
+ * vielbige@troop600.com (id 144) as the reference example. Preserves any other
+ * roles the account already had (e.g. "admin", "adult-leader").
+ */
+function targetRoleIdsForAdult(currentRoleIds) {
+  var result = new Set(currentRoleIds || []);
+  result.add('member');
+  result.add('parent');
+  return Array.from(result);
+}
+
 module.exports = {
   parseCsvLine: parseCsvLine,
   normalizeBsaNumber: normalizeBsaNumber,
@@ -204,5 +232,7 @@ module.exports = {
   indexGwsUsers: indexGwsUsers,
   classifyPendingUserByGws: classifyPendingUserByGws,
   computeAdultExclusiveRoles: computeAdultExclusiveRoles,
-  roleMismatchesForScout: roleMismatchesForScout
+  roleMismatchesForScout: roleMismatchesForScout,
+  targetRoleIdsForScout: targetRoleIdsForScout,
+  targetRoleIdsForAdult: targetRoleIdsForAdult
 };

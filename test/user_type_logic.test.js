@@ -109,4 +109,21 @@ assert.strictEqual(unsetIsYouth.userType, null);
 var noGwsMatch = UT.classifyPendingUserByGws({ email: 'ghost@troop600.com', scout: {} }, gwsIndex);
 assert.strictEqual(noGwsMatch.userType, null);
 
+// ---- targetRoleIdsForScout / targetRoleIdsForAdult -------------------------------
+// Modeled on milesg@troop600.com (scout: ["member","scout"]) and
+// vielbige@troop600.com (adult/parent: ["member","parent"]) — the reference
+// accounts Blair set by hand via troop600.com's native UI.
+var adultExclusive = new Set(['admin', 'adult-leader', 'parent', 'announcement-editor']);
+
+assert.deepStrictEqual(UT.targetRoleIdsForScout([], adultExclusive).sort(), ['member', 'scout']);
+assert.deepStrictEqual(UT.targetRoleIdsForScout(['calendar-editor'], adultExclusive).sort(), ['calendar-editor', 'member', 'scout']);
+// Adult-exclusive roles left over from being misclassified get stripped.
+assert.deepStrictEqual(UT.targetRoleIdsForScout(['announcement-editor'], adultExclusive).sort(), ['member', 'scout']);
+// Already-correct baseline is idempotent, not duplicated.
+assert.deepStrictEqual(UT.targetRoleIdsForScout(['member', 'scout'], adultExclusive).sort(), ['member', 'scout']);
+
+assert.deepStrictEqual(UT.targetRoleIdsForAdult([]).sort(), ['member', 'parent']);
+assert.deepStrictEqual(UT.targetRoleIdsForAdult(['admin', 'adult-leader']).sort(), ['admin', 'adult-leader', 'member', 'parent']);
+assert.deepStrictEqual(UT.targetRoleIdsForAdult(['member', 'parent']).sort(), ['member', 'parent']);
+
 console.log('user_type_logic.test.js: all assertions passed');
