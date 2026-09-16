@@ -773,6 +773,30 @@
         <div class="cp-sub">Link parent and scout Google Workspace accounts &middot; troop600.com</div>
       </div>
 
+      <!-- troopOS auth gate: session token paste + decode/exp check. The Relationships
+           tab's data/actions above are still GWS-backed (later tickets swap the backend);
+           this section only stores the token and exposes permission checks for those tickets. -->
+      <div class="ar-auth-gate">
+        <div class="connect-label">troopOS Session Token</div>
+        <div class="connect-hint">
+          Copy this from your own logged-in troop600.com session, then paste it below.
+          Saved locally in your browser &mdash; not sent anywhere except directly to
+          troopOS API calls. Re-paste it here whenever it expires.
+          <ol style="margin:.4rem 0 0 1.1rem; padding:0;">
+            <li>Open <strong>troop600.com</strong> in another tab and make sure you're logged in.</li>
+            <li>Open DevTools (<strong>F12</strong>) &rarr; <strong>Application</strong> tab &rarr;
+                <strong>Local Storage</strong> &rarr; <code>https://troop600.com</code>.</li>
+            <li>Find the row with key <code>jwt</code> and copy its value.</li>
+          </ol>
+        </div>
+        <div class="connect-row">
+          <input type="text" class="connect-url-input" id="troopos-jwt-input"
+                 aria-label="troopOS session token" placeholder="Paste JWT&hellip;" />
+          <button class="btn-primary" onclick="saveTrooposJwt()">Save</button>
+        </div>
+        <div class="connect-status" id="troopos-jwt-status">No troopOS session token saved yet.</div>
+      </div>
+
       <div class="ar-toolbar">
         <div class="ar-status-msg" id="ar-status">Load users to view relationships.</div>
         <div style="display:flex;gap:.5rem;align-items:center;">
@@ -1061,6 +1085,101 @@
     document.getElementById('filter-match-group').style.display  = 'none';
     // Re-show setup on Unmatched Users since URL is now gone
     updateUmSetupVisibility();
+  }
+
+  // ── troopOS auth gate ────────────────────────────────────────────────────
+  // Manual-paste session JWT for troopOS API calls. Decoded client-side (no crypto
+  // library — base64 split/decode + JSON.parse) to check expiry and expose the
+  // permissions array for later tickets to gate the troopOS-backed Relationships tab.
+
+  var TROOPOS_JWT_KEY = 'scoutsight_troopos_jwt';
+  var trooposAuth = null; // { token, payload, permissions, expired } | null when nothing saved
+
+  function decodeJwtPayload(token) {
+    var parts = token.split('.');
+    if (parts.length < 2) return null;
+    try {
+      var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      var json = decodeURIComponent(atob(b64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(json);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** Re-reads the stored token, decodes it once, and refreshes the settings UI. */
+  function refreshTrooposAuth() {
+    var token = localStorage.getItem(TROOPOS_JWT_KEY);
+    if (!token) {
+      trooposAuth = null;
+      updateTrooposAuthUI();
+      return;
+    }
+    var payload = decodeJwtPayload(token);
+    if (!payload) {
+      trooposAuth = { token: token, payload: null, permissions: [], expired: true };
+      updateTrooposAuthUI();
+      return;
+    }
+    var expired = !payload.exp || (payload.exp * 1000) < Date.now();
+    trooposAuth = {
+      token: token,
+      payload: payload,
+      permissions: Array.isArray(payload.permissions) ? payload.permissions : [],
+      expired: expired
+    };
+    updateTrooposAuthUI();
+  }
+
+  /** Raw bearer token for `Authorization: Bearer <token>` on troopOS API calls, or null if missing/expired. */
+  function getTrooposToken() {
+    if (!trooposAuth || trooposAuth.expired) return null;
+    return trooposAuth.token;
+  }
+
+  /** Checks a single decoded troopOS permission (e.g. 'relationships:read') without re-decoding. */
+  function hasTrooposPermission(perm) {
+    if (!trooposAuth || trooposAuth.expired) return false;
+    return trooposAuth.permissions.indexOf(perm) !== -1;
+  }
+
+  function saveTrooposJwt() {
+    var input = document.getElementById('troopos-jwt-input');
+    var val = input.value.trim();
+    if (val) {
+      localStorage.setItem(TROOPOS_JWT_KEY, val);
+    } else {
+      localStorage.removeItem(TROOPOS_JWT_KEY);
+    }
+    refreshTrooposAuth();
+  }
+
+  // Renders token state (missing/expired/valid) plus a stub permission summary — later
+  // tickets gate the actual tab/write actions on hasTrooposPermission() instead of this text.
+  function updateTrooposAuthUI() {
+    var status = document.getElementById('troopos-jwt-status');
+    var input  = document.getElementById('troopos-jwt-input');
+    if (!status) return;
+
+    if (!trooposAuth) {
+      status.textContent = 'No troopOS session token saved yet.';
+      status.className = 'connect-status';
+      return;
+    }
+    if (trooposAuth.expired) {
+      status.textContent = 'Token expired — please re-paste your troop600.com session token.';
+      status.className = 'connect-status err';
+      return;
+    }
+    var perms = ['relationships:read', 'relationships:manage', 'relationships:verify'];
+    var summary = perms.map(function(p) {
+      return p + ' ' + (hasTrooposPermission(p) ? '✓' : '✗');
+    }).join('  ·  ');
+    status.textContent = 'Token valid — ' + summary;
+    status.className = 'connect-status ok';
+    if (input && document.activeElement !== input) input.value = trooposAuth.token;
   }
 
   // ── Email forwarding ─────────────────────────────────────────────────────
@@ -1723,6 +1842,9 @@
 
     // Auto-load if a URL is already configured
     if (saved) loadUsers();
+
+    // troopOS session token: decode/exp-check whatever is already stored
+    refreshTrooposAuth();
   })();
 
   // ── Fetch users ───────────────────────────────────────────────────────────
