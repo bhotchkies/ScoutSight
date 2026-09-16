@@ -57,12 +57,25 @@ Fuzzy-matched each missing local-part against all 197 troopOS emails — no like
 typos found; these look genuinely absent rather than misspelled, pending
 confirmation from Blair on the troop600 side.
 
-## Known troop600-side issue (Blair investigating, as of 2026-09-16)
+## Known troop600-side issue (Blair's hypothesis, as of 2026-09-16, unconfirmed)
 
-Blair reported having found a likely root cause on the troop600 side for some/all of
-the above. Not yet documented here — update this section once confirmed, and rerun
-`scripts/relationships-dryrun.mjs` against a fresh GWS export + live troopOS data to
-see how the 30-row list changes.
+troop600.com likely has two separate user stores: the Google Workspace user records
+(every account, whether or not they've ever visited troop600.com) and a second,
+bespoke table (`/private/tables/users`, probably backed by a relational DB) that
+troopOS's relationships feature actually reads from. Working theory: a row in the
+bespoke table only gets created the first time a user logs into troop600.com itself
+— so any adult/scout who's never done that has a GWS account but no troopOS user
+row, which is exactly what a "not found in troopOS users" failure looks like.
+
+This fits the data: several of the 30 rows are missing on *both* sides of the pair
+(8, 28, 37, 48, 61, 65) — whole households that apparently never used troop600.com
+directly, rather than scattered individual typos.
+
+Not verifiable from this repo (troopOS's backend isn't part of ScoutSight). Suggested
+test: have one missing-row family (e.g. row 8) log into troop600.com once, then
+rerun `scripts/relationships-dryrun.mjs` against the same GWS export — if their row
+stops failing, the theory is confirmed and the fix for most/all of the 30 is
+"get these families to log in," not a data migration.
 
 ## How to rerun
 
