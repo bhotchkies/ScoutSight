@@ -27,6 +27,10 @@ role-specific endpoint — it PUTs the whole user record.
   - `userType`: `"scout" | "adult"` (from the dropdown)
   - `pendingTypeAssignment`: set to `false` once a type is chosen, otherwise left as-is
   - all other existing user fields spread through unchanged
+- **Delete a user:** `DELETE /private/users/{id}` (id as a path param, no body) —
+  confirmed live 2026-09-17. Does **not** follow the generic table-client
+  convention below; `DELETE /private/tables/users` with `{id}` in the body 400s
+  with `{"error":"use_users_delete_endpoint"}`.
 
 Note in the UI: role changes require the user to log out/in before they take effect
 (roles are presumably baked into the JWT).

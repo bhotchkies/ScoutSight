@@ -146,6 +146,36 @@ GWS/roster match, GWS `isYouth` unset, or believed stale/alumni/non-person
 accounts) plus the 3 held-back duplicates/test accounts. Not tackled this
 session.
 
+## Cleanup: deleting confirmed-stale accounts (2026-09-17, same day)
+
+Of the 83 unresolved, 70 had zero GWS match at all ("no matching GWS user by
+email or bsaMemberId"), vs. 13 that matched a GWS record with `isYouth` merely
+unset (a GWS data gap, not a missing person). Cross-checked the 70 (minus
+`mctestfacesrt@troop600.com`, kept as the intentional test account) against the
+current roster CSV by both full name and BSA member number — **all 69 matched
+neither**, confirming Blair's recollection that these are old alumni/departed
+members, not current troop data.
+
+Deleted via a new `scripts/generate-delete-batch.mjs` (paste-and-run in
+troop600.com's DevTools console, same pattern as the write batches). Discovered
+along the way that user deletion does **not** follow the generic table-client
+convention documented in `docs/troopos-admin-api.md`
+(`DELETE /private/tables/users` with `{id}` in the body — this 400s with
+`{"error":"use_users_delete_endpoint"}`); the real endpoint is
+`DELETE /private/users/{id}` (id as a path param, no body). Updated the script
+accordingly — `docs/troopos-admin-api.md` should be corrected too next time
+someone's in there.
+
+One name collision: "Blake Rocha" matched two troopOS records — id `188`, an
+empty `pendingTypeAssignment` stub (blank `sub`/`email`), and id `201`, the
+real already-classified scout account. Only `188` was targeted; `201` was left
+untouched.
+
+**Result: 66/69 deleted successfully.** 3 came back `404 user_not_found`
+(Thomas Cong id `12`, Forest Lin id `23`, Matthew Bach id `8`) — since the goal
+was their absence from troopOS, "already doesn't exist" satisfies it either
+way, no further action taken.
+
 | Account | -> userType | Basis |
 |---|---|---|
 | Mat Rocha | adult | lastname+firstinitial email pattern; parent of Blake Rocha |
