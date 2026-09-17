@@ -176,6 +176,40 @@ untouched.
 was their absence from troopOS, "already doesn't exist" satisfies it either
 way, no further action taken.
 
+## Follow-up candidates found while cross-checking (not acted on)
+
+While confirming the 69 deletions, also checked the 16 troopOS accounts (post-
+deletion) that have no matching GWS record at all. Unlike the deleted batch,
+none of these are `pendingTypeAssignment` — they're already-classified
+accounts, so a mismatch here doesn't necessarily mean stale. Cross-checked
+each by name (and personal email where the name string didn't literally
+match) against the current roster CSV:
+
+**Confirmed current (7):** Vincent Humphrey (id 101), Emily Dong (167), Tanu
+Mutreja (175), Arjun Mohan (191), Nitin Selva (193), Jonny Schultz (34), Ariel
+Somppi Moore (184 — roster lists her as "Ariel Moore", matched via personal
+email `asomppi@gmail.com`).
+
+**No roster match, not investigated further (9):**
+
+| id | Name | Note |
+|---|---|---|
+| 108 | Mary Pyrah | Same pattern as Alex/Ian Pyrah, already deleted this session |
+| 187 | Mat Rocha | Has a live Google `sub` — no Rocha family at all on the current roster, despite being confirmed real in the first session (2026-09-16) by name-pattern judgment |
+| 11 | Connor Burchard | No `sub`; a separate, already-correctly-classified `connorb@troop600.com` (id 199) exists for the real Connor Burchard — this looks like a leftover duplicate, not a person to delete casually |
+| 110 | Michelle Sevier | No Sevier family on roster at all |
+| 111 | Alex Shogren | No Shogren family on roster at all |
+| 139 | Karen Shogren | Same — no Shogren family |
+| 14 | Nicolas Davila | Same surname as two already-deleted stale Davila accounts |
+| 19 | Logan Laurance | No Laurance family on roster |
+| 207 | William Zhang | Has a live Google `sub`; roster has Yonggang/Jinghao/Zixi/Ziyi Zhang but no William — possibly a stale/renamed duplicate |
+
+**Not deleted or written this session** — several of these (Mat Rocha,
+Connor Burchard id 11, William Zhang) have a live Google `sub`, meaning
+someone has actually logged into that account; deleting a logged-in account
+is a bigger deal than the inert pending stubs handled above and needs manual
+review, not a batch script. Left as-is pending Blair's decision.
+
 | Account | -> userType | Basis |
 |---|---|---|
 | Mat Rocha | adult | lastname+firstinitial email pattern; parent of Blake Rocha |
