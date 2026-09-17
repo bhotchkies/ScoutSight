@@ -25,6 +25,15 @@
 // Usage:
 //   TROOPOS_TOKEN=<session token from admin.html/troop600.com> \
 //     node scripts/classify-user-types.mjs path/to/gws_users.json [path/to/roster.csv]
+//
+// If the /private/tables/users fetch 403s from Node (troop600.com's CloudFront/WAF
+// blocks scripted requests — see docs/troopos-usertype-reconciliation-2026-09-16.md),
+// pull it from a real browser session instead, same as the GWS export:
+//   copy(JSON.stringify(await fetch('/private/tables/users', {headers: {Authorization:
+//     'Bearer ' + localStorage.getItem('jwt')}}).then(r => r.json())))
+// run in troop600.com's own DevTools console, then pass the saved file via
+// --users-file (this skips the network fetch and TROOPOS_TOKEN entirely):
+//   node scripts/classify-user-types.mjs path/to/gws_users.json [path/to/roster.csv] --users-file path/to/troopos_users.json
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -35,14 +44,16 @@ const {
 } = require('./user_type_logic.js');
 
 const TROOPOS_BASE = 'https://troop600.com';
-const token = process.env.TROOPOS_TOKEN;
-if (!token) { console.error('Set TROOPOS_TOKEN env var'); process.exit(1); }
 
 const fs = await import('node:fs');
-const gwsPath = process.argv[2];
-const rosterPath = process.argv[3];
+const rawArgs = process.argv.slice(2);
+const usersFileFlagIdx = rawArgs.indexOf('--users-file');
+const usersFilePath = usersFileFlagIdx !== -1 ? rawArgs[usersFileFlagIdx + 1] : null;
+const positional = rawArgs.filter((a, i) => i !== usersFileFlagIdx && i !== usersFileFlagIdx + 1);
+const gwsPath = positional[0];
+const rosterPath = positional[1];
 if (!gwsPath) {
-  console.error('Usage: TROOPOS_TOKEN=... node scripts/classify-user-types.mjs <gws-users-json> [roster-csv-path]');
+  console.error('Usage: TROOPOS_TOKEN=... node scripts/classify-user-types.mjs <gws-users-json> [roster-csv-path] [--users-file <troopos-users-json>]');
   process.exit(1);
 }
 
@@ -52,13 +63,21 @@ console.error(`GWS data loaded: ${gwsIndex.byEmail.size} by email, ${gwsIndex.by
 const roster = rosterPath ? parseRosterCsv(fs.readFileSync(rosterPath, 'utf8')) : null;
 if (roster) console.error(`Roster loaded (fallback): ${roster.adultBsaNumbers.size} adult BSA numbers, ${roster.youthBsaNumbers.size} youth BSA numbers.`);
 
-const headers = { Authorization: 'Bearer ' + token };
-const usersResp = await fetch(TROOPOS_BASE + '/private/tables/users', { headers });
-if (!usersResp.ok) {
-  console.error('users fetch failed', usersResp.status, await usersResp.text());
-  process.exit(1);
+let users;
+if (usersFilePath) {
+  users = JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
+  console.error(`troopOS users loaded from file: ${users.length} users.`);
+} else {
+  const token = process.env.TROOPOS_TOKEN;
+  if (!token) { console.error('Set TROOPOS_TOKEN env var (or pass --users-file)'); process.exit(1); }
+  const headers = { Authorization: 'Bearer ' + token };
+  const usersResp = await fetch(TROOPOS_BASE + '/private/tables/users', { headers });
+  if (!usersResp.ok) {
+    console.error('users fetch failed', usersResp.status, await usersResp.text());
+    process.exit(1);
+  }
+  users = await usersResp.json();
 }
-const users = await usersResp.json();
 
 const pending = users.filter(u => u.pendingTypeAssignment);
 const adultExclusiveRoles = computeAdultExclusiveRoles(users);
